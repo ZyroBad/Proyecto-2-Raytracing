@@ -27,6 +27,7 @@ La escena representa dos estatuas enfrentadas sobre un valle rocoso, con rio cen
 | Cascada | Franjas de espuma | Celeste | Alta | 0.35 | 0.22 |
 | Espuma | Burbujas procedurales | Blanco celeste | Media | 0.18 | 0.10 |
 | Musgo | Manchas organicas | Verde musgo | Baja | 0.00 | 0.00 |
+| Sendero | Grava procedural | Cafe claro | Baja | 0.00 | 0.01 |
 
 ## Ejecutar
 

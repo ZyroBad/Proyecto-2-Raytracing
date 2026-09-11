@@ -151,6 +151,7 @@ enum MaterialKind {
     Waterfall,
     Foam,
     Moss,
+    Trail,
 }
 
 #[derive(Clone, Copy)]
@@ -203,6 +204,10 @@ impl Material {
             MaterialKind::Moss => {
                 let patch = noise(p * 4.0) * 0.2;
                 Color::new(0.10 + patch * 0.2, 0.31 + patch, 0.11)
+            }
+            MaterialKind::Trail => {
+                let gravel = noise(p * 9.0) * 0.18 + checker * 0.05;
+                Color::new(0.48 + gravel, 0.39 + gravel * 0.6, 0.25 + gravel * 0.35)
             }
         }
         .clamp01()
@@ -444,7 +449,7 @@ fn render_to_file(scene: &Scene, cfg: &Config, frame: usize, path: &str) -> std:
     let angle = cfg
         .angle_deg
         .map(|a| a.to_radians())
-        .unwrap_or(t * 2.0 * PI + PI * 0.25);
+        .unwrap_or(t * 2.0 * PI + PI * 0.5);
     let zoom_wave = (t * 2.0 * PI).sin() * 0.18;
     let radius = (24.0 - zoom_wave * 7.0) / cfg.zoom.max(0.35);
     let camera_pos = Vec3::new(
@@ -707,17 +712,19 @@ fn intersect_cube(ray: Ray, cube: Cube) -> Option<(f32, Vec3)> {
 
 fn skybox(dir: Vec3) -> Color {
     let t = (dir.y * 0.5 + 0.5).clamp(0.0, 1.0);
-    let horizon = Color::new(0.95, 0.55, 0.32);
-    let zenith = Color::new(0.12, 0.23, 0.52);
+    let horizon = Color::new(1.00, 0.54, 0.27);
+    let zenith = Color::new(0.08, 0.18, 0.42);
     let mut color = horizon * (1.0 - t) + zenith * t;
 
-    let sun_dir = Vec3::new(-0.45, 0.58, -0.68).normalized();
+    let sun_dir = Vec3::new(-0.25, 0.40, -0.88).normalized();
     let sun = dir.dot(sun_dir).max(0.0).powf(320.0);
-    color += Color::new(1.0, 0.72, 0.35) * sun;
+    let glow = dir.dot(sun_dir).max(0.0).powf(18.0);
+    color += Color::new(1.0, 0.78, 0.38) * sun;
+    color += Color::new(0.65, 0.24, 0.16) * glow * 0.35;
 
     let cloud = ((dir.x * 18.0 + dir.z * 11.0).sin() * 0.5 + 0.5)
         * (1.0 - (dir.y - 0.25).abs() * 4.0).max(0.0);
-    color += Color::new(0.30, 0.24, 0.18) * cloud * 0.25;
+    color += Color::new(0.46, 0.35, 0.30) * cloud * 0.20;
     color.clamp01()
 }
 
@@ -795,6 +802,14 @@ fn build_scene() -> Scene {
             reflectivity: 0.0,
             refractive_index: 1.0,
         },
+        Material {
+            kind: MaterialKind::Trail,
+            albedo: Color::new(0.50, 0.39, 0.24),
+            specular: 0.06,
+            transparency: 0.0,
+            reflectivity: 0.01,
+            refractive_index: 1.0,
+        },
     ];
 
     let mut scene = Scene {
@@ -823,10 +838,11 @@ fn build_valley(scene: &mut Scene) {
     );
     add_cube(
         scene,
-        Vec3::new(-3.0, 0.08, -8.7),
-        Vec3::new(3.0, 0.28, 8.7),
+        Vec3::new(-3.6, 0.08, -8.7),
+        Vec3::new(3.6, 0.28, 8.7),
         3,
     );
+    add_trail_stones(scene);
     add_cube(
         scene,
         Vec3::new(-1.0, 0.25, -8.8),
@@ -834,11 +850,12 @@ fn build_valley(scene: &mut Scene) {
         6,
     );
     add_water_details(scene);
+    add_back_wall(scene);
 
     add_cliff(scene, -8.0);
     add_cliff(scene, 8.0);
-    add_statue(scene, Vec3::new(-6.0, 0.35, -1.8), 1.0);
-    add_statue(scene, Vec3::new(6.0, 0.35, 1.8), -1.0);
+    add_statue(scene, Vec3::new(-6.4, 0.35, -1.9), 1.0);
+    add_statue(scene, Vec3::new(6.4, 0.35, 1.9), -1.0);
 
     for x in [-10.0, -7.0, 8.0, 10.0, -4.0, 4.0] {
         for z in [-6.0, 6.0] {
@@ -887,6 +904,55 @@ fn add_water_details(scene: &mut Scene) {
     );
 }
 
+fn add_back_wall(scene: &mut Scene) {
+    add_cube(
+        scene,
+        Vec3::new(-4.4, 0.0, -9.45),
+        Vec3::new(4.4, 5.0, -8.95),
+        1,
+    );
+    add_cube(
+        scene,
+        Vec3::new(-6.0, 0.0, -9.20),
+        Vec3::new(-3.6, 3.5, -8.70),
+        1,
+    );
+    add_cube(
+        scene,
+        Vec3::new(3.6, 0.0, -9.20),
+        Vec3::new(6.0, 3.5, -8.70),
+        1,
+    );
+    add_cube(
+        scene,
+        Vec3::new(-2.4, 4.45, -9.60),
+        Vec3::new(2.4, 5.15, -8.85),
+        0,
+    );
+    for x in [-3.6, -2.4, 2.4, 3.6] {
+        add_moss_patch(scene, Vec3::new(x, 5.17, -9.10));
+    }
+}
+
+fn add_trail_stones(scene: &mut Scene) {
+    for z in [-5.2, -3.6, 3.6, 5.2] {
+        add_cube(
+            scene,
+            Vec3::new(-1.05, 0.34, z),
+            Vec3::new(1.05, 0.43, z + 0.72),
+            9,
+        );
+    }
+    for z in [-1.6, 1.35] {
+        add_cube(
+            scene,
+            Vec3::new(-1.55, 0.34, z),
+            Vec3::new(1.55, 0.45, z + 0.42),
+            7,
+        );
+    }
+}
+
 fn add_cliff(scene: &mut Scene, x_center: f32) {
     for y in 0..5 {
         let h = y as f32;
@@ -905,81 +971,93 @@ fn add_statue(scene: &mut Scene, base: Vec3, facing: f32) {
     let detail = 1;
     add_cube(
         scene,
-        base + Vec3::new(-1.45, -0.05, -1.10),
-        base + Vec3::new(1.45, 0.20, 1.10),
+        base + Vec3::new(-1.85, -0.08, -1.35),
+        base + Vec3::new(1.85, 0.20, 1.35),
         detail,
     );
     add_cube(
         scene,
-        base + Vec3::new(-1.20, 0.20, -0.95),
-        base + Vec3::new(1.20, 0.45, 0.95),
+        base + Vec3::new(-1.45, 0.20, -1.05),
+        base + Vec3::new(1.45, 0.52, 1.05),
         stone,
     );
     add_cube(
         scene,
-        base + Vec3::new(-1.0, 0.0, -0.8),
-        base + Vec3::new(1.0, 1.2, 0.8),
+        base + Vec3::new(-1.15, 0.40, -0.85),
+        base + Vec3::new(1.15, 1.55, 0.85),
         stone,
     );
     add_cube(
         scene,
-        base + Vec3::new(-0.65, 1.2, -0.45),
-        base + Vec3::new(0.65, 3.9, 0.45),
+        base + Vec3::new(-0.78, 1.55, -0.52),
+        base + Vec3::new(0.78, 4.45, 0.52),
         stone,
     );
     add_cube(
         scene,
-        base + Vec3::new(-0.8, 3.9, -0.65),
-        base + Vec3::new(0.8, 5.1, 0.65),
+        base + Vec3::new(-1.15, 3.85, -0.72),
+        base + Vec3::new(1.15, 5.25, 0.72),
         stone,
     );
     add_cube(
         scene,
-        base + Vec3::new(-0.95, 5.1, -0.75),
-        base + Vec3::new(0.95, 6.1, 0.75),
+        base + Vec3::new(-1.02, 5.25, -0.78),
+        base + Vec3::new(1.02, 6.25, 0.78),
         stone,
     );
     add_cube(
         scene,
-        base + Vec3::new(-0.55, 6.1, -0.45),
-        base + Vec3::new(0.55, 7.0, 0.45),
+        base + Vec3::new(-0.62, 6.25, -0.50),
+        base + Vec3::new(0.62, 7.25, 0.50),
         stone,
     );
-    let face_x = facing * 0.58;
     add_cube(
         scene,
-        base + Vec3::new(face_x - 0.08, 6.45, -0.30),
-        base + Vec3::new(face_x + 0.08, 6.58, -0.10),
+        base + Vec3::new(-1.65, 4.20, -0.55),
+        base + Vec3::new(-1.00, 5.15, 0.55),
+        stone,
+    );
+    add_cube(
+        scene,
+        base + Vec3::new(1.00, 4.20, -0.55),
+        base + Vec3::new(1.65, 5.15, 0.55),
+        stone,
+    );
+    let face_x = facing * 0.66;
+    add_cube(
+        scene,
+        base + Vec3::new(face_x - 0.08, 6.68, -0.30),
+        base + Vec3::new(face_x + 0.08, 6.83, -0.10),
         detail,
     );
     add_cube(
         scene,
-        base + Vec3::new(face_x - 0.08, 6.45, 0.10),
-        base + Vec3::new(face_x + 0.08, 6.58, 0.30),
+        base + Vec3::new(face_x - 0.08, 6.68, 0.10),
+        base + Vec3::new(face_x + 0.08, 6.83, 0.30),
         detail,
     );
     add_cube(
         scene,
-        base + Vec3::new(face_x - 0.10, 6.18, -0.08),
-        base + Vec3::new(face_x + 0.10, 6.35, 0.08),
+        base + Vec3::new(face_x - 0.10, 6.38, -0.08),
+        base + Vec3::new(face_x + 0.10, 6.58, 0.08),
         stone,
     );
     add_cube(
         scene,
-        base + Vec3::new(face_x - 0.09, 6.92, -0.42),
-        base + Vec3::new(face_x + 0.09, 7.08, 0.42),
+        base + Vec3::new(face_x - 0.09, 7.15, -0.42),
+        base + Vec3::new(face_x + 0.09, 7.32, 0.42),
         detail,
     );
     add_cube(
         scene,
-        base + Vec3::new(-1.8, 3.2, -0.35),
-        base + Vec3::new(-0.65, 3.9, 0.35),
+        base + Vec3::new(-2.05, 3.25, -0.38),
+        base + Vec3::new(-0.80, 4.05, 0.38),
         stone,
     );
     add_cube(
         scene,
-        base + Vec3::new(0.65, 3.2, -0.35),
-        base + Vec3::new(1.8, 3.9, 0.35),
+        base + Vec3::new(0.80, 3.25, -0.38),
+        base + Vec3::new(2.05, 4.05, 0.38),
         stone,
     );
     add_cube(
@@ -996,20 +1074,26 @@ fn add_statue(scene: &mut Scene, base: Vec3, facing: f32) {
     );
     add_cube(
         scene,
-        base + Vec3::new(-0.7, 7.0, -0.5),
-        base + Vec3::new(0.7, 7.65, 0.5),
+        base + Vec3::new(-0.78, 7.25, -0.56),
+        base + Vec3::new(0.78, 7.95, 0.56),
         stone,
     );
     add_cube(
         scene,
-        base + Vec3::new(-0.35, 7.65, -0.3),
-        base + Vec3::new(0.35, 8.1, 0.3),
+        base + Vec3::new(-0.42, 7.95, -0.34),
+        base + Vec3::new(0.42, 8.45, 0.34),
         stone,
     );
     add_cube(
         scene,
-        base + Vec3::new(-0.18, 8.1, -0.16),
-        base + Vec3::new(0.18, 8.42, 0.16),
+        base + Vec3::new(-0.22, 8.45, -0.20),
+        base + Vec3::new(0.22, 8.85, 0.20),
+        detail,
+    );
+    add_cube(
+        scene,
+        base + Vec3::new(-0.95, 7.75, -0.70),
+        base + Vec3::new(0.95, 8.05, -0.48),
         detail,
     );
 }
