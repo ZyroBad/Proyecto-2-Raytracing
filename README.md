@@ -1,0 +1,62 @@
+# Valle del Fin Raytracing
+
+Diorama voxel inspirado en el Valle del Fin de Naruto, renderizado con raytracing en Rust puro, sin librerias externas.
+
+La escena representa dos estatuas enfrentadas sobre un valle rocoso, con rio central, cascada, puente, arboles y cielo de atardecer. Todo el diorama esta construido con cubos texturizados proceduralmente.
+
+## Requerimientos cubiertos
+
+- Diorama con cubos texturizados.
+- Raytracing implementado desde cero en Rust.
+- Camara orbital con acercamiento y alejamiento durante la animacion.
+- Skybox procedural con degradado, sol y nubes.
+- Reflexion en agua, cascada y roca oscura.
+- Refraccion en agua y cascada.
+- Mas de cinco materiales con textura propia y parametros de albedo, specular, transparencia y reflectividad.
+
+## Materiales
+
+| Material | Textura | Albedo | Specular | Transparencia | Reflectividad |
+| --- | --- | --- | --- | --- | --- |
+| Piedra de estatua | Ruido y vetas | Gris claro | Media | 0.00 | 0.05 |
+| Roca oscura | Grietas procedurales | Gris oscuro | Media | 0.00 | 0.12 |
+| Pasto | Cuadricula verde | Verde | Baja | 0.00 | 0.00 |
+| Agua | Ondas procedurales | Azul | Alta | 0.55 | 0.35 |
+| Madera | Vetado procedural | Cafe | Baja | 0.00 | 0.03 |
+| Hojas | Ruido vegetal | Verde oscuro | Baja | 0.00 | 0.00 |
+| Cascada | Franjas de espuma | Celeste | Alta | 0.35 | 0.22 |
+
+## Ejecutar
+
+Render rapido de prueba:
+
+```bash
+cargo run --release -- --width 160 --height 90 --output renders/test.ppm
+```
+
+Render recomendado para imagen final:
+
+```bash
+cargo run --release -- --width 640 --height 360 --output renders/valle_del_fin.ppm
+```
+
+Generar frames para video:
+
+```bash
+cargo run --release -- --width 480 --height 270 --frames 120 --animate
+```
+
+## Opciones
+
+```text
+--width N       ancho del render, default 480
+--height N      alto del render, default 270
+--frame N       frame individual para camara orbital
+--frames N      cantidad de frames para animacion
+--animate       renderiza todos los frames en frames/
+--output PATH   salida PPM para un frame
+```
+
+## Video
+
+Agregar aqui el video del diorama cuando este subido al README de GitHub.

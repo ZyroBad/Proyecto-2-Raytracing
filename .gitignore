@@ -1,0 +1,7 @@
+/target/
+/frames/
+/renders/
+*.ppm
+*.mp4
+*.avi
+*.mov
