@@ -5,7 +5,7 @@ use std::io::{self, BufWriter, Write};
 use std::path::Path;
 
 const EPSILON: f32 = 0.001;
-const MAX_DEPTH: u32 = 3;
+const DEFAULT_MAX_DEPTH: u32 = 3;
 
 #[derive(Clone, Copy, Debug, Default)]
 struct Vec3 {
@@ -276,8 +276,11 @@ struct Config {
     frames: usize,
     animate: bool,
     interactive: bool,
+    summary: bool,
     angle_deg: Option<f32>,
     zoom: f32,
+    samples_per_axis: usize,
+    max_depth: u32,
     output: String,
 }
 
@@ -290,8 +293,11 @@ impl Config {
             frames: 120,
             animate: false,
             interactive: false,
+            summary: false,
             angle_deg: None,
             zoom: 1.0,
+            samples_per_axis: 2,
+            max_depth: DEFAULT_MAX_DEPTH,
             output: "renders/valle_del_fin.ppm".to_string(),
         };
 
@@ -317,6 +323,7 @@ impl Config {
                 }
                 "--animate" => cfg.animate = true,
                 "--interactive" => cfg.interactive = true,
+                "--summary" => cfg.summary = true,
                 "--angle" => {
                     i += 1;
                     cfg.angle_deg = Some(parse_or(&args, i, 45.0));
@@ -324,6 +331,14 @@ impl Config {
                 "--zoom" => {
                     i += 1;
                     cfg.zoom = parse_or(&args, i, cfg.zoom);
+                }
+                "--samples" => {
+                    i += 1;
+                    cfg.samples_per_axis = parse_or(&args, i, cfg.samples_per_axis).clamp(1, 4);
+                }
+                "--depth" => {
+                    i += 1;
+                    cfg.max_depth = parse_or(&args, i, cfg.max_depth).clamp(1, 6);
                 }
                 "--output" | "-o" => {
                     i += 1;
@@ -358,8 +373,11 @@ fn print_help() {
     println!("  --frames N      cantidad de frames para animacion");
     println!("  --animate       renderiza todos los frames en frames/");
     println!("  --interactive   modo consola para ajustar camara y renderizar previews");
+    println!("  --summary       imprime resumen de escena sin renderizar");
     println!("  --angle N       angulo manual de camara en grados");
     println!("  --zoom N        zoom manual, mayor acerca la camara");
+    println!("  --samples N     muestras por eje, 1 rapido, 2 default, 4 fino");
+    println!("  --depth N       rebotes maximos de raytracing, default 3");
     println!("  --output PATH   salida PPM para un frame");
 }
 
@@ -367,7 +385,9 @@ fn main() -> std::io::Result<()> {
     let cfg = Config::from_args();
     let scene = build_scene();
 
-    if cfg.interactive {
+    if cfg.summary {
+        print_scene_summary(&scene);
+    } else if cfg.interactive {
         run_interactive(&scene, cfg)?;
     } else if cfg.animate {
         create_dir_all("frames")?;
@@ -382,6 +402,13 @@ fn main() -> std::io::Result<()> {
     }
 
     Ok(())
+}
+
+fn print_scene_summary(scene: &Scene) {
+    println!("Resumen de escena");
+    println!("Cubos: {}", scene.cubes.len());
+    println!("Materiales: {}", scene.materials.len());
+    println!("Efectos: sombras, specular, reflexion, refraccion y skybox procedural");
 }
 
 fn run_interactive(scene: &Scene, mut cfg: Config) -> std::io::Result<()> {
@@ -464,14 +491,17 @@ fn render_to_file(scene: &Scene, cfg: &Config, frame: usize, path: &str) -> std:
     for y in 0..cfg.height {
         for x in 0..cfg.width {
             let mut color = Color::default();
-            for sy in 0..2 {
-                for sx in 0..2 {
-                    let u = (x as f32 + (sx as f32 + 0.5) * 0.5) / (cfg.width - 1) as f32;
-                    let v = 1.0 - (y as f32 + (sy as f32 + 0.5) * 0.5) / (cfg.height - 1) as f32;
-                    color += trace(scene, camera.ray(u, v), 0);
+            let samples = cfg.samples_per_axis;
+            let inv_samples = 1.0 / samples as f32;
+            for sy in 0..samples {
+                for sx in 0..samples {
+                    let u = (x as f32 + (sx as f32 + 0.5) * inv_samples) / (cfg.width - 1) as f32;
+                    let v = 1.0
+                        - (y as f32 + (sy as f32 + 0.5) * inv_samples) / (cfg.height - 1) as f32;
+                    color += trace(scene, camera.ray(u, v), 0, cfg.max_depth);
                 }
             }
-            color = color / 4.0;
+            color = color / (samples * samples) as f32;
             color = Color::new(color.x.sqrt(), color.y.sqrt(), color.z.sqrt()).clamp01();
             pixels[y * cfg.width + x] = color;
         }
@@ -548,19 +578,19 @@ fn save_bmp(path: &str, width: usize, height: usize, pixels: &[Color]) -> std::i
     Ok(())
 }
 
-fn trace(scene: &Scene, ray: Ray, depth: u32) -> Color {
-    if depth >= MAX_DEPTH {
+fn trace(scene: &Scene, ray: Ray, depth: u32, max_depth: u32) -> Color {
+    if depth >= max_depth {
         return skybox(ray.direction);
     }
 
     if let Some(hit) = intersect_scene(scene, ray) {
-        shade(scene, ray, hit, depth)
+        shade(scene, ray, hit, depth, max_depth)
     } else {
         skybox(ray.direction)
     }
 }
 
-fn shade(scene: &Scene, ray: Ray, hit: Hit, depth: u32) -> Color {
+fn shade(scene: &Scene, ray: Ray, hit: Hit, depth: u32, max_depth: u32) -> Color {
     let view_dir = -ray.direction;
     let light_dir = -scene.light_dir.normalized();
     let base = hit.material.texture(hit.point, hit.normal);
@@ -590,6 +620,7 @@ fn shade(scene: &Scene, ray: Ray, hit: Hit, depth: u32) -> Color {
                 direction: reflected,
             },
             depth + 1,
+            max_depth,
         );
         color =
             color * (1.0 - hit.material.reflectivity) + reflected_color * hit.material.reflectivity;
@@ -614,6 +645,7 @@ fn shade(scene: &Scene, ray: Ray, hit: Hit, depth: u32) -> Color {
                 direction: refracted.normalized(),
             },
             depth + 1,
+            max_depth,
         );
         color =
             color * (1.0 - hit.material.transparency) + refracted_color * hit.material.transparency;

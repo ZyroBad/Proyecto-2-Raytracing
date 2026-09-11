@@ -34,25 +34,25 @@ La escena representa dos estatuas enfrentadas sobre un valle rocoso, con rio cen
 Render rapido de prueba:
 
 ```bash
-cargo run --release -- --width 160 --height 90 --output renders/test.ppm
+cargo run --release -- --width 160 --height 90 --samples 1 --depth 2 --output renders/test.ppm
 ```
 
 Render recomendado para imagen final:
 
 ```bash
-cargo run --release -- --width 640 --height 360 --output renders/valle_del_fin.ppm
+cargo run --release -- --width 640 --height 360 --samples 2 --depth 3 --output renders/valle_del_fin.ppm
 ```
 
 Render BMP para abrirlo facilmente en Windows:
 
 ```bash
-cargo run --release -- --width 640 --height 360 --output renders/valle_del_fin.bmp
+cargo run --release -- --width 640 --height 360 --samples 2 --depth 3 --output renders/valle_del_fin.bmp
 ```
 
 Mover la camara manualmente:
 
 ```bash
-cargo run --release -- --angle 45 --zoom 1.2 --width 480 --height 270 --output renders/camara_manual.bmp
+cargo run --release -- --angle 90 --zoom 1.35 --width 480 --height 270 --samples 2 --depth 3 --output renders/camara_manual.bmp
 ```
 
 Modo interactivo por consola:
@@ -72,7 +72,13 @@ Controles del modo interactivo:
 Generar frames para video:
 
 ```bash
-cargo run --release -- --width 480 --height 270 --frames 120 --animate
+cargo run --release -- --width 480 --height 270 --samples 1 --depth 3 --frames 120 --animate
+```
+
+Ver resumen de escena:
+
+```bash
+cargo run --release -- --summary
 ```
 
 ## Opciones
@@ -84,8 +90,11 @@ cargo run --release -- --width 480 --height 270 --frames 120 --animate
 --frames N      cantidad de frames para animacion
 --animate       renderiza todos los frames en frames/
 --interactive   modo consola para ajustar camara y renderizar previews
+--summary       imprime resumen de escena sin renderizar
 --angle N       angulo manual de camara en grados
 --zoom N        zoom manual, mayor acerca la camara
+--samples N     muestras por eje, 1 rapido, 2 default, 4 fino
+--depth N       rebotes maximos de raytracing, default 3
 --output PATH   salida PPM para un frame
 ```
 
