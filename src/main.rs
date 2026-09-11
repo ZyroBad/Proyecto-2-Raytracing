@@ -1,7 +1,7 @@
 use std::env;
 use std::f32::consts::PI;
 use std::fs::{create_dir_all, File};
-use std::io::{BufWriter, Write};
+use std::io::{self, BufWriter, Write};
 use std::path::Path;
 
 const EPSILON: f32 = 0.001;
@@ -260,6 +260,9 @@ struct Config {
     frame: usize,
     frames: usize,
     animate: bool,
+    interactive: bool,
+    angle_deg: Option<f32>,
+    zoom: f32,
     output: String,
 }
 
@@ -271,6 +274,9 @@ impl Config {
             frame: 0,
             frames: 120,
             animate: false,
+            interactive: false,
+            angle_deg: None,
+            zoom: 1.0,
             output: "renders/valle_del_fin.ppm".to_string(),
         };
 
@@ -295,6 +301,15 @@ impl Config {
                     cfg.frames = parse_or(&args, i, cfg.frames);
                 }
                 "--animate" => cfg.animate = true,
+                "--interactive" => cfg.interactive = true,
+                "--angle" => {
+                    i += 1;
+                    cfg.angle_deg = Some(parse_or(&args, i, 45.0));
+                }
+                "--zoom" => {
+                    i += 1;
+                    cfg.zoom = parse_or(&args, i, cfg.zoom);
+                }
                 "--output" | "-o" => {
                     i += 1;
                     if let Some(value) = args.get(i) {
@@ -327,6 +342,9 @@ fn print_help() {
     println!("  --frame N       frame individual para camara orbital");
     println!("  --frames N      cantidad de frames para animacion");
     println!("  --animate       renderiza todos los frames en frames/");
+    println!("  --interactive   modo consola para ajustar camara y renderizar previews");
+    println!("  --angle N       angulo manual de camara en grados");
+    println!("  --zoom N        zoom manual, mayor acerca la camara");
     println!("  --output PATH   salida PPM para un frame");
 }
 
@@ -334,7 +352,9 @@ fn main() -> std::io::Result<()> {
     let cfg = Config::from_args();
     let scene = build_scene();
 
-    if cfg.animate {
+    if cfg.interactive {
+        run_interactive(&scene, cfg)?;
+    } else if cfg.animate {
         create_dir_all("frames")?;
         for frame in 0..cfg.frames {
             let path = format!("frames/frame_{:04}.ppm", frame);
@@ -349,6 +369,59 @@ fn main() -> std::io::Result<()> {
     Ok(())
 }
 
+fn run_interactive(scene: &Scene, mut cfg: Config) -> std::io::Result<()> {
+    create_dir_all("renders")?;
+    cfg.output = "renders/interactive.bmp".to_string();
+    cfg.angle_deg = cfg.angle_deg.or(Some(45.0));
+    cfg.zoom = cfg.zoom.max(0.35);
+
+    println!("Modo interactivo de camara");
+    println!(
+        "a/d: rotar | w/s: subir/bajar angulo orbital fino | +/-: zoom | r: render | q: salir"
+    );
+    println!("Cada render se guarda en renders/interactive.bmp");
+
+    render_to_file(scene, &cfg, 0, &cfg.output)?;
+    println!(
+        "rendered {} | angle {:.1} | zoom {:.2}",
+        cfg.output,
+        cfg.angle_deg.unwrap_or(45.0),
+        cfg.zoom
+    );
+
+    loop {
+        print!("comando> ");
+        io::stdout().flush()?;
+        let mut input = String::new();
+        io::stdin().read_line(&mut input)?;
+        let command = input.trim().to_ascii_lowercase();
+        match command.as_str() {
+            "a" => cfg.angle_deg = Some(cfg.angle_deg.unwrap_or(45.0) - 12.0),
+            "d" => cfg.angle_deg = Some(cfg.angle_deg.unwrap_or(45.0) + 12.0),
+            "w" => cfg.angle_deg = Some(cfg.angle_deg.unwrap_or(45.0) + 4.0),
+            "s" => cfg.angle_deg = Some(cfg.angle_deg.unwrap_or(45.0) - 4.0),
+            "+" | "=" => cfg.zoom = (cfg.zoom + 0.15).min(2.5),
+            "-" | "_" => cfg.zoom = (cfg.zoom - 0.15).max(0.45),
+            "r" | "" => {}
+            "q" | "salir" => break,
+            _ => {
+                println!("Comando no reconocido. Usa a/d, w/s, +/-, r o q.");
+                continue;
+            }
+        }
+
+        render_to_file(scene, &cfg, 0, &cfg.output)?;
+        println!(
+            "rendered {} | angle {:.1} | zoom {:.2}",
+            cfg.output,
+            cfg.angle_deg.unwrap_or(45.0),
+            cfg.zoom
+        );
+    }
+
+    Ok(())
+}
+
 fn render_to_file(scene: &Scene, cfg: &Config, frame: usize, path: &str) -> std::io::Result<()> {
     if let Some(parent) = Path::new(path).parent() {
         if !parent.as_os_str().is_empty() {
@@ -358,15 +431,18 @@ fn render_to_file(scene: &Scene, cfg: &Config, frame: usize, path: &str) -> std:
 
     let aspect = cfg.width as f32 / cfg.height as f32;
     let t = frame as f32 / cfg.frames.max(1) as f32;
-    let angle = t * 2.0 * PI;
+    let angle = cfg
+        .angle_deg
+        .map(|a| a.to_radians())
+        .unwrap_or(t * 2.0 * PI + PI * 0.25);
     let zoom_wave = (t * 2.0 * PI).sin() * 0.18;
-    let radius = 24.0 - zoom_wave * 7.0;
+    let radius = (24.0 - zoom_wave * 7.0) / cfg.zoom.max(0.35);
     let camera_pos = Vec3::new(
         angle.cos() * radius,
-        10.0 + zoom_wave * 3.0,
+        9.0 + zoom_wave * 3.0,
         angle.sin() * radius,
     );
-    let camera = Camera::look_at(camera_pos, Vec3::new(0.0, 3.0, 0.0), 48.0, aspect);
+    let camera = Camera::look_at(camera_pos, Vec3::new(0.0, 3.4, 0.0), 46.0, aspect);
 
     let mut pixels = vec![Color::default(); cfg.width * cfg.height];
 
@@ -721,8 +797,8 @@ fn build_valley(scene: &mut Scene) {
     );
     add_cube(
         scene,
-        Vec3::new(-2.4, 0.05, -8.5),
-        Vec3::new(2.4, 0.25, 8.5),
+        Vec3::new(-3.0, 0.08, -8.7),
+        Vec3::new(3.0, 0.28, 8.7),
         3,
     );
     add_cube(
@@ -766,6 +842,7 @@ fn add_cliff(scene: &mut Scene, x_center: f32) {
 
 fn add_statue(scene: &mut Scene, base: Vec3, facing: f32) {
     let stone = 0;
+    let detail = 1;
     add_cube(
         scene,
         base + Vec3::new(-1.0, 0.0, -0.8),
@@ -795,6 +872,31 @@ fn add_statue(scene: &mut Scene, base: Vec3, facing: f32) {
         base + Vec3::new(-0.55, 6.1, -0.45),
         base + Vec3::new(0.55, 7.0, 0.45),
         stone,
+    );
+    let face_x = facing * 0.58;
+    add_cube(
+        scene,
+        base + Vec3::new(face_x - 0.08, 6.45, -0.30),
+        base + Vec3::new(face_x + 0.08, 6.58, -0.10),
+        detail,
+    );
+    add_cube(
+        scene,
+        base + Vec3::new(face_x - 0.08, 6.45, 0.10),
+        base + Vec3::new(face_x + 0.08, 6.58, 0.30),
+        detail,
+    );
+    add_cube(
+        scene,
+        base + Vec3::new(face_x - 0.10, 6.18, -0.08),
+        base + Vec3::new(face_x + 0.10, 6.35, 0.08),
+        stone,
+    );
+    add_cube(
+        scene,
+        base + Vec3::new(face_x - 0.09, 6.92, -0.42),
+        base + Vec3::new(face_x + 0.09, 7.08, 0.42),
+        detail,
     );
     add_cube(
         scene,

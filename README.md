@@ -40,6 +40,32 @@ Render recomendado para imagen final:
 cargo run --release -- --width 640 --height 360 --output renders/valle_del_fin.ppm
 ```
 
+Render BMP para abrirlo facilmente en Windows:
+
+```bash
+cargo run --release -- --width 640 --height 360 --output renders/valle_del_fin.bmp
+```
+
+Mover la camara manualmente:
+
+```bash
+cargo run --release -- --angle 45 --zoom 1.2 --width 480 --height 270 --output renders/camara_manual.bmp
+```
+
+Modo interactivo por consola:
+
+```bash
+cargo run --release -- --interactive --width 240 --height 135
+```
+
+Controles del modo interactivo:
+
+- `a` / `d`: rotar camara.
+- `w` / `s`: ajuste fino del angulo.
+- `+` / `-`: acercar y alejar camara.
+- `r`: renderizar sin cambiar la camara.
+- `q`: salir.
+
 Generar frames para video:
 
 ```bash
@@ -54,6 +80,9 @@ cargo run --release -- --width 480 --height 270 --frames 120 --animate
 --frame N       frame individual para camara orbital
 --frames N      cantidad de frames para animacion
 --animate       renderiza todos los frames en frames/
+--interactive   modo consola para ajustar camara y renderizar previews
+--angle N       angulo manual de camara en grados
+--zoom N        zoom manual, mayor acerca la camara
 --output PATH   salida PPM para un frame
 ```
 
