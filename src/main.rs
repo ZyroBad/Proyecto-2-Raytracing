@@ -149,6 +149,8 @@ enum MaterialKind {
     Wood,
     Leaf,
     Waterfall,
+    Foam,
+    Moss,
 }
 
 #[derive(Clone, Copy)]
@@ -193,6 +195,14 @@ impl Material {
             MaterialKind::Waterfall => {
                 let foam = stripe(p.y * 2.5 + p.x * 0.5, 0.55) * 0.35;
                 Color::new(0.45 + foam, 0.75 + foam, 0.95)
+            }
+            MaterialKind::Foam => {
+                let bubbles = noise(p * 12.0) * 0.12 + stripe(p.x + p.z, 2.3) * 0.10;
+                Color::new(0.78 + bubbles, 0.90 + bubbles, 0.96)
+            }
+            MaterialKind::Moss => {
+                let patch = noise(p * 4.0) * 0.2;
+                Color::new(0.10 + patch * 0.2, 0.31 + patch, 0.11)
             }
         }
         .clamp01()
@@ -769,6 +779,22 @@ fn build_scene() -> Scene {
             reflectivity: 0.22,
             refractive_index: 1.33,
         },
+        Material {
+            kind: MaterialKind::Foam,
+            albedo: Color::new(0.85, 0.93, 0.98),
+            specular: 0.55,
+            transparency: 0.18,
+            reflectivity: 0.10,
+            refractive_index: 1.20,
+        },
+        Material {
+            kind: MaterialKind::Moss,
+            albedo: Color::new(0.11, 0.31, 0.12),
+            specular: 0.03,
+            transparency: 0.0,
+            reflectivity: 0.0,
+            refractive_index: 1.0,
+        },
     ];
 
     let mut scene = Scene {
@@ -807,6 +833,7 @@ fn build_valley(scene: &mut Scene) {
         Vec3::new(1.0, 4.5, -7.9),
         6,
     );
+    add_water_details(scene);
 
     add_cliff(scene, -8.0);
     add_cliff(scene, 8.0);
@@ -818,12 +845,45 @@ fn build_valley(scene: &mut Scene) {
             add_tree(scene, Vec3::new(x, 0.35, z));
         }
     }
+    for x in [-9.0, -7.4, 7.4, 9.0] {
+        add_moss_patch(scene, Vec3::new(x, 5.03, -2.2));
+        add_moss_patch(scene, Vec3::new(x, 5.03, 2.2));
+    }
+    add_rock_cluster(scene, Vec3::new(-4.0, 0.35, -4.2));
+    add_rock_cluster(scene, Vec3::new(4.5, 0.35, 4.4));
+    add_rock_cluster(scene, Vec3::new(-0.5, 0.35, 5.5));
 
     add_cube(
         scene,
         Vec3::new(-2.1, 0.35, -1.0),
         Vec3::new(2.1, 0.58, 1.0),
         4,
+    );
+}
+
+fn add_water_details(scene: &mut Scene) {
+    for z in [-6.9, -5.8, -4.6, 4.6, 5.8, 6.9] {
+        add_cube(
+            scene,
+            Vec3::new(-2.8, 0.30, z),
+            Vec3::new(2.8, 0.36, z + 0.22),
+            7,
+        );
+    }
+    for y in 0..5 {
+        let fy = 0.5 + y as f32 * 0.75;
+        add_cube(
+            scene,
+            Vec3::new(-1.15, fy, -7.78),
+            Vec3::new(1.15, fy + 0.08, -7.64),
+            7,
+        );
+    }
+    add_cube(
+        scene,
+        Vec3::new(-1.8, 0.29, -8.05),
+        Vec3::new(1.8, 0.38, -7.45),
+        7,
     );
 }
 
@@ -843,6 +903,18 @@ fn add_cliff(scene: &mut Scene, x_center: f32) {
 fn add_statue(scene: &mut Scene, base: Vec3, facing: f32) {
     let stone = 0;
     let detail = 1;
+    add_cube(
+        scene,
+        base + Vec3::new(-1.45, -0.05, -1.10),
+        base + Vec3::new(1.45, 0.20, 1.10),
+        detail,
+    );
+    add_cube(
+        scene,
+        base + Vec3::new(-1.20, 0.20, -0.95),
+        base + Vec3::new(1.20, 0.45, 0.95),
+        stone,
+    );
     add_cube(
         scene,
         base + Vec3::new(-1.0, 0.0, -0.8),
@@ -934,6 +1006,12 @@ fn add_statue(scene: &mut Scene, base: Vec3, facing: f32) {
         base + Vec3::new(0.35, 8.1, 0.3),
         stone,
     );
+    add_cube(
+        scene,
+        base + Vec3::new(-0.18, 8.1, -0.16),
+        base + Vec3::new(0.18, 8.42, 0.16),
+        detail,
+    );
 }
 
 fn add_tree(scene: &mut Scene, base: Vec3) {
@@ -954,6 +1032,36 @@ fn add_tree(scene: &mut Scene, base: Vec3) {
         base + Vec3::new(-0.55, 1.55, -0.55),
         base + Vec3::new(0.55, 2.25, 0.55),
         5,
+    );
+}
+
+fn add_moss_patch(scene: &mut Scene, base: Vec3) {
+    add_cube(
+        scene,
+        base + Vec3::new(-0.65, 0.0, -0.28),
+        base + Vec3::new(0.65, 0.08, 0.28),
+        8,
+    );
+}
+
+fn add_rock_cluster(scene: &mut Scene, base: Vec3) {
+    add_cube(
+        scene,
+        base + Vec3::new(-0.45, 0.0, -0.30),
+        base + Vec3::new(0.20, 0.38, 0.25),
+        1,
+    );
+    add_cube(
+        scene,
+        base + Vec3::new(0.18, 0.0, -0.18),
+        base + Vec3::new(0.60, 0.28, 0.30),
+        1,
+    );
+    add_cube(
+        scene,
+        base + Vec3::new(-0.18, 0.28, -0.12),
+        base + Vec3::new(0.22, 0.58, 0.18),
+        0,
     );
 }
 
