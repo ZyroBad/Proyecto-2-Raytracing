@@ -31,10 +31,22 @@ La escena representa dos estatuas enfrentadas sobre un valle rocoso, con rio cen
 
 ## Ejecutar
 
+Resumen de la escena:
+
+```bash
+cargo run --release -- --summary
+```
+
 Render rapido de prueba:
 
 ```bash
 cargo run --release -- --width 160 --height 90 --samples 1 --depth 2 --output renders/test.ppm
+```
+
+En Windows tambien se puede usar:
+
+```powershell
+.\scripts\render_preview.ps1
 ```
 
 Render recomendado para imagen final:
@@ -47,6 +59,12 @@ Render BMP para abrirlo facilmente en Windows:
 
 ```bash
 cargo run --release -- --width 640 --height 360 --samples 2 --depth 3 --output renders/valle_del_fin.bmp
+```
+
+Script para render final en Windows:
+
+```powershell
+.\scripts\render_final.ps1
 ```
 
 Mover la camara manualmente:
@@ -75,10 +93,10 @@ Generar frames para video:
 cargo run --release -- --width 480 --height 270 --samples 1 --depth 3 --frames 120 --animate
 ```
 
-Ver resumen de escena:
+Script para generar frames en Windows:
 
-```bash
-cargo run --release -- --summary
+```powershell
+.\scripts\render_frames.ps1
 ```
 
 ## Opciones
@@ -101,3 +119,11 @@ cargo run --release -- --summary
 ## Video
 
 Agregar aqui el video del diorama cuando este subido al README de GitHub.
+
+Para grabar el video sin instalar herramientas extra, se pueden abrir los frames o el modo interactivo y grabar pantalla con OBS, Clipchamp o la herramienta de captura de Windows.
+
+Si se instala `ffmpeg`, los frames generados en `frames/` se pueden convertir a video con:
+
+```bash
+ffmpeg -framerate 30 -i frames/frame_%04d.ppm -pix_fmt yuv420p valle_del_fin.mp4
+```
