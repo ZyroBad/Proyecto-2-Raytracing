@@ -49,6 +49,14 @@ En Windows tambien se puede usar:
 .\scripts\render_preview.ps1
 ```
 
+Ejecutar las pruebas del raytracer:
+
+```bash
+cargo test
+```
+
+Las pruebas verifican reflexion, refraccion, reflexion interna total, interseccion con cubos, direccion de la camara y los materiales requeridos por la escena.
+
 Render recomendado para imagen final:
 
 ```bash

@@ -1197,3 +1197,98 @@ fn stripe(v: f32, frequency: f32) -> f32 {
         0.0
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn assert_close(actual: f32, expected: f32) {
+        assert!(
+            (actual - expected).abs() < 0.0001,
+            "expected {expected}, got {actual}"
+        );
+    }
+
+    fn test_cube() -> Cube {
+        Cube {
+            min: Vec3::new(-1.0, -1.0, -1.0),
+            max: Vec3::new(1.0, 1.0, 1.0),
+            material: 0,
+        }
+    }
+
+    #[test]
+    fn reflection_preserves_the_incident_angle() {
+        let reflected = Vec3::new(1.0, -1.0, 0.0).reflect(Vec3::new(0.0, 1.0, 0.0));
+
+        assert_close(reflected.x, 1.0);
+        assert_close(reflected.y, 1.0);
+        assert_close(reflected.z, 0.0);
+    }
+
+    #[test]
+    fn refraction_keeps_a_perpendicular_ray_straight() {
+        let refracted = Vec3::new(0.0, -1.0, 0.0)
+            .refract(Vec3::new(0.0, 1.0, 0.0), 1.0 / 1.33)
+            .expect("a perpendicular ray should refract");
+
+        assert_close(refracted.x, 0.0);
+        assert_close(refracted.y, -1.0);
+        assert_close(refracted.z, 0.0);
+    }
+
+    #[test]
+    fn refraction_detects_total_internal_reflection() {
+        let direction = Vec3::new(0.9, -0.435_889_9, 0.0).normalized();
+
+        assert!(direction.refract(Vec3::new(0.0, 1.0, 0.0), 1.5).is_none());
+    }
+
+    #[test]
+    fn cube_intersection_returns_distance_and_face_normal() {
+        let ray = Ray {
+            origin: Vec3::new(0.0, 0.0, -3.0),
+            direction: Vec3::new(0.0, 0.0, 1.0),
+        };
+        let (distance, normal) = intersect_cube(ray, test_cube()).expect("ray should hit cube");
+
+        assert_close(distance, 2.0);
+        assert_close(normal.z, -1.0);
+    }
+
+    #[test]
+    fn cube_intersection_uses_exit_face_when_ray_starts_inside() {
+        let ray = Ray {
+            origin: Vec3::new(0.0, 0.0, 0.0),
+            direction: Vec3::new(1.0, 0.0, 0.0),
+        };
+        let (distance, normal) = intersect_cube(ray, test_cube()).expect("ray should exit cube");
+
+        assert_close(distance, 1.0);
+        assert_close(normal.x, 1.0);
+    }
+
+    #[test]
+    fn center_camera_ray_points_at_target() {
+        let origin = Vec3::new(0.0, 2.0, -5.0);
+        let target = Vec3::new(0.0, 1.0, 0.0);
+        let camera = Camera::look_at(origin, target, 46.0, 16.0 / 9.0);
+        let expected = (target - origin).normalized();
+        let ray = camera.ray(0.5, 0.5);
+
+        assert_close(ray.direction.x, expected.x);
+        assert_close(ray.direction.y, expected.y);
+        assert_close(ray.direction.z, expected.z);
+    }
+
+    #[test]
+    fn scene_contains_required_raytracing_materials() {
+        let scene = build_scene();
+
+        assert!(scene.materials.len() >= 5);
+        assert!(scene.materials.iter().any(|m| m.reflectivity > 0.0));
+        assert!(scene.materials.iter().any(|m| m.transparency > 0.0));
+        assert!(scene.materials.iter().any(|m| m.refractive_index > 1.0));
+        assert!(!scene.cubes.is_empty());
+    }
+}
