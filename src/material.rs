@@ -127,6 +127,176 @@ impl Material {
     }
 }
 
+pub fn scene_materials() -> Vec<Material> {
+    vec![
+        material(MaterialKind::Rock, [0.43, 0.33, 0.23], 0.12, 0.0, 0.04, 1.0),
+        material(
+            MaterialKind::Cloud,
+            [0.88, 0.92, 0.98],
+            0.32,
+            0.06,
+            0.08,
+            1.05,
+        ),
+        material(
+            MaterialKind::GamabuntaSkin,
+            [0.56, 0.18, 0.13],
+            0.24,
+            0.0,
+            0.04,
+            1.0,
+        ),
+        material(
+            MaterialKind::GamakenSkin,
+            [0.62, 0.16, 0.40],
+            0.22,
+            0.0,
+            0.03,
+            1.0,
+        ),
+        material(
+            MaterialKind::GamahiroSkin,
+            [0.42, 0.72, 0.70],
+            0.30,
+            0.0,
+            0.05,
+            1.0,
+        ),
+        material(MaterialKind::Robe, [0.07, 0.10, 0.16], 0.16, 0.0, 0.05, 1.0),
+        material(
+            MaterialKind::OrangeCloth,
+            [0.93, 0.30, 0.035],
+            0.10,
+            0.0,
+            0.02,
+            1.0,
+        ),
+        material(
+            MaterialKind::RedCloak,
+            [0.66, 0.055, 0.04],
+            0.14,
+            0.0,
+            0.03,
+            1.0,
+        ),
+        material(
+            MaterialKind::NarutoSkin,
+            [0.91, 0.58, 0.38],
+            0.20,
+            0.0,
+            0.02,
+            1.0,
+        ),
+        material(
+            MaterialKind::NarutoHair,
+            [1.00, 0.72, 0.06],
+            0.34,
+            0.0,
+            0.05,
+            1.0,
+        ),
+        material(
+            MaterialKind::Ink,
+            [0.018, 0.022, 0.030],
+            0.12,
+            0.0,
+            0.04,
+            1.0,
+        ),
+        material(
+            MaterialKind::Metal,
+            [0.62, 0.68, 0.74],
+            0.95,
+            0.0,
+            0.58,
+            1.0,
+        ),
+        material(
+            MaterialKind::Chakra,
+            [0.18, 0.55, 0.96],
+            0.82,
+            0.48,
+            0.18,
+            1.18,
+        ),
+        material(
+            MaterialKind::Wood,
+            [0.30, 0.12, 0.055],
+            0.12,
+            0.0,
+            0.03,
+            1.0,
+        ),
+        material(
+            MaterialKind::EyeGold,
+            [0.96, 0.68, 0.08],
+            0.70,
+            0.0,
+            0.16,
+            1.0,
+        ),
+        material(
+            MaterialKind::Belly,
+            [0.78, 0.68, 0.53],
+            0.18,
+            0.0,
+            0.025,
+            1.0,
+        ),
+        material(MaterialKind::Rope, [0.56, 0.37, 0.17], 0.10, 0.0, 0.02, 1.0),
+        material(
+            MaterialKind::CraterEarth,
+            [0.39, 0.22, 0.12],
+            0.07,
+            0.0,
+            0.015,
+            1.0,
+        ),
+        material(
+            MaterialKind::RuinStone,
+            [0.46, 0.43, 0.38],
+            0.15,
+            0.0,
+            0.045,
+            1.0,
+        ),
+        material(
+            MaterialKind::RoofTile,
+            [0.30, 0.09, 0.055],
+            0.20,
+            0.0,
+            0.06,
+            1.0,
+        ),
+        material(
+            MaterialKind::DustSmoke,
+            [0.50, 0.39, 0.31],
+            0.05,
+            0.22,
+            0.015,
+            1.03,
+        ),
+    ]
+}
+
+fn material(
+    kind: MaterialKind,
+    color: [f32; 3],
+    specular: f32,
+    transparency: f32,
+    reflectivity: f32,
+    refractive_index: f32,
+) -> Material {
+    Material {
+        kind,
+        albedo: Color::new(color[0], color[1], color[2]),
+        specular,
+        transparency,
+        reflectivity,
+        refractive_index,
+    }
+}
+
 pub fn noise(p: Vec3) -> f32 {
     let n = (p.x * 12.9898 + p.y * 78.233 + p.z * 37.719).sin() * 43_758.547;
     n.fract().abs()
