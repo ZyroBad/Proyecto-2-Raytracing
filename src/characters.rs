@@ -21,7 +21,7 @@ pub fn add_gamabunta(scene: &mut Scene, base: Vec3) {
         Vec3::new(3.2, 1.2, 3.2),
         skin,
     );
-    add_block(
+    add_rounded_mass(
         scene,
         base + Vec3::new(0.0, 2.8, 0.0),
         Vec3::new(6.6, 4.0, 3.8),
@@ -45,7 +45,7 @@ pub fn add_gamabunta(scene: &mut Scene, base: Vec3) {
         Vec3::new(1.35, 3.8, 2.2),
         robe,
     );
-    add_block(
+    add_rounded_mass(
         scene,
         base + Vec3::new(0.0, 5.8, 0.6),
         Vec3::new(6.2, 2.6, 3.2),
@@ -204,7 +204,7 @@ pub fn add_gamaken(scene: &mut Scene, base: Vec3) {
         Vec3::new(2.3, 1.1, 2.6),
         skin,
     );
-    add_block(
+    add_rounded_mass(
         scene,
         base + Vec3::new(0.0, 2.7, 0.0),
         Vec3::new(4.8, 3.8, 3.0),
@@ -228,7 +228,7 @@ pub fn add_gamaken(scene: &mut Scene, base: Vec3) {
         Vec3::new(1.15, 3.5, 1.8),
         robe,
     );
-    add_block(
+    add_rounded_mass(
         scene,
         base + Vec3::new(0.0, 5.45, 0.55),
         Vec3::new(4.5, 2.4, 2.8),
@@ -376,7 +376,7 @@ pub fn add_gamahiro(scene: &mut Scene, base: Vec3) {
         Vec3::new(2.5, 1.1, 2.7),
         skin,
     );
-    add_block(
+    add_rounded_mass(
         scene,
         base + Vec3::new(0.0, 2.8, 0.0),
         Vec3::new(5.0, 4.0, 3.1),
@@ -406,7 +406,7 @@ pub fn add_gamahiro(scene: &mut Scene, base: Vec3) {
         Vec3::new(1.15, 3.6, 1.9),
         robe,
     );
-    add_block(
+    add_rounded_mass(
         scene,
         base + Vec3::new(0.0, 5.65, 0.5),
         Vec3::new(4.7, 2.5, 2.9),
@@ -603,13 +603,13 @@ pub fn add_naruto_sage(scene: &mut Scene, base: Vec3) {
     add_block(
         scene,
         base + Vec3::new(0.0, 1.65, 0.0),
-        Vec3::new(1.55, 1.25, 0.85),
+        Vec3::new(1.95, 1.50, 1.02),
         orange,
     );
     add_block(
         scene,
         base + Vec3::new(0.0, 1.65, -0.55),
-        Vec3::new(2.0, 1.65, 0.28),
+        Vec3::new(2.45, 1.90, 0.34),
         cloak,
     );
     add_block(
@@ -666,16 +666,16 @@ pub fn add_naruto_sage(scene: &mut Scene, base: Vec3) {
         Vec3::new(0.82, 0.30, 0.34),
         skin,
     );
-    add_block(
+    add_rounded_mass(
         scene,
         base + Vec3::new(0.0, 2.72, 0.05),
-        Vec3::new(1.22, 1.05, 0.92),
+        Vec3::new(1.55, 1.28, 1.05),
         skin,
     );
     add_block(
         scene,
         base + Vec3::new(0.0, 2.94, 0.55),
-        Vec3::new(1.28, 0.26, 0.16),
+        Vec3::new(1.62, 0.28, 0.18),
         metal,
     );
     add_block(
@@ -841,6 +841,29 @@ fn add_cloud_cluster(scene: &mut Scene, base: Vec3, scale: f32) {
         (Vec3::new(0.0, 0.65, 0.0), Vec3::new(1.7, 1.2, 1.4)),
     ] {
         add_block(scene, base + offset * scale, size * scale, 1);
+    }
+}
+
+fn add_rounded_mass(scene: &mut Scene, center: Vec3, size: Vec3, material: usize) {
+    const CELLS: i32 = 5;
+    let cell_width = size.x / CELLS as f32;
+    let cell_height = size.y / CELLS as f32;
+
+    for row in -2..=2 {
+        for column in -2..=2 {
+            let nx = column as f32 / 2.35;
+            let ny = row as f32 / 2.35;
+            if nx * nx + ny * ny > 1.0 {
+                continue;
+            }
+
+            add_block(
+                scene,
+                center + Vec3::new(column as f32 * cell_width, row as f32 * cell_height, 0.0),
+                Vec3::new(cell_width * 1.08, cell_height * 1.08, size.z),
+                material,
+            );
+        }
     }
 }
 
