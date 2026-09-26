@@ -159,6 +159,10 @@ enum MaterialKind {
     EyeGold,
     Belly,
     Rope,
+    CraterEarth,
+    RuinStone,
+    RoofTile,
+    DustSmoke,
 }
 
 #[derive(Clone, Copy)]
@@ -237,6 +241,26 @@ impl Material {
             MaterialKind::Rope => {
                 let twist = stripe(p.y + p.x * 0.8, 5.0) * 0.14;
                 self.albedo * (0.78 + twist + noise(p * 7.0) * 0.06)
+            }
+            MaterialKind::CraterEarth => {
+                let grit = noise(p * 7.5) * 0.20;
+                let crack_a = stripe(p.x * 0.75 + p.z * 1.2, 1.7) * 0.14;
+                let crack_b = stripe(p.x * 1.1 - p.z * 0.55, 2.2) * 0.10;
+                self.albedo * (0.72 + grit - crack_a - crack_b)
+            }
+            MaterialKind::RuinStone => {
+                let chips = noise(p * 5.5) * 0.22;
+                let seams = (stripe(p.x, 1.8) + stripe(p.y, 2.4)) * 0.07;
+                self.albedo * (0.70 + chips - seams)
+            }
+            MaterialKind::RoofTile => {
+                let rows = stripe(p.y + p.z * 0.15, 4.5) * 0.16;
+                let soot = noise(p * 4.0) * 0.18;
+                self.albedo * (0.74 + rows - soot)
+            }
+            MaterialKind::DustSmoke => {
+                let billow = noise(p * 1.8) * 0.20;
+                self.albedo * (0.72 + billow)
             }
         }
         .clamp01()
@@ -510,10 +534,10 @@ fn render_to_file(scene: &Scene, cfg: &Config, frame: usize, path: &str) -> std:
     let radius = (27.0 - zoom_wave * 6.0) / cfg.zoom.max(0.35);
     let camera_pos = Vec3::new(
         angle.cos() * radius,
-        8.5 + zoom_wave * 2.5,
+        11.0 + zoom_wave * 2.5,
         angle.sin() * radius,
     );
-    let camera = Camera::look_at(camera_pos, Vec3::new(0.0, 4.7, 0.0), 48.0, aspect);
+    let camera = Camera::look_at(camera_pos, Vec3::new(0.0, 3.8, -0.8), 48.0, aspect);
 
     let mut pixels = vec![Color::default(); cfg.width * cfg.height];
 
@@ -773,19 +797,19 @@ fn intersect_cube(ray: Ray, cube: Cube) -> Option<(f32, Vec3)> {
 
 fn skybox(dir: Vec3) -> Color {
     let t = (dir.y * 0.5 + 0.5).clamp(0.0, 1.0);
-    let horizon = Color::new(0.72, 0.88, 1.00);
-    let zenith = Color::new(0.10, 0.38, 0.76);
+    let horizon = Color::new(0.72, 0.30, 0.12);
+    let zenith = Color::new(0.10, 0.24, 0.44);
     let mut color = horizon * (1.0 - t) + zenith * t;
 
     let sun_dir = Vec3::new(-0.45, 0.62, 0.64).normalized();
     let sun = dir.dot(sun_dir).max(0.0).powf(320.0);
     let glow = dir.dot(sun_dir).max(0.0).powf(18.0);
-    color += Color::new(1.0, 0.94, 0.70) * sun;
-    color += Color::new(0.48, 0.66, 0.92) * glow * 0.22;
+    color += Color::new(1.0, 0.86, 0.54) * sun;
+    color += Color::new(0.72, 0.32, 0.14) * glow * 0.28;
 
     let cloud = ((dir.x * 16.0 + dir.z * 10.0).sin() * 0.5 + 0.5)
         * (1.0 - (dir.y - 0.18).abs() * 5.0).max(0.0);
-    color += Color::new(0.82, 0.88, 0.96) * cloud * 0.28;
+    color += Color::new(0.48, 0.30, 0.24) * cloud * 0.22;
     color.clamp01()
 }
 
@@ -927,6 +951,38 @@ fn build_scene() -> Scene {
             reflectivity: 0.02,
             refractive_index: 1.0,
         },
+        Material {
+            kind: MaterialKind::CraterEarth,
+            albedo: Color::new(0.39, 0.22, 0.12),
+            specular: 0.07,
+            transparency: 0.0,
+            reflectivity: 0.015,
+            refractive_index: 1.0,
+        },
+        Material {
+            kind: MaterialKind::RuinStone,
+            albedo: Color::new(0.46, 0.43, 0.38),
+            specular: 0.15,
+            transparency: 0.0,
+            reflectivity: 0.045,
+            refractive_index: 1.0,
+        },
+        Material {
+            kind: MaterialKind::RoofTile,
+            albedo: Color::new(0.30, 0.09, 0.055),
+            specular: 0.20,
+            transparency: 0.0,
+            reflectivity: 0.06,
+            refractive_index: 1.0,
+        },
+        Material {
+            kind: MaterialKind::DustSmoke,
+            albedo: Color::new(0.50, 0.39, 0.31),
+            specular: 0.05,
+            transparency: 0.22,
+            reflectivity: 0.015,
+            refractive_index: 1.03,
+        },
     ];
 
     let mut scene = Scene {
@@ -951,14 +1007,173 @@ fn build_sage_arrival(scene: &mut Scene) {
         scene,
         Vec3::new(0.0, 0.08, 0.4),
         Vec3::new(16.0, 0.25, 7.5),
-        0,
+        17,
     );
 
+    add_destroyed_konoha(scene);
     add_gamabunta(scene, Vec3::new(0.0, 0.0, -0.3));
     add_gamaken(scene, Vec3::new(-7.2, 0.0, -1.3));
     add_gamahiro(scene, Vec3::new(7.2, 0.0, -1.3));
     add_naruto_sage(scene, Vec3::new(0.0, 8.0, 0.25));
     add_summoning_clouds(scene);
+}
+
+fn add_destroyed_konoha(scene: &mut Scene) {
+    add_block(
+        scene,
+        Vec3::new(0.0, -0.05, -7.2),
+        Vec3::new(27.0, 0.32, 13.5),
+        17,
+    );
+
+    add_crater_arc(scene, 7.2, 0.18, 1.15, 20);
+    add_crater_arc(scene, 10.1, 0.58, 1.55, 24);
+    add_crater_arc(scene, 13.2, 1.12, 2.0, 28);
+    add_crater_wall(scene);
+
+    for (x, z, width, height) in [
+        (-10.4, -4.8, 2.7, 4.6),
+        (-7.8, -8.6, 3.4, 3.0),
+        (8.1, -8.4, 3.2, 3.4),
+        (10.6, -4.5, 2.8, 4.9),
+    ] {
+        add_ruined_building(scene, Vec3::new(x, 0.0, z), width, height);
+    }
+
+    for (x, z, sx, sy, sz, material) in [
+        (-8.5, -2.2, 1.8, 0.55, 0.9, 18),
+        (-6.3, -4.0, 1.1, 0.42, 1.4, 20),
+        (-4.5, -6.0, 1.5, 0.50, 0.75, 18),
+        (-2.4, -4.6, 0.8, 0.36, 1.5, 19),
+        (2.8, -5.2, 1.2, 0.48, 0.8, 18),
+        (4.8, -7.1, 1.6, 0.45, 0.7, 20),
+        (6.7, -3.8, 0.9, 0.38, 1.5, 19),
+        (8.9, -2.4, 1.7, 0.52, 0.85, 18),
+    ] {
+        add_block(
+            scene,
+            Vec3::new(x, 0.42, z),
+            Vec3::new(sx, sy, sz),
+            material,
+        );
+    }
+
+    add_crack_path(
+        scene,
+        Vec3::new(-0.8, 0.18, -1.8),
+        Vec3::new(-7.0, 0.18, -8.5),
+    );
+    add_crack_path(
+        scene,
+        Vec3::new(1.2, 0.18, -2.2),
+        Vec3::new(7.8, 0.18, -7.4),
+    );
+    add_crack_path(
+        scene,
+        Vec3::new(0.2, 0.18, -2.0),
+        Vec3::new(-1.3, 0.18, -10.2),
+    );
+
+    add_dust_plume(scene, Vec3::new(-9.4, 1.2, -9.4), 1.15);
+    add_dust_plume(scene, Vec3::new(9.2, 1.0, -9.0), 1.0);
+    add_dust_plume(scene, Vec3::new(4.8, 0.8, -11.5), 0.72);
+}
+
+fn add_crater_arc(scene: &mut Scene, radius: f32, height: f32, block_size: f32, segments: usize) {
+    for index in 0..=segments {
+        let angle = PI + PI * index as f32 / segments as f32;
+        let x = angle.cos() * radius;
+        let z = angle.sin() * radius - 2.2;
+        let uneven = noise(Vec3::new(x, height, z));
+        add_block(
+            scene,
+            Vec3::new(x, height + uneven * 0.35, z),
+            Vec3::new(block_size, block_size * (0.65 + uneven * 0.45), block_size),
+            if index % 5 == 0 { 18 } else { 17 },
+        );
+    }
+}
+
+fn add_crater_wall(scene: &mut Scene) {
+    for index in -10i32..=10 {
+        let x = index as f32 * 1.28;
+        let edge = (index.abs() as f32 / 10.0).powf(1.5);
+        let z = -12.2 + edge * 2.6;
+        let variation = noise(Vec3::new(x, 2.0, z));
+        let height = 3.4 + edge * 3.4 + variation * 1.2;
+        add_block(
+            scene,
+            Vec3::new(x, height * 0.5 - 0.15, z),
+            Vec3::new(1.42, height, 2.25),
+            if index % 6 == 0 { 18 } else { 17 },
+        );
+        if index % 4 == 0 {
+            add_block(
+                scene,
+                Vec3::new(x + 0.28, height + 0.22, z - 0.15),
+                Vec3::new(0.72, 0.42, 1.35),
+                18,
+            );
+        }
+    }
+}
+
+fn add_ruined_building(scene: &mut Scene, base: Vec3, width: f32, height: f32) {
+    let levels = height.ceil() as usize;
+    for level in 0..levels {
+        let y = 0.5 + level as f32;
+        let taper = level as f32 * 0.12;
+        if level % 3 != 1 {
+            add_block(
+                scene,
+                base + Vec3::new(-width * 0.43 + taper, y, 0.0),
+                Vec3::new(0.42, 0.92, 2.0 - taper * 0.3),
+                18,
+            );
+        }
+        if level % 4 != 2 {
+            add_block(
+                scene,
+                base + Vec3::new(width * 0.43 - taper, y, 0.0),
+                Vec3::new(0.42, 0.92, 2.0 - taper * 0.3),
+                18,
+            );
+        }
+        if level % 2 == 0 {
+            add_block(
+                scene,
+                base + Vec3::new(0.0, y, -0.85),
+                Vec3::new((width - taper).max(0.8), 0.38, 0.34),
+                20,
+            );
+        }
+    }
+    add_block(
+        scene,
+        base + Vec3::new(width * 0.18, height + 0.18, 0.0),
+        Vec3::new(width * 0.72, 0.30, 2.15),
+        19,
+    );
+}
+
+fn add_crack_path(scene: &mut Scene, start: Vec3, end: Vec3) {
+    for step in 0..8 {
+        let t = step as f32 / 7.0;
+        let bend = (step as f32 * 2.1).sin() * 0.35;
+        let point = start * (1.0 - t) + end * t + Vec3::new(bend, 0.0, 0.0);
+        add_block(scene, point, Vec3::new(0.20, 0.06, 1.15), 0);
+    }
+}
+
+fn add_dust_plume(scene: &mut Scene, base: Vec3, scale: f32) {
+    for (offset, size) in [
+        (Vec3::new(0.0, 0.0, 0.0), Vec3::new(2.5, 1.2, 1.8)),
+        (Vec3::new(-0.5, 1.0, 0.0), Vec3::new(2.0, 1.4, 1.5)),
+        (Vec3::new(0.35, 2.0, -0.1), Vec3::new(1.7, 1.6, 1.4)),
+        (Vec3::new(-0.2, 3.1, 0.0), Vec3::new(1.25, 1.7, 1.1)),
+    ] {
+        add_block(scene, base + offset * scale, size * scale, 20);
+    }
 }
 
 fn add_gamabunta(scene: &mut Scene, base: Vec3) {
