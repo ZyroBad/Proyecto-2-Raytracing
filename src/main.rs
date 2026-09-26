@@ -142,16 +142,21 @@ impl Ray {
 
 #[derive(Clone, Copy)]
 enum MaterialKind {
-    StatueStone,
-    DarkRock,
-    Grass,
-    Water,
+    Rock,
+    Cloud,
+    GamabuntaSkin,
+    GamakenSkin,
+    GamahiroSkin,
+    Robe,
+    OrangeCloth,
+    RedCloak,
+    NarutoSkin,
+    NarutoHair,
+    Ink,
+    Metal,
+    Chakra,
     Wood,
-    Leaf,
-    Waterfall,
-    Foam,
-    Moss,
-    Trail,
+    EyeGold,
 }
 
 #[derive(Clone, Copy)]
@@ -168,46 +173,59 @@ impl Material {
     fn texture(self, p: Vec3, normal: Vec3) -> Color {
         let checker = ((p.x.floor() as i32 + p.z.floor() as i32 + p.y.floor() as i32) & 1) as f32;
         match self.kind {
-            MaterialKind::StatueStone => {
-                let vein = noise(p * 2.7) * 0.18 + stripe(p.y + p.x * 0.15, 0.85) * 0.08;
-                self.albedo * (0.75 + vein)
+            MaterialKind::Rock => {
+                let cracks = stripe(p.x * 0.55 + p.z * 0.9, 0.45) * 0.16;
+                self.albedo * (0.72 + noise(p * 2.8) * 0.28 - cracks)
             }
-            MaterialKind::DarkRock => {
-                let cracks = stripe(p.x * 0.7 + p.z * 1.1, 0.35) * 0.25;
-                self.albedo * (0.65 + noise(p * 3.0) * 0.25 - cracks)
+            MaterialKind::Cloud => {
+                let soft = noise(p * 1.7) * 0.10 + if normal.y > 0.5 { 0.08 } else { 0.0 };
+                self.albedo * (0.88 + soft)
             }
-            MaterialKind::Grass => {
-                let top = if normal.y > 0.6 { 1.0 } else { 0.65 };
-                let patch = if checker > 0.0 { 0.12 } else { -0.04 };
-                Color::new(0.22, 0.48, 0.16) * top + Color::new(patch, patch * 0.8, patch * 0.3)
+            MaterialKind::GamabuntaSkin => {
+                let spots = stripe(p.x * 0.8 + p.y * 0.35, 1.6) * noise(p * 3.0) * 0.20;
+                self.albedo * (0.82 + noise(p * 4.0) * 0.16 - spots)
             }
-            MaterialKind::Water => {
-                let ripple = (p.x * 8.0 + p.z * 5.0).sin() * 0.04 + noise(p * 5.0) * 0.05;
-                Color::new(0.12 + ripple, 0.42 + ripple, 0.72 + ripple)
+            MaterialKind::GamakenSkin => {
+                let mottled = noise(p * 4.8) * 0.18 + checker * 0.04;
+                self.albedo * (0.78 + mottled)
+            }
+            MaterialKind::GamahiroSkin => {
+                let bands = stripe(p.y + p.x * 0.12, 1.8) * 0.08;
+                self.albedo * (0.84 + noise(p * 3.2) * 0.12 - bands)
+            }
+            MaterialKind::Robe => {
+                let weave = checker * 0.05 + stripe(p.y, 4.0) * 0.04;
+                self.albedo * (0.78 + weave)
+            }
+            MaterialKind::OrangeCloth => {
+                let weave = noise(p * 10.0) * 0.10;
+                self.albedo * (0.86 + weave)
+            }
+            MaterialKind::RedCloak => {
+                let fold = stripe(p.x + p.y * 0.2, 1.7) * 0.10;
+                self.albedo * (0.78 + noise(p * 5.0) * 0.10 + fold)
+            }
+            MaterialKind::NarutoSkin => self.albedo * (0.90 + noise(p * 8.0) * 0.08),
+            MaterialKind::NarutoHair => {
+                let highlight = stripe(p.x - p.y, 3.8) * 0.18;
+                self.albedo * (0.82 + highlight)
+            }
+            MaterialKind::Ink => self.albedo * (0.78 + noise(p * 7.0) * 0.12),
+            MaterialKind::Metal => {
+                let scratch = stripe(p.y + p.x * 0.3, 7.0) * 0.16;
+                self.albedo * (0.74 + scratch)
+            }
+            MaterialKind::Chakra => {
+                let pulse = (p.x * 5.0 + p.y * 3.0 + p.z * 4.0).sin() * 0.08;
+                Color::new(0.20 + pulse, 0.58 + pulse, 0.96)
             }
             MaterialKind::Wood => {
-                let grain = ((p.x * 8.0).sin() * 0.5 + (p.y * 11.0).sin() * 0.5) * 0.10;
-                self.albedo * (0.8 + grain + checker * 0.08)
+                let grain = ((p.x * 8.0).sin() + (p.y * 11.0).sin()) * 0.06;
+                self.albedo * (0.80 + grain + checker * 0.06)
             }
-            MaterialKind::Leaf => {
-                let speckle = noise(p * 6.0) * 0.18;
-                Color::new(0.08, 0.36 + speckle, 0.09)
-            }
-            MaterialKind::Waterfall => {
-                let foam = stripe(p.y * 2.5 + p.x * 0.5, 0.55) * 0.35;
-                Color::new(0.45 + foam, 0.75 + foam, 0.95)
-            }
-            MaterialKind::Foam => {
-                let bubbles = noise(p * 12.0) * 0.12 + stripe(p.x + p.z, 2.3) * 0.10;
-                Color::new(0.78 + bubbles, 0.90 + bubbles, 0.96)
-            }
-            MaterialKind::Moss => {
-                let patch = noise(p * 4.0) * 0.2;
-                Color::new(0.10 + patch * 0.2, 0.31 + patch, 0.11)
-            }
-            MaterialKind::Trail => {
-                let gravel = noise(p * 9.0) * 0.18 + checker * 0.05;
-                Color::new(0.48 + gravel, 0.39 + gravel * 0.6, 0.25 + gravel * 0.35)
+            MaterialKind::EyeGold => {
+                let glow = if normal.z > 0.5 { 0.18 } else { 0.02 };
+                self.albedo * (0.82 + glow + noise(p * 9.0) * 0.05)
             }
         }
         .clamp01()
@@ -414,7 +432,7 @@ fn print_scene_summary(scene: &Scene) {
 fn run_interactive(scene: &Scene, mut cfg: Config) -> std::io::Result<()> {
     create_dir_all("renders")?;
     cfg.output = "renders/interactive.bmp".to_string();
-    cfg.angle_deg = cfg.angle_deg.or(Some(45.0));
+    cfg.angle_deg = cfg.angle_deg.or(Some(90.0));
     cfg.zoom = cfg.zoom.max(0.35);
 
     println!("Modo interactivo de camara");
@@ -427,7 +445,7 @@ fn run_interactive(scene: &Scene, mut cfg: Config) -> std::io::Result<()> {
     println!(
         "rendered {} | angle {:.1} | zoom {:.2}",
         cfg.output,
-        cfg.angle_deg.unwrap_or(45.0),
+        cfg.angle_deg.unwrap_or(90.0),
         cfg.zoom
     );
 
@@ -438,10 +456,10 @@ fn run_interactive(scene: &Scene, mut cfg: Config) -> std::io::Result<()> {
         io::stdin().read_line(&mut input)?;
         let command = input.trim().to_ascii_lowercase();
         match command.as_str() {
-            "a" => cfg.angle_deg = Some(cfg.angle_deg.unwrap_or(45.0) - 12.0),
-            "d" => cfg.angle_deg = Some(cfg.angle_deg.unwrap_or(45.0) + 12.0),
-            "w" => cfg.angle_deg = Some(cfg.angle_deg.unwrap_or(45.0) + 4.0),
-            "s" => cfg.angle_deg = Some(cfg.angle_deg.unwrap_or(45.0) - 4.0),
+            "a" => cfg.angle_deg = Some(cfg.angle_deg.unwrap_or(90.0) - 12.0),
+            "d" => cfg.angle_deg = Some(cfg.angle_deg.unwrap_or(90.0) + 12.0),
+            "w" => cfg.angle_deg = Some(cfg.angle_deg.unwrap_or(90.0) + 4.0),
+            "s" => cfg.angle_deg = Some(cfg.angle_deg.unwrap_or(90.0) - 4.0),
             "+" | "=" => cfg.zoom = (cfg.zoom + 0.15).min(2.5),
             "-" | "_" => cfg.zoom = (cfg.zoom - 0.15).max(0.45),
             "r" | "" => {}
@@ -456,7 +474,7 @@ fn run_interactive(scene: &Scene, mut cfg: Config) -> std::io::Result<()> {
         println!(
             "rendered {} | angle {:.1} | zoom {:.2}",
             cfg.output,
-            cfg.angle_deg.unwrap_or(45.0),
+            cfg.angle_deg.unwrap_or(90.0),
             cfg.zoom
         );
     }
@@ -478,13 +496,13 @@ fn render_to_file(scene: &Scene, cfg: &Config, frame: usize, path: &str) -> std:
         .map(|a| a.to_radians())
         .unwrap_or(t * 2.0 * PI + PI * 0.5);
     let zoom_wave = (t * 2.0 * PI).sin() * 0.18;
-    let radius = (24.0 - zoom_wave * 7.0) / cfg.zoom.max(0.35);
+    let radius = (27.0 - zoom_wave * 6.0) / cfg.zoom.max(0.35);
     let camera_pos = Vec3::new(
         angle.cos() * radius,
-        9.0 + zoom_wave * 3.0,
+        8.5 + zoom_wave * 2.5,
         angle.sin() * radius,
     );
-    let camera = Camera::look_at(camera_pos, Vec3::new(0.0, 3.4, 0.0), 46.0, aspect);
+    let camera = Camera::look_at(camera_pos, Vec3::new(0.0, 4.7, 0.0), 48.0, aspect);
 
     let mut pixels = vec![Color::default(); cfg.width * cfg.height];
 
@@ -744,102 +762,142 @@ fn intersect_cube(ray: Ray, cube: Cube) -> Option<(f32, Vec3)> {
 
 fn skybox(dir: Vec3) -> Color {
     let t = (dir.y * 0.5 + 0.5).clamp(0.0, 1.0);
-    let horizon = Color::new(1.00, 0.54, 0.27);
-    let zenith = Color::new(0.08, 0.18, 0.42);
+    let horizon = Color::new(0.72, 0.88, 1.00);
+    let zenith = Color::new(0.10, 0.38, 0.76);
     let mut color = horizon * (1.0 - t) + zenith * t;
 
-    let sun_dir = Vec3::new(-0.25, 0.40, -0.88).normalized();
+    let sun_dir = Vec3::new(-0.45, 0.62, 0.64).normalized();
     let sun = dir.dot(sun_dir).max(0.0).powf(320.0);
     let glow = dir.dot(sun_dir).max(0.0).powf(18.0);
-    color += Color::new(1.0, 0.78, 0.38) * sun;
-    color += Color::new(0.65, 0.24, 0.16) * glow * 0.35;
+    color += Color::new(1.0, 0.94, 0.70) * sun;
+    color += Color::new(0.48, 0.66, 0.92) * glow * 0.22;
 
-    let cloud = ((dir.x * 18.0 + dir.z * 11.0).sin() * 0.5 + 0.5)
-        * (1.0 - (dir.y - 0.25).abs() * 4.0).max(0.0);
-    color += Color::new(0.46, 0.35, 0.30) * cloud * 0.20;
+    let cloud = ((dir.x * 16.0 + dir.z * 10.0).sin() * 0.5 + 0.5)
+        * (1.0 - (dir.y - 0.18).abs() * 5.0).max(0.0);
+    color += Color::new(0.82, 0.88, 0.96) * cloud * 0.28;
     color.clamp01()
 }
 
 fn build_scene() -> Scene {
     let materials = vec![
         Material {
-            kind: MaterialKind::StatueStone,
-            albedo: Color::new(0.58, 0.57, 0.53),
-            specular: 0.18,
+            kind: MaterialKind::Rock,
+            albedo: Color::new(0.43, 0.33, 0.23),
+            specular: 0.12,
+            transparency: 0.0,
+            reflectivity: 0.04,
+            refractive_index: 1.0,
+        },
+        Material {
+            kind: MaterialKind::Cloud,
+            albedo: Color::new(0.88, 0.92, 0.98),
+            specular: 0.32,
+            transparency: 0.06,
+            reflectivity: 0.08,
+            refractive_index: 1.05,
+        },
+        Material {
+            kind: MaterialKind::GamabuntaSkin,
+            albedo: Color::new(0.56, 0.18, 0.13),
+            specular: 0.24,
+            transparency: 0.0,
+            reflectivity: 0.04,
+            refractive_index: 1.0,
+        },
+        Material {
+            kind: MaterialKind::GamakenSkin,
+            albedo: Color::new(0.62, 0.16, 0.40),
+            specular: 0.22,
+            transparency: 0.0,
+            reflectivity: 0.03,
+            refractive_index: 1.0,
+        },
+        Material {
+            kind: MaterialKind::GamahiroSkin,
+            albedo: Color::new(0.42, 0.72, 0.70),
+            specular: 0.30,
             transparency: 0.0,
             reflectivity: 0.05,
             refractive_index: 1.0,
         },
         Material {
-            kind: MaterialKind::DarkRock,
-            albedo: Color::new(0.22, 0.21, 0.20),
-            specular: 0.22,
+            kind: MaterialKind::Robe,
+            albedo: Color::new(0.07, 0.10, 0.16),
+            specular: 0.16,
             transparency: 0.0,
-            reflectivity: 0.12,
+            reflectivity: 0.05,
             refractive_index: 1.0,
         },
         Material {
-            kind: MaterialKind::Grass,
-            albedo: Color::new(0.18, 0.42, 0.13),
-            specular: 0.04,
+            kind: MaterialKind::OrangeCloth,
+            albedo: Color::new(0.93, 0.30, 0.035),
+            specular: 0.10,
             transparency: 0.0,
-            reflectivity: 0.0,
+            reflectivity: 0.02,
             refractive_index: 1.0,
         },
         Material {
-            kind: MaterialKind::Water,
-            albedo: Color::new(0.12, 0.42, 0.72),
-            specular: 0.9,
-            transparency: 0.55,
-            reflectivity: 0.35,
-            refractive_index: 1.33,
+            kind: MaterialKind::RedCloak,
+            albedo: Color::new(0.66, 0.055, 0.04),
+            specular: 0.14,
+            transparency: 0.0,
+            reflectivity: 0.03,
+            refractive_index: 1.0,
+        },
+        Material {
+            kind: MaterialKind::NarutoSkin,
+            albedo: Color::new(0.91, 0.58, 0.38),
+            specular: 0.20,
+            transparency: 0.0,
+            reflectivity: 0.02,
+            refractive_index: 1.0,
+        },
+        Material {
+            kind: MaterialKind::NarutoHair,
+            albedo: Color::new(1.00, 0.72, 0.06),
+            specular: 0.34,
+            transparency: 0.0,
+            reflectivity: 0.05,
+            refractive_index: 1.0,
+        },
+        Material {
+            kind: MaterialKind::Ink,
+            albedo: Color::new(0.018, 0.022, 0.030),
+            specular: 0.12,
+            transparency: 0.0,
+            reflectivity: 0.04,
+            refractive_index: 1.0,
+        },
+        Material {
+            kind: MaterialKind::Metal,
+            albedo: Color::new(0.62, 0.68, 0.74),
+            specular: 0.95,
+            transparency: 0.0,
+            reflectivity: 0.58,
+            refractive_index: 1.0,
+        },
+        Material {
+            kind: MaterialKind::Chakra,
+            albedo: Color::new(0.18, 0.55, 0.96),
+            specular: 0.82,
+            transparency: 0.48,
+            reflectivity: 0.18,
+            refractive_index: 1.18,
         },
         Material {
             kind: MaterialKind::Wood,
-            albedo: Color::new(0.45, 0.25, 0.10),
+            albedo: Color::new(0.30, 0.12, 0.055),
             specular: 0.12,
             transparency: 0.0,
             reflectivity: 0.03,
             refractive_index: 1.0,
         },
         Material {
-            kind: MaterialKind::Leaf,
-            albedo: Color::new(0.08, 0.32, 0.08),
-            specular: 0.05,
+            kind: MaterialKind::EyeGold,
+            albedo: Color::new(0.96, 0.68, 0.08),
+            specular: 0.70,
             transparency: 0.0,
-            reflectivity: 0.0,
-            refractive_index: 1.0,
-        },
-        Material {
-            kind: MaterialKind::Waterfall,
-            albedo: Color::new(0.55, 0.82, 0.95),
-            specular: 0.7,
-            transparency: 0.35,
-            reflectivity: 0.22,
-            refractive_index: 1.33,
-        },
-        Material {
-            kind: MaterialKind::Foam,
-            albedo: Color::new(0.85, 0.93, 0.98),
-            specular: 0.55,
-            transparency: 0.18,
-            reflectivity: 0.10,
-            refractive_index: 1.20,
-        },
-        Material {
-            kind: MaterialKind::Moss,
-            albedo: Color::new(0.11, 0.31, 0.12),
-            specular: 0.03,
-            transparency: 0.0,
-            reflectivity: 0.0,
-            refractive_index: 1.0,
-        },
-        Material {
-            kind: MaterialKind::Trail,
-            albedo: Color::new(0.50, 0.39, 0.24),
-            specular: 0.06,
-            transparency: 0.0,
-            reflectivity: 0.01,
+            reflectivity: 0.16,
             refractive_index: 1.0,
         },
     ];
@@ -847,14 +905,521 @@ fn build_scene() -> Scene {
     let mut scene = Scene {
         cubes: Vec::new(),
         materials,
-        light_dir: Vec3::new(0.35, -0.85, 0.25).normalized(),
-        light_color: Color::new(1.0, 0.86, 0.68),
+        light_dir: Vec3::new(0.42, -0.82, -0.30).normalized(),
+        light_color: Color::new(1.0, 0.95, 0.84),
     };
 
-    build_valley(&mut scene);
+    build_sage_arrival(&mut scene);
     scene
 }
 
+fn build_sage_arrival(scene: &mut Scene) {
+    add_block(
+        scene,
+        Vec3::new(0.0, -0.65, 0.0),
+        Vec3::new(24.0, 1.3, 12.0),
+        0,
+    );
+    add_block(
+        scene,
+        Vec3::new(0.0, 0.08, 0.4),
+        Vec3::new(16.0, 0.25, 7.5),
+        0,
+    );
+
+    add_gamabunta(scene, Vec3::new(0.0, 0.0, -0.3));
+    add_gamaken(scene, Vec3::new(-7.2, 0.0, -1.3));
+    add_gamahiro(scene, Vec3::new(7.2, 0.0, -1.3));
+    add_naruto_sage(scene, Vec3::new(0.0, 8.0, 0.25));
+    add_summoning_clouds(scene);
+}
+
+fn add_gamabunta(scene: &mut Scene, base: Vec3) {
+    let skin = 2;
+    let robe = 5;
+    let pale = 1;
+    let ink = 10;
+    let eye = 14;
+
+    add_block(
+        scene,
+        base + Vec3::new(-2.5, 0.8, 1.1),
+        Vec3::new(3.2, 1.2, 3.2),
+        skin,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(2.5, 0.8, 1.1),
+        Vec3::new(3.2, 1.2, 3.2),
+        skin,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(0.0, 2.8, 0.0),
+        Vec3::new(6.6, 4.0, 3.8),
+        skin,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(0.0, 2.9, 2.0),
+        Vec3::new(3.6, 2.8, 0.35),
+        pale,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(-2.7, 3.4, 0.9),
+        Vec3::new(1.35, 3.8, 2.2),
+        robe,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(2.7, 3.4, 0.9),
+        Vec3::new(1.35, 3.8, 2.2),
+        robe,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(0.0, 5.8, 0.6),
+        Vec3::new(6.2, 2.6, 3.2),
+        skin,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(0.0, 5.35, 2.2),
+        Vec3::new(4.6, 1.0, 1.1),
+        pale,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(-1.55, 6.35, 2.25),
+        Vec3::new(1.05, 0.64, 0.28),
+        eye,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(1.55, 6.35, 2.25),
+        Vec3::new(1.05, 0.64, 0.28),
+        eye,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(-1.55, 6.34, 2.42),
+        Vec3::new(0.24, 0.52, 0.16),
+        ink,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(1.55, 6.34, 2.42),
+        Vec3::new(0.24, 0.52, 0.16),
+        ink,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(-0.72, 5.62, 2.80),
+        Vec3::new(0.22, 0.20, 0.12),
+        ink,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(0.72, 5.62, 2.80),
+        Vec3::new(0.22, 0.20, 0.12),
+        ink,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(0.0, 4.85, 2.77),
+        Vec3::new(2.7, 0.18, 0.14),
+        ink,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(0.0, 6.95, 0.0),
+        Vec3::new(1.1, 0.55, 1.2),
+        skin,
+    );
+}
+
+fn add_gamaken(scene: &mut Scene, base: Vec3) {
+    let skin = 3;
+    let robe = 5;
+    let pale = 1;
+    let ink = 10;
+    let metal = 11;
+    let eye = 14;
+
+    add_block(
+        scene,
+        base + Vec3::new(-1.7, 0.8, 0.8),
+        Vec3::new(2.3, 1.1, 2.6),
+        skin,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(1.7, 0.8, 0.8),
+        Vec3::new(2.3, 1.1, 2.6),
+        skin,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(0.0, 2.7, 0.0),
+        Vec3::new(4.8, 3.8, 3.0),
+        skin,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(0.0, 3.0, 1.65),
+        Vec3::new(2.6, 2.5, 0.3),
+        pale,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(-1.9, 3.0, 0.6),
+        Vec3::new(1.15, 3.5, 1.8),
+        robe,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(1.9, 3.0, 0.6),
+        Vec3::new(1.15, 3.5, 1.8),
+        robe,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(0.0, 5.45, 0.55),
+        Vec3::new(4.5, 2.4, 2.8),
+        skin,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(0.0, 5.0, 1.94),
+        Vec3::new(3.35, 0.92, 0.95),
+        pale,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(-1.1, 5.9, 1.98),
+        Vec3::new(0.78, 0.52, 0.24),
+        eye,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(1.1, 5.9, 1.98),
+        Vec3::new(0.78, 0.52, 0.24),
+        eye,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(-1.1, 5.9, 2.12),
+        Vec3::new(0.18, 0.40, 0.12),
+        ink,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(1.1, 5.9, 2.12),
+        Vec3::new(0.18, 0.40, 0.12),
+        ink,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(0.0, 4.58, 2.43),
+        Vec3::new(2.2, 0.16, 0.12),
+        ink,
+    );
+
+    add_block(
+        scene,
+        base + Vec3::new(-3.15, 4.5, 0.3),
+        Vec3::new(0.32, 8.8, 0.32),
+        metal,
+    );
+    for x in [-3.75, -3.15, -2.55] {
+        add_block(
+            scene,
+            base + Vec3::new(x, 8.85, 0.3),
+            Vec3::new(0.24, 1.6, 0.24),
+            metal,
+        );
+    }
+    add_block(
+        scene,
+        base + Vec3::new(-3.15, 8.15, 0.3),
+        Vec3::new(1.45, 0.25, 0.25),
+        metal,
+    );
+}
+
+fn add_gamahiro(scene: &mut Scene, base: Vec3) {
+    let skin = 4;
+    let robe = 5;
+    let orange = 6;
+    let pale = 1;
+    let ink = 10;
+    let metal = 11;
+    let wood = 13;
+    let eye = 14;
+
+    add_block(
+        scene,
+        base + Vec3::new(-1.8, 0.8, 0.8),
+        Vec3::new(2.5, 1.1, 2.7),
+        skin,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(1.8, 0.8, 0.8),
+        Vec3::new(2.5, 1.1, 2.7),
+        skin,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(0.0, 2.8, 0.0),
+        Vec3::new(5.0, 4.0, 3.1),
+        skin,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(0.0, 2.5, 1.7),
+        Vec3::new(2.8, 2.6, 0.3),
+        pale,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(0.0, 1.75, 1.95),
+        Vec3::new(3.8, 0.55, 0.42),
+        orange,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(-2.0, 3.1, 0.6),
+        Vec3::new(1.15, 3.6, 1.9),
+        robe,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(2.0, 3.1, 0.6),
+        Vec3::new(1.15, 3.6, 1.9),
+        robe,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(0.0, 5.65, 0.5),
+        Vec3::new(4.7, 2.5, 2.9),
+        skin,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(0.0, 5.15, 1.95),
+        Vec3::new(3.5, 0.95, 1.0),
+        pale,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(-1.15, 6.08, 2.0),
+        Vec3::new(0.80, 0.54, 0.24),
+        eye,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(1.15, 6.08, 2.0),
+        Vec3::new(0.80, 0.54, 0.24),
+        eye,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(-1.15, 6.08, 2.14),
+        Vec3::new(0.18, 0.42, 0.12),
+        ink,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(1.15, 6.08, 2.14),
+        Vec3::new(0.18, 0.42, 0.12),
+        ink,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(0.0, 4.70, 2.45),
+        Vec3::new(2.35, 0.16, 0.12),
+        ink,
+    );
+
+    for x in [-1.75, 1.75] {
+        add_block(
+            scene,
+            base + Vec3::new(x, 7.9, -0.9),
+            Vec3::new(0.48, 5.0, 0.48),
+            wood,
+        );
+        add_block(
+            scene,
+            base + Vec3::new(x, 9.0, -0.9),
+            Vec3::new(0.24, 3.3, 0.24),
+            metal,
+        );
+    }
+}
+
+fn add_naruto_sage(scene: &mut Scene, base: Vec3) {
+    let orange = 6;
+    let cloak = 7;
+    let skin = 8;
+    let hair = 9;
+    let ink = 10;
+    let metal = 11;
+    let chakra = 12;
+    let eye = 14;
+
+    add_block(
+        scene,
+        base + Vec3::new(-0.48, 0.55, 0.0),
+        Vec3::new(0.65, 1.25, 0.75),
+        orange,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(0.48, 0.55, 0.0),
+        Vec3::new(0.65, 1.25, 0.75),
+        orange,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(0.0, 1.65, 0.0),
+        Vec3::new(1.55, 1.25, 0.85),
+        orange,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(0.0, 1.65, -0.55),
+        Vec3::new(2.0, 1.65, 0.28),
+        cloak,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(-0.82, 1.82, 0.35),
+        Vec3::new(0.38, 1.15, 0.42),
+        cloak,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(0.82, 1.82, 0.35),
+        Vec3::new(0.38, 1.15, 0.42),
+        cloak,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(-0.38, 1.78, 0.72),
+        Vec3::new(0.82, 0.30, 0.34),
+        skin,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(0.38, 1.78, 0.72),
+        Vec3::new(0.82, 0.30, 0.34),
+        skin,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(0.0, 2.72, 0.05),
+        Vec3::new(1.22, 1.05, 0.92),
+        skin,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(0.0, 2.94, 0.55),
+        Vec3::new(1.28, 0.26, 0.16),
+        metal,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(-0.33, 2.76, 0.58),
+        Vec3::new(0.30, 0.16, 0.10),
+        eye,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(0.33, 2.76, 0.58),
+        Vec3::new(0.30, 0.16, 0.10),
+        eye,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(-0.33, 2.76, 0.65),
+        Vec3::new(0.08, 0.13, 0.07),
+        ink,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(0.33, 2.76, 0.65),
+        Vec3::new(0.08, 0.13, 0.07),
+        ink,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(0.0, 2.48, 0.58),
+        Vec3::new(0.42, 0.08, 0.07),
+        ink,
+    );
+    for x in [-0.48, -0.24, 0.0, 0.24, 0.48] {
+        let height = if x == 0.0 { 0.72 } else { 0.55 };
+        add_block(
+            scene,
+            base + Vec3::new(x, 3.45, -0.02),
+            Vec3::new(0.28, height, 0.52),
+            hair,
+        );
+    }
+    add_block(
+        scene,
+        base + Vec3::new(-0.95, 2.0, -0.1),
+        Vec3::new(0.16, 2.9, 0.18),
+        chakra,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(0.95, 2.0, -0.1),
+        Vec3::new(0.16, 2.9, 0.18),
+        chakra,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(0.0, 3.55, -0.1),
+        Vec3::new(1.7, 0.14, 0.20),
+        chakra,
+    );
+}
+
+fn add_summoning_clouds(scene: &mut Scene) {
+    for (x, z, scale) in [
+        (-10.0, 2.8, 1.2),
+        (-7.0, 3.5, 1.4),
+        (-3.8, 3.8, 1.15),
+        (0.0, 4.0, 1.45),
+        (3.7, 3.7, 1.2),
+        (7.0, 3.4, 1.4),
+        (10.0, 2.7, 1.2),
+        (-9.4, -2.5, 0.9),
+        (9.4, -2.5, 0.9),
+    ] {
+        add_cloud_cluster(scene, Vec3::new(x, 0.65, z), scale);
+    }
+}
+
+fn add_cloud_cluster(scene: &mut Scene, base: Vec3, scale: f32) {
+    for (offset, size) in [
+        (Vec3::new(0.0, 0.0, 0.0), Vec3::new(3.0, 1.1, 1.8)),
+        (Vec3::new(-1.2, 0.35, 0.1), Vec3::new(1.8, 1.2, 1.5)),
+        (Vec3::new(1.2, 0.42, -0.1), Vec3::new(1.9, 1.35, 1.6)),
+        (Vec3::new(0.0, 0.65, 0.0), Vec3::new(1.7, 1.2, 1.4)),
+    ] {
+        add_block(scene, base + offset * scale, size * scale, 1);
+    }
+}
+
+fn add_block(scene: &mut Scene, center: Vec3, size: Vec3, material: usize) {
+    add_cube(scene, center - size * 0.5, center + size * 0.5, material);
+}
+
+#[allow(dead_code)]
 fn build_valley(scene: &mut Scene) {
     add_cube(
         scene,
