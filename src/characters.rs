@@ -9,120 +9,131 @@ pub fn add_gamabunta(scene: &mut Scene, base: Vec3) {
     let eye = 14;
     let rope = 16;
 
-    add_block(
+    for side in [-1.0, 1.0] {
+        add_voxel_ellipsoid(
+            scene,
+            base + Vec3::new(side * 2.45, 0.72, 0.92),
+            Vec3::new(1.55, 0.62, 1.48),
+            0.34,
+            skin,
+        );
+    }
+    add_voxel_ellipsoid(
         scene,
-        base + Vec3::new(-2.5, 0.8, 1.1),
-        Vec3::new(3.2, 1.2, 3.2),
+        base + Vec3::new(0.0, 2.75, -0.05),
+        Vec3::new(3.05, 2.05, 1.72),
+        0.34,
         skin,
     );
-    add_block(
+    add_voxel_ellipsoid(
         scene,
-        base + Vec3::new(2.5, 0.8, 1.1),
-        Vec3::new(3.2, 1.2, 3.2),
-        skin,
-    );
-    add_rounded_mass(
-        scene,
-        base + Vec3::new(0.0, 2.8, 0.0),
-        Vec3::new(6.6, 4.0, 3.8),
-        skin,
-    );
-    add_block(
-        scene,
-        base + Vec3::new(0.0, 2.9, 2.0),
-        Vec3::new(3.6, 2.8, 0.35),
+        base + Vec3::new(0.0, 2.85, 1.58),
+        Vec3::new(1.72, 1.52, 0.30),
+        0.27,
         pale,
     );
-    add_block(
+    for side in [-1.0, 1.0] {
+        add_voxel_ellipsoid(
+            scene,
+            base + Vec3::new(side * 2.50, 3.35, 0.45),
+            Vec3::new(0.78, 1.88, 1.18),
+            0.30,
+            robe,
+        );
+    }
+    add_voxel_ellipsoid(
         scene,
-        base + Vec3::new(-2.7, 3.4, 0.9),
-        Vec3::new(1.35, 3.8, 2.2),
-        robe,
-    );
-    add_block(
-        scene,
-        base + Vec3::new(2.7, 3.4, 0.9),
-        Vec3::new(1.35, 3.8, 2.2),
-        robe,
-    );
-    add_rounded_mass(
-        scene,
-        base + Vec3::new(0.0, 5.8, 0.6),
-        Vec3::new(6.2, 2.6, 3.2),
+        base + Vec3::new(0.0, 5.78, 0.48),
+        Vec3::new(3.05, 1.38, 1.52),
+        0.30,
         skin,
     );
-    add_block(
+    add_voxel_ellipsoid(
         scene,
-        base + Vec3::new(0.0, 7.0, 0.35),
-        Vec3::new(4.7, 0.55, 2.35),
+        base + Vec3::new(0.0, 6.86, 0.30),
+        Vec3::new(2.28, 0.48, 1.08),
+        0.28,
         skin,
     );
-    add_block(
+    for side in [-1.0, 1.0] {
+        add_voxel_ellipsoid(
+            scene,
+            base + Vec3::new(side * 2.78, 5.62, 0.58),
+            Vec3::new(0.48, 0.82, 1.08),
+            0.26,
+            skin,
+        );
+    }
+    add_voxel_ellipsoid(
         scene,
-        base + Vec3::new(-3.0, 5.65, 0.65),
-        Vec3::new(0.65, 1.55, 2.25),
+        base + Vec3::new(0.0, 5.25, 1.84),
+        Vec3::new(2.22, 0.62, 0.52),
+        0.25,
         skin,
     );
+    for side in [-1.0, 1.0] {
+        add_voxel_ellipsoid(
+            scene,
+            base + Vec3::new(side * 1.48, 6.30, 1.87),
+            Vec3::new(0.58, 0.38, 0.20),
+            0.16,
+            eye,
+        );
+        add_voxel_segment(
+            scene,
+            base + Vec3::new(side * 0.92, 6.58, 2.02),
+            base + Vec3::new(side * 2.00, 6.72, 1.92),
+            0.18,
+            ink,
+        );
+    }
     add_block(
         scene,
-        base + Vec3::new(3.0, 5.65, 0.65),
-        Vec3::new(0.65, 1.55, 2.25),
-        skin,
-    );
-    add_block(
-        scene,
-        base + Vec3::new(0.0, 5.35, 2.2),
-        Vec3::new(4.6, 1.0, 1.1),
-        pale,
-    );
-    add_block(
-        scene,
-        base + Vec3::new(-1.55, 6.35, 2.25),
-        Vec3::new(1.05, 0.64, 0.28),
-        eye,
-    );
-    add_block(
-        scene,
-        base + Vec3::new(1.55, 6.35, 2.25),
-        Vec3::new(1.05, 0.64, 0.28),
-        eye,
-    );
-    add_block(
-        scene,
-        base + Vec3::new(-1.55, 6.34, 2.42),
-        Vec3::new(0.24, 0.52, 0.16),
+        base + Vec3::new(-1.48, 6.30, 2.10),
+        Vec3::new(0.18, 0.48, 0.12),
         ink,
     );
     add_block(
         scene,
-        base + Vec3::new(1.55, 6.34, 2.42),
-        Vec3::new(0.24, 0.52, 0.16),
+        base + Vec3::new(1.48, 6.30, 2.10),
+        Vec3::new(0.18, 0.48, 0.12),
         ink,
     );
     add_block(
         scene,
-        base + Vec3::new(-0.72, 5.62, 2.80),
-        Vec3::new(0.22, 0.20, 0.12),
+        base + Vec3::new(-0.64, 5.54, 2.38),
+        Vec3::new(0.22, 0.18, 0.10),
         ink,
     );
     add_block(
         scene,
-        base + Vec3::new(0.72, 5.62, 2.80),
-        Vec3::new(0.22, 0.20, 0.12),
+        base + Vec3::new(0.64, 5.54, 2.38),
+        Vec3::new(0.22, 0.18, 0.10),
         ink,
     );
-    add_block(
+    add_voxel_segment(
         scene,
-        base + Vec3::new(0.0, 4.85, 2.77),
-        Vec3::new(2.7, 0.18, 0.14),
+        base + Vec3::new(-1.58, 4.82, 2.18),
+        base + Vec3::new(1.58, 4.82, 2.18),
+        0.16,
         ink,
     );
-    add_block(
+    add_voxel_ellipsoid(
         scene,
-        base + Vec3::new(0.0, 6.95, 0.0),
-        Vec3::new(1.1, 0.55, 1.2),
+        base + Vec3::new(0.0, 6.98, -0.02),
+        Vec3::new(0.58, 0.34, 0.62),
+        0.22,
         skin,
     );
+    for y in [2.12, 2.78, 3.44] {
+        add_voxel_segment(
+            scene,
+            base + Vec3::new(-1.18, y, 1.91),
+            base + Vec3::new(1.18, y, 1.91),
+            0.10,
+            rope,
+        );
+    }
     for x in [-2.45, -1.95, 1.95, 2.45] {
         add_block(
             scene,
@@ -181,7 +192,7 @@ pub fn add_gamabunta(scene: &mut Scene, base: Vec3) {
         Vec3::new(0.32, 0.32, 0.24),
         rope,
     );
-    add_toad_limbs(scene, base, skin, 3.05, 1.0);
+    add_gamabunta_limbs(scene, base, skin);
 }
 
 pub fn add_gamaken(scene: &mut Scene, base: Vec3) {
@@ -557,6 +568,41 @@ fn add_toad_limbs(scene: &mut Scene, base: Vec3, skin: usize, half_width: f32, s
                 scene,
                 base + Vec3::new(side * (half_width + 0.28) + finger * scale, 0.78, 2.65),
                 Vec3::new(0.30, 0.34, 0.72) * scale,
+                skin,
+            );
+        }
+    }
+}
+
+fn add_gamabunta_limbs(scene: &mut Scene, base: Vec3, skin: usize) {
+    for side in [-1.0, 1.0] {
+        add_voxel_ellipsoid(
+            scene,
+            base + Vec3::new(side * 2.92, 3.42, 0.46),
+            Vec3::new(0.72, 1.22, 0.78),
+            0.28,
+            skin,
+        );
+        add_voxel_ellipsoid(
+            scene,
+            base + Vec3::new(side * 3.10, 2.18, 1.08),
+            Vec3::new(0.62, 0.86, 0.76),
+            0.26,
+            skin,
+        );
+        add_voxel_ellipsoid(
+            scene,
+            base + Vec3::new(side * 3.00, 1.34, 1.82),
+            Vec3::new(0.90, 0.42, 0.72),
+            0.24,
+            skin,
+        );
+        for finger in [-0.48, 0.0, 0.48] {
+            add_voxel_segment(
+                scene,
+                base + Vec3::new(side * 3.00 + finger, 1.20, 2.10),
+                base + Vec3::new(side * 3.00 + finger, 0.92, 2.82),
+                0.24,
                 skin,
             );
         }

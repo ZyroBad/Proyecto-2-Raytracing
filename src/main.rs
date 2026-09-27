@@ -367,7 +367,7 @@ fn build_sage_arrival(scene: &mut Scene) {
     add_gamabunta(scene, Vec3::new(0.0, 0.0, -0.3));
     add_gamaken(scene, Vec3::new(-7.2, 0.0, -1.3));
     add_gamahiro(scene, Vec3::new(7.2, 0.0, -1.3));
-    add_naruto_sage(scene, Vec3::new(0.0, 8.0, 0.25));
+    add_naruto_sage(scene, Vec3::new(0.0, 7.38, 0.25));
     add_summoning_clouds(scene);
 }
 
