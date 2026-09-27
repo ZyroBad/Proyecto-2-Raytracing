@@ -1,4 +1,5 @@
 mod background;
+mod bvh;
 mod camera;
 mod characters;
 mod config;
@@ -8,6 +9,7 @@ mod math;
 mod scene;
 
 use background::add_destroyed_konoha;
+use bvh::Bvh;
 use camera::{Camera, Ray};
 use characters::{add_gamabunta, add_gamahiro, add_gamaken, add_naruto_sage, add_summoning_clouds};
 use config::Config;
@@ -133,6 +135,7 @@ fn render_to_file(scene: &Scene, cfg: &Config, frame: usize, path: &str) -> std:
         angle.sin() * radius,
     );
     let camera = Camera::look_at(camera_pos, Vec3::new(0.0, 3.6, -1.0), 46.0, aspect);
+    let bvh = Bvh::build(&scene.cubes);
 
     let mut pixels = vec![Color::default(); cfg.width * cfg.height];
 
@@ -146,7 +149,7 @@ fn render_to_file(scene: &Scene, cfg: &Config, frame: usize, path: &str) -> std:
                     let u = (x as f32 + (sx as f32 + 0.5) * inv_samples) / (cfg.width - 1) as f32;
                     let v = 1.0
                         - (y as f32 + (sy as f32 + 0.5) * inv_samples) / (cfg.height - 1) as f32;
-                    color += trace(scene, camera.ray(u, v), 0, cfg.max_depth);
+                    color += trace(scene, &bvh, camera.ray(u, v), 0, cfg.max_depth);
                 }
             }
             color = color / (samples * samples) as f32;
@@ -167,24 +170,24 @@ fn render_to_file(scene: &Scene, cfg: &Config, frame: usize, path: &str) -> std:
     Ok(())
 }
 
-fn trace(scene: &Scene, ray: Ray, depth: u32, max_depth: u32) -> Color {
+fn trace(scene: &Scene, bvh: &Bvh, ray: Ray, depth: u32, max_depth: u32) -> Color {
     if depth >= max_depth {
         return skybox(ray.direction);
     }
 
-    if let Some(hit) = intersect_scene(scene, ray) {
-        shade(scene, ray, hit, depth, max_depth)
+    if let Some(hit) = intersect_scene(scene, bvh, ray) {
+        shade(scene, bvh, ray, hit, depth, max_depth)
     } else {
         skybox(ray.direction)
     }
 }
 
-fn shade(scene: &Scene, ray: Ray, hit: Hit, depth: u32, max_depth: u32) -> Color {
+fn shade(scene: &Scene, bvh: &Bvh, ray: Ray, hit: Hit, depth: u32, max_depth: u32) -> Color {
     let view_dir = -ray.direction;
     let light_dir = -scene.light_dir.normalized();
     let base = hit.material.texture(hit.point, hit.normal);
 
-    let visibility = soft_shadow(scene, hit.point, hit.normal, light_dir);
+    let visibility = soft_shadow(scene, bvh, hit.point, hit.normal, light_dir);
     let ndotl = hit.normal.dot(light_dir).max(0.0);
     let diffuse_strength = ndotl * (0.16 + visibility * 0.84);
     let diffuse = base.hadamard(scene.light_color) * diffuse_strength;
@@ -203,6 +206,7 @@ fn shade(scene: &Scene, ray: Ray, hit: Hit, depth: u32, max_depth: u32) -> Color
         let reflected = ray.direction.reflect(hit.normal).normalized();
         let reflected_color = trace(
             scene,
+            bvh,
             Ray {
                 origin: hit.point + hit.normal * EPSILON,
                 direction: reflected,
@@ -228,6 +232,7 @@ fn shade(scene: &Scene, ray: Ray, hit: Hit, depth: u32, max_depth: u32) -> Color
             .unwrap_or_else(|| ray.direction.reflect(normal));
         let refracted_color = trace(
             scene,
+            bvh,
             Ray {
                 origin: hit.point - normal * EPSILON * 2.0,
                 direction: refracted.normalized(),
@@ -244,7 +249,7 @@ fn shade(scene: &Scene, ray: Ray, hit: Hit, depth: u32, max_depth: u32) -> Color
     color.clamp01()
 }
 
-fn soft_shadow(scene: &Scene, point: Vec3, normal: Vec3, light_dir: Vec3) -> f32 {
+fn soft_shadow(scene: &Scene, bvh: &Bvh, point: Vec3, normal: Vec3, light_dir: Vec3) -> f32 {
     let tangent = light_dir.cross(Vec3::new(0.0, 1.0, 0.0)).normalized();
     let bitangent = tangent.cross(light_dir).normalized();
     let offsets = [(0.0, 0.0), (0.045, -0.025), (-0.035, 0.040)];
@@ -256,7 +261,7 @@ fn soft_shadow(scene: &Scene, point: Vec3, normal: Vec3, light_dir: Vec3) -> f32
             origin: point + normal * EPSILON,
             direction,
         };
-        if intersect_scene(scene, shadow_ray).is_none() {
+        if !bvh.any_hit(&scene.cubes, shadow_ray) {
             visible += 1.0;
         }
     }
@@ -274,93 +279,14 @@ fn tone_map(color: Color) -> Color {
     .clamp01()
 }
 
-fn intersect_scene(scene: &Scene, ray: Ray) -> Option<Hit> {
-    let mut closest: Option<Hit> = None;
-    let mut closest_t = f32::INFINITY;
-
-    for cube in &scene.cubes {
-        if let Some((t, normal)) = intersect_cube(ray, *cube) {
-            if t > EPSILON && t < closest_t {
-                closest_t = t;
-                closest = Some(Hit {
-                    point: ray.at(t),
-                    normal,
-                    material: scene.materials[cube.material],
-                    distance: t,
-                });
-            }
-        }
-    }
-
-    closest
-}
-
-fn intersect_cube(ray: Ray, cube: Cube) -> Option<(f32, Vec3)> {
-    let mut t_min = -f32::INFINITY;
-    let mut t_max = f32::INFINITY;
-    let mut hit_normal = Vec3::default();
-
-    let axes = [
-        (
-            ray.origin.x,
-            ray.direction.x,
-            cube.min.x,
-            cube.max.x,
-            Vec3::new(-1.0, 0.0, 0.0),
-            Vec3::new(1.0, 0.0, 0.0),
-        ),
-        (
-            ray.origin.y,
-            ray.direction.y,
-            cube.min.y,
-            cube.max.y,
-            Vec3::new(0.0, -1.0, 0.0),
-            Vec3::new(0.0, 1.0, 0.0),
-        ),
-        (
-            ray.origin.z,
-            ray.direction.z,
-            cube.min.z,
-            cube.max.z,
-            Vec3::new(0.0, 0.0, -1.0),
-            Vec3::new(0.0, 0.0, 1.0),
-        ),
-    ];
-
-    for (origin, direction, min_v, max_v, n_min, n_max) in axes {
-        if direction.abs() < 0.00001 {
-            if origin < min_v || origin > max_v {
-                return None;
-            }
-            continue;
-        }
-
-        let inv = 1.0 / direction;
-        let mut t0 = (min_v - origin) * inv;
-        let mut t1 = (max_v - origin) * inv;
-        let mut normal = n_min;
-        if inv < 0.0 {
-            std::mem::swap(&mut t0, &mut t1);
-            normal = n_max;
-        }
-
-        if t0 > t_min {
-            t_min = t0;
-            hit_normal = normal;
-        }
-        t_max = t_max.min(t1);
-        if t_min > t_max {
-            return None;
-        }
-    }
-
-    if t_min > EPSILON {
-        Some((t_min, hit_normal))
-    } else if t_max > EPSILON {
-        Some((t_max, -hit_normal))
-    } else {
-        None
-    }
+fn intersect_scene(scene: &Scene, bvh: &Bvh, ray: Ray) -> Option<Hit> {
+    bvh.nearest(&scene.cubes, ray)
+        .map(|(index, distance, normal)| Hit {
+            point: ray.at(distance),
+            normal,
+            material: scene.materials[scene.cubes[index].material],
+            distance,
+        })
 }
 
 fn skybox(dir: Vec3) -> Color {
@@ -477,7 +403,8 @@ mod tests {
             origin: Vec3::new(0.0, 0.0, -3.0),
             direction: Vec3::new(0.0, 0.0, 1.0),
         };
-        let (distance, normal) = intersect_cube(ray, test_cube()).expect("ray should hit cube");
+        let (distance, normal) =
+            bvh::intersect_cube(ray, test_cube()).expect("ray should hit cube");
 
         assert_close(distance, 2.0);
         assert_close(normal.z, -1.0);
@@ -489,7 +416,8 @@ mod tests {
             origin: Vec3::new(0.0, 0.0, 0.0),
             direction: Vec3::new(1.0, 0.0, 0.0),
         };
-        let (distance, normal) = intersect_cube(ray, test_cube()).expect("ray should exit cube");
+        let (distance, normal) =
+            bvh::intersect_cube(ray, test_cube()).expect("ray should exit cube");
 
         assert_close(distance, 1.0);
         assert_close(normal.x, 1.0);
@@ -517,5 +445,45 @@ mod tests {
         assert!(scene.materials.iter().any(|m| m.transparency > 0.0));
         assert!(scene.materials.iter().any(|m| m.refractive_index > 1.0));
         assert!(!scene.cubes.is_empty());
+    }
+
+    #[test]
+    fn bvh_matches_brute_force_for_camera_rays() {
+        let scene = build_scene();
+        let bvh = Bvh::build(&scene.cubes);
+        let angle = 90.0_f32.to_radians();
+        let radius = 25.5 / 0.96;
+        let camera = Camera::look_at(
+            Vec3::new(angle.cos() * radius, 11.8, angle.sin() * radius),
+            Vec3::new(0.0, 3.6, -1.0),
+            46.0,
+            16.0 / 9.0,
+        );
+
+        for y in 0..30 {
+            for x in 0..50 {
+                let ray = camera.ray((x as f32 + 0.5) / 50.0, (y as f32 + 0.5) / 30.0);
+                let accelerated = bvh.nearest(&scene.cubes, ray);
+                let mut brute_force = None;
+                let mut closest = f32::INFINITY;
+                for (index, &cube) in scene.cubes.iter().enumerate() {
+                    if let Some((distance, normal)) = bvh::intersect_cube(ray, cube) {
+                        if distance < closest {
+                            closest = distance;
+                            brute_force = Some((index, distance, normal));
+                        }
+                    }
+                }
+
+                assert_eq!(
+                    accelerated.map(|hit| hit.0),
+                    brute_force.map(|hit| hit.0),
+                    "different cube for sample ({x}, {y})"
+                );
+                if let (Some(accelerated), Some(brute_force)) = (accelerated, brute_force) {
+                    assert_close(accelerated.1, brute_force.1);
+                }
+            }
+        }
     }
 }
