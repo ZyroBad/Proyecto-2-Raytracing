@@ -26,6 +26,7 @@ struct Hit {
     point: Vec3,
     normal: Vec3,
     material: Material,
+    distance: f32,
 }
 
 fn main() -> std::io::Result<()> {
@@ -125,13 +126,13 @@ fn render_to_file(scene: &Scene, cfg: &Config, frame: usize, path: &str) -> std:
         .map(|a| a.to_radians())
         .unwrap_or(t * 2.0 * PI + PI * 0.5);
     let zoom_wave = (t * 2.0 * PI).sin() * 0.18;
-    let radius = (27.0 - zoom_wave * 6.0) / cfg.zoom.max(0.35);
+    let radius = (25.5 - zoom_wave * 5.5) / cfg.zoom.max(0.35);
     let camera_pos = Vec3::new(
         angle.cos() * radius,
-        11.0 + zoom_wave * 2.5,
+        11.8 + zoom_wave * 2.5,
         angle.sin() * radius,
     );
-    let camera = Camera::look_at(camera_pos, Vec3::new(0.0, 3.8, -0.8), 48.0, aspect);
+    let camera = Camera::look_at(camera_pos, Vec3::new(0.0, 3.6, -1.0), 46.0, aspect);
 
     let mut pixels = vec![Color::default(); cfg.width * cfg.height];
 
@@ -149,7 +150,10 @@ fn render_to_file(scene: &Scene, cfg: &Config, frame: usize, path: &str) -> std:
                 }
             }
             color = color / (samples * samples) as f32;
-            color = Color::new(color.x.sqrt(), color.y.sqrt(), color.z.sqrt()).clamp01();
+            let nx = (x as f32 / cfg.width as f32 - 0.5) * 2.0;
+            let ny = (y as f32 / cfg.height as f32 - 0.5) * 2.0;
+            let vignette = (1.0 - (nx * nx + ny * ny) * 0.08).clamp(0.78, 1.0);
+            color = tone_map(color) * vignette;
             pixels[y * cfg.width + x] = color;
         }
     }
@@ -180,21 +184,20 @@ fn shade(scene: &Scene, ray: Ray, hit: Hit, depth: u32, max_depth: u32) -> Color
     let light_dir = -scene.light_dir.normalized();
     let base = hit.material.texture(hit.point, hit.normal);
 
-    let shadow_ray = Ray {
-        origin: hit.point + hit.normal * EPSILON,
-        direction: light_dir,
-    };
-    let in_shadow = intersect_scene(scene, shadow_ray).is_some();
+    let visibility = soft_shadow(scene, hit.point, hit.normal, light_dir);
     let ndotl = hit.normal.dot(light_dir).max(0.0);
-    let diffuse_strength = if in_shadow { 0.18 } else { ndotl };
+    let diffuse_strength = ndotl * (0.16 + visibility * 0.84);
     let diffuse = base.hadamard(scene.light_color) * diffuse_strength;
 
     let half_vec = (light_dir + view_dir).normalized();
-    let spec = hit.normal.dot(half_vec).max(0.0).powf(48.0) * hit.material.specular;
+    let spec = hit.normal.dot(half_vec).max(0.0).powf(48.0) * hit.material.specular * visibility;
     let specular = scene.light_color * spec;
-    let ambient = base * 0.18;
+    let sky_ambient = Color::new(0.20, 0.28, 0.42);
+    let ambient = base * 0.15 + base.hadamard(sky_ambient) * (0.12 + hit.normal.y.max(0.0) * 0.08);
+    let rim = (1.0 - hit.normal.dot(view_dir).max(0.0)).powf(3.0) * 0.13;
+    let rim_light = Color::new(0.30, 0.46, 0.72) * rim;
 
-    let mut color = ambient + diffuse + specular;
+    let mut color = ambient + diffuse + specular + rim_light;
 
     if hit.material.reflectivity > 0.0 {
         let reflected = ray.direction.reflect(hit.normal).normalized();
@@ -236,7 +239,39 @@ fn shade(scene: &Scene, ray: Ray, hit: Hit, depth: u32, max_depth: u32) -> Color
             color * (1.0 - hit.material.transparency) + refracted_color * hit.material.transparency;
     }
 
+    let fog = ((hit.distance - 20.0) / 34.0).clamp(0.0, 1.0) * 0.30;
+    color = color * (1.0 - fog) + skybox(ray.direction) * fog;
     color.clamp01()
+}
+
+fn soft_shadow(scene: &Scene, point: Vec3, normal: Vec3, light_dir: Vec3) -> f32 {
+    let tangent = light_dir.cross(Vec3::new(0.0, 1.0, 0.0)).normalized();
+    let bitangent = tangent.cross(light_dir).normalized();
+    let offsets = [(0.0, 0.0), (0.045, -0.025), (-0.035, 0.040)];
+    let mut visible = 0.0;
+
+    for (x, y) in offsets {
+        let direction = (light_dir + tangent * x + bitangent * y).normalized();
+        let shadow_ray = Ray {
+            origin: point + normal * EPSILON,
+            direction,
+        };
+        if intersect_scene(scene, shadow_ray).is_none() {
+            visible += 1.0;
+        }
+    }
+
+    visible / offsets.len() as f32
+}
+
+fn tone_map(color: Color) -> Color {
+    let exposure = 1.55;
+    Color::new(
+        (1.0 - (-color.x * exposure).exp()).powf(1.0 / 2.2),
+        (1.0 - (-color.y * exposure).exp()).powf(1.0 / 2.2),
+        (1.0 - (-color.z * exposure).exp()).powf(1.0 / 2.2),
+    )
+    .clamp01()
 }
 
 fn intersect_scene(scene: &Scene, ray: Ray) -> Option<Hit> {
@@ -251,6 +286,7 @@ fn intersect_scene(scene: &Scene, ray: Ray) -> Option<Hit> {
                     point: ray.at(t),
                     normal,
                     material: scene.materials[cube.material],
+                    distance: t,
                 });
             }
         }
@@ -333,15 +369,17 @@ fn skybox(dir: Vec3) -> Color {
     let zenith = Color::new(0.10, 0.24, 0.44);
     let mut color = horizon * (1.0 - t) + zenith * t;
 
-    let sun_dir = Vec3::new(-0.45, 0.62, 0.64).normalized();
+    let sun_dir = Vec3::new(-0.38, 0.36, -0.85).normalized();
     let sun = dir.dot(sun_dir).max(0.0).powf(320.0);
     let glow = dir.dot(sun_dir).max(0.0).powf(18.0);
     color += Color::new(1.0, 0.86, 0.54) * sun;
     color += Color::new(0.72, 0.32, 0.14) * glow * 0.28;
 
-    let cloud = ((dir.x * 16.0 + dir.z * 10.0).sin() * 0.5 + 0.5)
-        * (1.0 - (dir.y - 0.18).abs() * 5.0).max(0.0);
-    color += Color::new(0.48, 0.30, 0.24) * cloud * 0.22;
+    let cloud_band = (1.0 - (dir.y - 0.14).abs() * 6.0).max(0.0);
+    let cloud_shape =
+        ((dir.x * 18.0 + dir.z * 11.0).sin() + (dir.x * 31.0 - dir.z * 7.0).sin() * 0.45) * 0.5
+            + 0.42;
+    color += Color::new(0.48, 0.31, 0.25) * cloud_shape.max(0.0) * cloud_band * 0.24;
     color.clamp01()
 }
 
