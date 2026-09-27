@@ -12,10 +12,13 @@ pub fn add_destroyed_konoha(scene: &mut Scene) {
     );
 
     add_crater_ring(scene, 7.2, 0.06, 0.82, 36);
+    add_crater_ring(scene, 8.6, 0.11, 0.90, 40);
     add_crater_ring(scene, 10.1, 0.18, 1.05, 44);
+    add_crater_ring(scene, 11.7, 0.25, 1.16, 48);
     add_crater_ring(scene, 13.2, 0.32, 1.30, 52);
     add_crater_wall(scene);
     add_hokage_mountain(scene);
+    add_debris_field(scene);
 
     for (x, z, width, height) in [
         (-10.4, -4.8, 2.7, 4.6),
@@ -61,6 +64,12 @@ pub fn add_destroyed_konoha(scene: &mut Scene) {
         Vec3::new(0.2, 0.18, -2.0),
         Vec3::new(-1.3, 0.18, -10.2),
     );
+    add_crack_path(
+        scene,
+        Vec3::new(-1.8, 0.18, 0.4),
+        Vec3::new(-8.4, 0.18, 6.8),
+    );
+    add_crack_path(scene, Vec3::new(2.0, 0.18, 0.2), Vec3::new(8.0, 0.18, 6.2));
 
     add_dust_plume(scene, Vec3::new(-9.4, 1.2, -9.4), 1.15);
     add_dust_plume(scene, Vec3::new(9.2, 1.0, -9.0), 1.0);
@@ -251,6 +260,50 @@ fn add_crack_path(scene: &mut Scene, start: Vec3, end: Vec3) {
         let bend = (step as f32 * 2.1).sin() * 0.35;
         let point = start * (1.0 - t) + end * t + Vec3::new(bend, 0.0, 0.0);
         add_block(scene, point, Vec3::new(0.20, 0.06, 1.15), 0);
+    }
+}
+
+fn add_debris_field(scene: &mut Scene) {
+    for index in 0..52 {
+        let angle = index as f32 * 2.399_963;
+        let radial_noise = noise(Vec3::new(index as f32 * 0.73, 1.7, 4.2));
+        let radius = 8.0 + radial_noise * 5.2;
+        let x = angle.cos() * radius;
+        let z = angle.sin() * radius - 2.2;
+        let width = 0.28 + noise(Vec3::new(x, 2.1, z)) * 0.82;
+        let height = 0.18 + noise(Vec3::new(z, 4.3, x)) * 0.48;
+        let depth = 0.32 + noise(Vec3::new(x * 0.5, z * 0.8, 8.1)) * 0.90;
+        let material = match index % 5 {
+            0 => 19,
+            1 | 2 => 18,
+            _ => 17,
+        };
+        add_block(
+            scene,
+            Vec3::new(x, 0.14 + height * 0.5, z),
+            Vec3::new(width, height, depth),
+            material,
+        );
+    }
+
+    for (x, z, height) in [
+        (-12.8, -1.8, 3.2),
+        (-11.7, 4.5, 2.4),
+        (12.7, -2.4, 3.5),
+        (11.4, 4.2, 2.2),
+    ] {
+        add_block(
+            scene,
+            Vec3::new(x, height * 0.5, z),
+            Vec3::new(0.62, height, 0.72),
+            18,
+        );
+        add_block(
+            scene,
+            Vec3::new(x + 0.34, height + 0.16, z - 0.15),
+            Vec3::new(1.25, 0.30, 0.82),
+            19,
+        );
     }
 }
 

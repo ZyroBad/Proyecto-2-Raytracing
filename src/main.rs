@@ -320,22 +320,32 @@ fn intersect_scene(scene: &Scene, bvh: &Bvh, ray: Ray) -> Option<Hit> {
 }
 
 fn skybox(dir: Vec3) -> Color {
-    let t = (dir.y * 0.5 + 0.5).clamp(0.0, 1.0);
-    let horizon = Color::new(0.72, 0.30, 0.12);
-    let zenith = Color::new(0.10, 0.24, 0.44);
+    let t = ((dir.y + 0.18) * 2.8).clamp(0.0, 1.0);
+    let horizon = Color::new(0.42, 0.12, 0.035);
+    let zenith = Color::new(0.018, 0.18, 0.58);
     let mut color = horizon * (1.0 - t) + zenith * t;
 
     let sun_dir = Vec3::new(-0.38, 0.36, -0.85).normalized();
     let sun = dir.dot(sun_dir).max(0.0).powf(320.0);
     let glow = dir.dot(sun_dir).max(0.0).powf(18.0);
     color += Color::new(1.0, 0.86, 0.54) * sun;
-    color += Color::new(0.72, 0.32, 0.14) * glow * 0.28;
+    color += Color::new(0.82, 0.35, 0.12) * glow * 0.34;
 
     let cloud_band = (1.0 - (dir.y - 0.14).abs() * 6.0).max(0.0);
     let cloud_shape =
         ((dir.x * 18.0 + dir.z * 11.0).sin() + (dir.x * 31.0 - dir.z * 7.0).sin() * 0.45) * 0.5
             + 0.42;
-    color += Color::new(0.48, 0.31, 0.25) * cloud_shape.max(0.0) * cloud_band * 0.24;
+    color += Color::new(0.46, 0.44, 0.46) * cloud_shape.max(0.0) * cloud_band * 0.34;
+
+    let high_band = (1.0 - (dir.y - 0.42).abs() * 8.0).max(0.0);
+    let high_shape = ((dir.x * 27.0 - dir.z * 19.0).sin() * 0.55
+        + (dir.x * 43.0 + dir.z * 13.0).sin() * 0.25
+        + 0.38)
+        .max(0.0);
+    color += Color::new(0.30, 0.34, 0.42) * high_shape * high_band * 0.22;
+
+    let dust_haze = (1.0 - (dir.y + 0.02).abs() * 4.2).max(0.0);
+    color += Color::new(0.34, 0.15, 0.08) * dust_haze * 0.10;
     color.clamp01()
 }
 

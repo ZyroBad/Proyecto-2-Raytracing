@@ -152,10 +152,10 @@ pub fn scene_materials() -> Vec<Material> {
         material(MaterialKind::Rock, [0.43, 0.33, 0.23], 0.12, 0.0, 0.04, 1.0),
         material(
             MaterialKind::Cloud,
-            [0.88, 0.92, 0.98],
-            0.32,
-            0.06,
-            0.08,
+            [0.72, 0.78, 0.88],
+            0.24,
+            0.18,
+            0.10,
             1.05,
         ),
         material(

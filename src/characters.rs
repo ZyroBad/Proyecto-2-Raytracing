@@ -1385,13 +1385,15 @@ pub fn add_summoning_clouds(scene: &mut Scene) {
 }
 
 fn add_cloud_cluster(scene: &mut Scene, base: Vec3, scale: f32) {
-    for (offset, size) in [
-        (Vec3::new(0.0, 0.0, 0.0), Vec3::new(3.0, 1.1, 1.8)),
-        (Vec3::new(-1.2, 0.35, 0.1), Vec3::new(1.8, 1.2, 1.5)),
-        (Vec3::new(1.2, 0.42, -0.1), Vec3::new(1.9, 1.35, 1.6)),
-        (Vec3::new(0.0, 0.65, 0.0), Vec3::new(1.7, 1.2, 1.4)),
+    for (offset, radii) in [
+        (Vec3::new(0.0, 0.0, 0.0), Vec3::new(1.55, 0.48, 0.90)),
+        (Vec3::new(-1.10, 0.28, 0.08), Vec3::new(0.92, 0.58, 0.76)),
+        (Vec3::new(1.05, 0.34, -0.06), Vec3::new(1.00, 0.64, 0.80)),
+        (Vec3::new(-0.38, 0.68, 0.02), Vec3::new(0.88, 0.62, 0.70)),
+        (Vec3::new(0.55, 0.76, -0.04), Vec3::new(0.82, 0.68, 0.66)),
+        (Vec3::new(0.0, 1.10, 0.0), Vec3::new(0.56, 0.72, 0.52)),
     ] {
-        add_block(scene, base + offset * scale, size * scale, 1);
+        add_voxel_ellipsoid(scene, base + offset * scale, radii * scale, 0.28 * scale, 1);
     }
 }
 
