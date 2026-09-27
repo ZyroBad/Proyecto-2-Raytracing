@@ -575,246 +575,255 @@ pub fn add_naruto_sage(scene: &mut Scene, base: Vec3) {
     let eye = 14;
     let rope = 16;
 
+    // Sandals, toes and separated legs give the stance a readable silhouette.
+    for side in [-1.0, 1.0] {
+        let x = side * 0.43;
+        add_block(
+            scene,
+            base + Vec3::new(x, 0.10, 0.20),
+            Vec3::new(0.50, 0.20, 0.82),
+            ink,
+        );
+        add_block(
+            scene,
+            base + Vec3::new(x, 0.17, 0.58),
+            Vec3::new(0.38, 0.10, 0.16),
+            skin,
+        );
+        add_voxel_ellipsoid(
+            scene,
+            base + Vec3::new(x, 0.62, 0.02),
+            Vec3::new(0.27, 0.54, 0.32),
+            0.16,
+            orange,
+        );
+        add_block(
+            scene,
+            base + Vec3::new(x, 0.62, 0.34),
+            Vec3::new(0.48, 0.15, 0.10),
+            ink,
+        );
+        add_voxel_ellipsoid(
+            scene,
+            base + Vec3::new(side * 0.34, 1.25, 0.0),
+            Vec3::new(0.34, 0.48, 0.37),
+            0.17,
+            orange,
+        );
+    }
+
+    // Fine cloak tiles form two independent tails instead of one flat slab.
+    for row in 0..9 {
+        let y = 0.55 + row as f32 * 0.19;
+        let half_width = 0.50 + row as f32 * 0.055;
+        for side in [-1.0, 1.0] {
+            for column in 0..3 {
+                let x = side * (0.22 + column as f32 * half_width / 3.0);
+                add_block(
+                    scene,
+                    base + Vec3::new(x, y, -0.43),
+                    Vec3::new(0.20, 0.20, 0.16),
+                    cloak,
+                );
+            }
+        }
+    }
+
+    add_voxel_ellipsoid(
+        scene,
+        base + Vec3::new(0.0, 1.86, 0.0),
+        Vec3::new(0.76, 0.72, 0.43),
+        0.18,
+        orange,
+    );
     add_block(
         scene,
-        base + Vec3::new(-0.48, -0.02, 0.18),
-        Vec3::new(0.72, 0.28, 0.92),
+        base + Vec3::new(0.0, 1.72, 0.43),
+        Vec3::new(1.05, 0.18, 0.10),
         ink,
     );
     add_block(
         scene,
-        base + Vec3::new(0.48, -0.02, 0.18),
-        Vec3::new(0.72, 0.28, 0.92),
+        base + Vec3::new(0.0, 2.08, 0.44),
+        Vec3::new(0.92, 0.16, 0.10),
         ink,
     );
 
-    add_block(
+    // Horizontal summoning scroll, visible when the camera orbits behind him.
+    add_voxel_segment(
         scene,
-        base + Vec3::new(-0.48, 0.55, 0.0),
-        Vec3::new(0.65, 1.25, 0.75),
-        orange,
-    );
-    add_block(
-        scene,
-        base + Vec3::new(0.48, 0.55, 0.0),
-        Vec3::new(0.65, 1.25, 0.75),
-        orange,
-    );
-    add_block(
-        scene,
-        base + Vec3::new(0.0, 1.65, 0.0),
-        Vec3::new(1.95, 1.50, 1.02),
-        orange,
-    );
-    add_block(
-        scene,
-        base + Vec3::new(0.0, 1.65, -0.55),
-        Vec3::new(2.45, 1.90, 0.34),
-        cloak,
-    );
-    add_block(
-        scene,
-        base + Vec3::new(-0.62, 0.85, -0.62),
-        Vec3::new(0.72, 1.75, 0.24),
-        cloak,
-    );
-    add_block(
-        scene,
-        base + Vec3::new(0.62, 0.85, -0.62),
-        Vec3::new(0.72, 1.75, 0.24),
-        cloak,
-    );
-    add_block(
-        scene,
-        base + Vec3::new(0.0, 2.05, -0.82),
-        Vec3::new(2.45, 0.62, 0.54),
+        base + Vec3::new(-0.90, 1.92, -0.66),
+        base + Vec3::new(0.90, 1.92, -0.66),
+        0.22,
         wood,
     );
+    for side in [-1.0, 1.0] {
+        add_block(
+            scene,
+            base + Vec3::new(side * 0.92, 1.92, -0.66),
+            Vec3::new(0.18, 0.54, 0.54),
+            rope,
+        );
+    }
+
+    // Cloak shoulders and arms follow a relaxed, confident arrival pose.
+    for side in [-1.0, 1.0] {
+        add_voxel_ellipsoid(
+            scene,
+            base + Vec3::new(side * 0.70, 2.25, -0.03),
+            Vec3::new(0.34, 0.32, 0.42),
+            0.16,
+            cloak,
+        );
+        add_voxel_segment(
+            scene,
+            base + Vec3::new(side * 0.76, 2.18, 0.02),
+            base + Vec3::new(side * 0.92, 1.42, 0.20),
+            0.24,
+            cloak,
+        );
+        add_voxel_ellipsoid(
+            scene,
+            base + Vec3::new(side * 0.94, 1.27, 0.24),
+            Vec3::new(0.22, 0.27, 0.22),
+            0.13,
+            skin,
+        );
+    }
     add_block(
         scene,
-        base + Vec3::new(-0.82, 2.05, -1.10),
-        Vec3::new(0.22, 0.68, 0.16),
-        rope,
-    );
-    add_block(
-        scene,
-        base + Vec3::new(0.82, 2.05, -1.10),
-        Vec3::new(0.22, 0.68, 0.16),
-        rope,
-    );
-    add_block(
-        scene,
-        base + Vec3::new(-0.82, 1.82, 0.35),
-        Vec3::new(0.38, 1.15, 0.42),
+        base + Vec3::new(-0.48, 2.37, 0.15),
+        Vec3::new(0.56, 0.23, 0.62),
         cloak,
     );
     add_block(
         scene,
-        base + Vec3::new(0.82, 1.82, 0.35),
-        Vec3::new(0.38, 1.15, 0.42),
+        base + Vec3::new(0.48, 2.37, 0.15),
+        Vec3::new(0.56, 0.23, 0.62),
         cloak,
     );
     add_block(
         scene,
-        base + Vec3::new(-0.38, 1.78, 0.72),
-        Vec3::new(0.82, 0.30, 0.34),
+        base + Vec3::new(0.0, 2.44, 0.06),
+        Vec3::new(0.42, 0.34, 0.48),
+        ink,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(0.0, 2.58, -0.02),
+        Vec3::new(0.30, 0.28, 0.30),
+        skin,
+    );
+
+    // Hair volume goes behind the face; individual stepped spikes break the cube silhouette.
+    add_voxel_ellipsoid(
+        scene,
+        base + Vec3::new(0.0, 3.30, -0.06),
+        Vec3::new(0.67, 0.57, 0.47),
+        0.16,
+        hair,
+    );
+    for (start, end) in [
+        (Vec3::new(-0.53, 3.45, -0.02), Vec3::new(-0.88, 3.78, -0.04)),
+        (Vec3::new(-0.36, 3.61, -0.03), Vec3::new(-0.53, 4.03, -0.05)),
+        (Vec3::new(-0.13, 3.67, -0.03), Vec3::new(-0.16, 4.15, -0.06)),
+        (Vec3::new(0.10, 3.67, -0.03), Vec3::new(0.18, 4.14, -0.06)),
+        (Vec3::new(0.34, 3.59, -0.03), Vec3::new(0.54, 4.00, -0.05)),
+        (Vec3::new(0.52, 3.43, -0.02), Vec3::new(0.88, 3.75, -0.04)),
+    ] {
+        add_voxel_segment(scene, base + start, base + end, 0.17, hair);
+    }
+
+    add_voxel_ellipsoid(
+        scene,
+        base + Vec3::new(0.0, 3.12, 0.10),
+        Vec3::new(0.57, 0.62, 0.45),
+        0.14,
         skin,
     );
     add_block(
         scene,
-        base + Vec3::new(0.38, 1.78, 0.72),
-        Vec3::new(0.82, 0.30, 0.34),
-        skin,
-    );
-    add_rounded_mass(
-        scene,
-        base + Vec3::new(0.0, 2.72, 0.05),
-        Vec3::new(1.55, 1.28, 1.05),
+        base + Vec3::new(-0.62, 3.13, 0.04),
+        Vec3::new(0.13, 0.34, 0.30),
         skin,
     );
     add_block(
         scene,
-        base + Vec3::new(0.0, 2.94, 0.55),
-        Vec3::new(1.62, 0.28, 0.18),
+        base + Vec3::new(0.62, 3.13, 0.04),
+        Vec3::new(0.13, 0.34, 0.30),
+        skin,
+    );
+
+    // Forehead protector, Sage Mode pigmentation, golden irises and vertical pupils.
+    add_block(
+        scene,
+        base + Vec3::new(0.0, 3.39, 0.49),
+        Vec3::new(1.14, 0.22, 0.11),
+        ink,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(0.0, 3.40, 0.57),
+        Vec3::new(0.68, 0.24, 0.08),
         metal,
     );
     add_block(
         scene,
-        base + Vec3::new(0.0, 2.95, 0.65),
-        Vec3::new(0.22, 0.13, 0.08),
+        base + Vec3::new(0.0, 3.40, 0.63),
+        Vec3::new(0.16, 0.10, 0.05),
         ink,
     );
-    add_block(
-        scene,
-        base + Vec3::new(-0.78, 2.94, 0.42),
-        Vec3::new(0.38, 0.13, 0.12),
-        cloak,
-    );
-    add_block(
-        scene,
-        base + Vec3::new(0.78, 2.94, 0.42),
-        Vec3::new(0.38, 0.13, 0.12),
-        cloak,
-    );
-    add_block(
-        scene,
-        base + Vec3::new(-0.33, 2.76, 0.58),
-        Vec3::new(0.30, 0.16, 0.10),
-        eye,
-    );
-    add_block(
-        scene,
-        base + Vec3::new(0.33, 2.76, 0.58),
-        Vec3::new(0.30, 0.16, 0.10),
-        eye,
-    );
-    add_block(
-        scene,
-        base + Vec3::new(-0.33, 2.76, 0.65),
-        Vec3::new(0.08, 0.13, 0.07),
-        ink,
-    );
-    add_block(
-        scene,
-        base + Vec3::new(0.33, 2.76, 0.65),
-        Vec3::new(0.08, 0.13, 0.07),
-        ink,
-    );
-    add_block(
-        scene,
-        base + Vec3::new(0.0, 2.48, 0.58),
-        Vec3::new(0.42, 0.08, 0.07),
-        ink,
-    );
-    add_block(
-        scene,
-        base + Vec3::new(-0.48, 2.76, 0.64),
-        Vec3::new(0.20, 0.22, 0.06),
-        cloak,
-    );
-    add_block(
-        scene,
-        base + Vec3::new(0.48, 2.76, 0.64),
-        Vec3::new(0.20, 0.22, 0.06),
-        cloak,
-    );
-    for y in [2.58, 2.46, 2.34] {
+    for side in [-1.0, 1.0] {
+        let x = side * 0.25;
         add_block(
             scene,
-            base + Vec3::new(-0.48, y, 0.62),
-            Vec3::new(0.25, 0.035, 0.06),
-            ink,
+            base + Vec3::new(x, 3.13, 0.53),
+            Vec3::new(0.43, 0.18, 0.08),
+            cloak,
         );
         add_block(
             scene,
-            base + Vec3::new(0.48, y, 0.62),
-            Vec3::new(0.25, 0.035, 0.06),
+            base + Vec3::new(x, 3.13, 0.59),
+            Vec3::new(0.24, 0.10, 0.07),
+            eye,
+        );
+        add_block(
+            scene,
+            base + Vec3::new(x, 3.13, 0.65),
+            Vec3::new(0.045, 0.11, 0.04),
             ink,
         );
+        for (y, outward) in [(2.96, 0.0), (2.86, 0.03), (2.76, 0.06)] {
+            add_block(
+                scene,
+                base + Vec3::new(side * (0.39 + outward), y, 0.58),
+                Vec3::new(0.25, 0.028, 0.045),
+                ink,
+            );
+        }
     }
     add_block(
         scene,
-        base + Vec3::new(0.0, 2.15, 0.10),
-        Vec3::new(0.72, 0.25, 0.76),
+        base + Vec3::new(0.0, 2.88, 0.59),
+        Vec3::new(0.08, 0.12, 0.06),
+        skin,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(0.0, 2.72, 0.57),
+        Vec3::new(0.30, 0.045, 0.05),
         ink,
     );
-    for x in [-0.48, -0.24, 0.0, 0.24, 0.48] {
-        let height = if x == 0.0 { 0.72 } else { 0.55 };
-        add_block(
-            scene,
-            base + Vec3::new(x, 3.45, -0.02),
-            Vec3::new(0.28, height, 0.52),
-            hair,
-        );
+
+    // Sparse translucent chakra wisps preserve the raytraced refractive accent.
+    for (start, end) in [
+        (Vec3::new(-1.06, 0.78, -0.18), Vec3::new(-1.16, 1.55, -0.14)),
+        (Vec3::new(1.10, 1.48, -0.12), Vec3::new(1.18, 2.18, -0.08)),
+        (Vec3::new(-0.83, 2.70, -0.10), Vec3::new(-0.92, 3.32, -0.06)),
+        (Vec3::new(0.62, 3.72, -0.12), Vec3::new(0.52, 4.12, -0.10)),
+    ] {
+        add_voxel_segment(scene, base + start, base + end, 0.09, chakra);
     }
-    add_block(
-        scene,
-        base + Vec3::new(-0.72, 3.35, -0.05),
-        Vec3::new(0.34, 0.42, 0.46),
-        hair,
-    );
-    add_block(
-        scene,
-        base + Vec3::new(0.72, 3.35, -0.05),
-        Vec3::new(0.34, 0.42, 0.46),
-        hair,
-    );
-    add_block(
-        scene,
-        base + Vec3::new(-0.94, 1.35, -0.15),
-        Vec3::new(0.12, 0.38, 0.14),
-        chakra,
-    );
-    add_block(
-        scene,
-        base + Vec3::new(1.02, 1.72, -0.10),
-        Vec3::new(0.14, 0.46, 0.16),
-        chakra,
-    );
-    add_block(
-        scene,
-        base + Vec3::new(-0.82, 2.65, -0.12),
-        Vec3::new(0.13, 0.52, 0.15),
-        chakra,
-    );
-    add_block(
-        scene,
-        base + Vec3::new(0.88, 3.05, -0.08),
-        Vec3::new(0.15, 0.42, 0.17),
-        chakra,
-    );
-    add_block(
-        scene,
-        base + Vec3::new(-0.42, 3.82, -0.10),
-        Vec3::new(0.18, 0.26, 0.18),
-        chakra,
-    );
-    add_block(
-        scene,
-        base + Vec3::new(0.38, 3.92, -0.10),
-        Vec3::new(0.16, 0.22, 0.16),
-        chakra,
-    );
 }
 
 pub fn add_summoning_clouds(scene: &mut Scene) {
@@ -864,6 +873,44 @@ fn add_rounded_mass(scene: &mut Scene, center: Vec3, size: Vec3, material: usize
                 material,
             );
         }
+    }
+}
+
+fn add_voxel_ellipsoid(scene: &mut Scene, center: Vec3, radii: Vec3, cell: f32, material: usize) {
+    let cells_x = (radii.x / cell).ceil() as i32;
+    let cells_y = (radii.y / cell).ceil() as i32;
+    let cells_z = (radii.z / cell).ceil() as i32;
+    for y in -cells_y..=cells_y {
+        for z in -cells_z..=cells_z {
+            for x in -cells_x..=cells_x {
+                let offset = Vec3::new(x as f32 * cell, y as f32 * cell, z as f32 * cell);
+                let normalized = (offset.x / radii.x).powi(2)
+                    + (offset.y / radii.y).powi(2)
+                    + (offset.z / radii.z).powi(2);
+                if normalized <= 1.0 {
+                    add_block(
+                        scene,
+                        center + offset,
+                        Vec3::new(cell, cell, cell),
+                        material,
+                    );
+                }
+            }
+        }
+    }
+}
+
+fn add_voxel_segment(scene: &mut Scene, start: Vec3, end: Vec3, thickness: f32, material: usize) {
+    let delta = end - start;
+    let steps = (delta.length() / (thickness * 0.72)).ceil().max(1.0) as usize;
+    for step in 0..=steps {
+        let t = step as f32 / steps as f32;
+        add_block(
+            scene,
+            start + delta * t,
+            Vec3::new(thickness, thickness, thickness),
+            material,
+        );
     }
 }
 
