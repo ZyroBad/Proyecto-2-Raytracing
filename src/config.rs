@@ -10,9 +10,11 @@ pub struct Config {
     pub frames: usize,
     pub animate: bool,
     pub interactive: bool,
+    pub window: bool,
     pub summary: bool,
     pub angle_deg: Option<f32>,
     pub zoom: f32,
+    pub elevation: f32,
     pub samples_per_axis: usize,
     pub max_depth: u32,
     pub output: String,
@@ -27,9 +29,11 @@ impl Config {
             frames: 120,
             animate: false,
             interactive: false,
+            window: false,
             summary: false,
             angle_deg: None,
             zoom: 1.0,
+            elevation: 0.0,
             samples_per_axis: 2,
             max_depth: DEFAULT_MAX_DEPTH,
             output: "renders/llegada_modo_sabio.ppm".to_string(),
@@ -57,6 +61,7 @@ impl Config {
                 }
                 "--animate" => cfg.animate = true,
                 "--interactive" => cfg.interactive = true,
+                "--window" => cfg.window = true,
                 "--summary" => cfg.summary = true,
                 "--angle" => {
                     i += 1;
@@ -65,6 +70,10 @@ impl Config {
                 "--zoom" => {
                     i += 1;
                     cfg.zoom = parse_or(&args, i, cfg.zoom);
+                }
+                "--elevation" => {
+                    i += 1;
+                    cfg.elevation = parse_or(&args, i, cfg.elevation);
                 }
                 "--samples" => {
                     i += 1;
@@ -107,9 +116,11 @@ fn print_help() {
     println!("  --frames N      cantidad de frames para animacion");
     println!("  --animate       renderiza todos los frames en frames/");
     println!("  --interactive   ajusta camara y genera previews");
+    println!("  --window        abre la vista interactiva en una ventana nativa");
     println!("  --summary       imprime resumen de escena sin renderizar");
     println!("  --angle N       angulo manual de camara en grados");
     println!("  --zoom N        zoom manual, mayor acerca la camara");
+    println!("  --elevation N   desplazamiento vertical de la camara");
     println!("  --samples N     muestras por eje, 1 rapido, 2 default, 4 fino");
     println!("  --depth N       rebotes maximos de raytracing, default 3");
     println!("  --output PATH   salida BMP o PPM");

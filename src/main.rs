@@ -7,6 +7,7 @@ mod image;
 mod material;
 mod math;
 mod scene;
+mod window;
 
 use background::add_destroyed_konoha;
 use bvh::Bvh;
@@ -40,6 +41,8 @@ fn main() -> std::io::Result<()> {
 
     if cfg.summary {
         print_scene_summary(&scene);
+    } else if cfg.window {
+        window::run_window(&scene, cfg, render_pixels)?;
     } else if cfg.interactive {
         run_interactive(&scene, cfg)?;
     } else if cfg.animate {
@@ -71,9 +74,7 @@ fn run_interactive(scene: &Scene, mut cfg: Config) -> std::io::Result<()> {
     cfg.zoom = cfg.zoom.max(0.35);
 
     println!("Modo interactivo de camara");
-    println!(
-        "a/d: rotar | w/s: subir/bajar angulo orbital fino | +/-: zoom | r: render | q: salir"
-    );
+    println!("a/d: rotar | w/s: elevar/bajar camara | +/-: zoom | r: render | q: salir");
     println!("Cada render se guarda en renders/interactive.bmp");
 
     render_to_file(scene, &cfg, 0, &cfg.output)?;
@@ -93,8 +94,8 @@ fn run_interactive(scene: &Scene, mut cfg: Config) -> std::io::Result<()> {
         match command.as_str() {
             "a" => cfg.angle_deg = Some(cfg.angle_deg.unwrap_or(90.0) - 12.0),
             "d" => cfg.angle_deg = Some(cfg.angle_deg.unwrap_or(90.0) + 12.0),
-            "w" => cfg.angle_deg = Some(cfg.angle_deg.unwrap_or(90.0) + 4.0),
-            "s" => cfg.angle_deg = Some(cfg.angle_deg.unwrap_or(90.0) - 4.0),
+            "w" => cfg.elevation = (cfg.elevation + 0.8).min(8.0),
+            "s" => cfg.elevation = (cfg.elevation - 0.8).max(-6.0),
             "+" | "=" => cfg.zoom = (cfg.zoom + 0.15).min(2.5),
             "-" | "_" => cfg.zoom = (cfg.zoom - 0.15).max(0.45),
             "r" | "" => {}
@@ -124,6 +125,18 @@ fn render_to_file(scene: &Scene, cfg: &Config, frame: usize, path: &str) -> std:
         }
     }
 
+    let pixels = render_pixels(scene, cfg, frame);
+
+    if path.to_ascii_lowercase().ends_with(".bmp") {
+        save_bmp(path, cfg.width, cfg.height, &pixels)?;
+    } else {
+        save_ppm(path, cfg.width, cfg.height, &pixels)?;
+    }
+
+    Ok(())
+}
+
+fn render_pixels(scene: &Scene, cfg: &Config, frame: usize) -> Vec<Color> {
     let aspect = cfg.width as f32 / cfg.height as f32;
     let t = frame as f32 / cfg.frames.max(1) as f32;
     let angle = cfg
@@ -134,7 +147,7 @@ fn render_to_file(scene: &Scene, cfg: &Config, frame: usize, path: &str) -> std:
     let radius = (26.5 - zoom_wave * 5.5) / cfg.zoom.max(0.35);
     let camera_pos = Vec3::new(
         angle.cos() * radius,
-        14.2 + zoom_wave * 2.8,
+        14.2 + cfg.elevation + zoom_wave * 2.8,
         angle.sin() * radius,
     );
     let camera = Camera::look_at(camera_pos, Vec3::new(0.0, 5.4, -1.0), 44.0, aspect);
@@ -159,13 +172,7 @@ fn render_to_file(scene: &Scene, cfg: &Config, frame: usize, path: &str) -> std:
         }
     });
 
-    if path.to_ascii_lowercase().ends_with(".bmp") {
-        save_bmp(path, cfg.width, cfg.height, &pixels)?;
-    } else {
-        save_ppm(path, cfg.width, cfg.height, &pixels)?;
-    }
-
-    Ok(())
+    pixels
 }
 
 fn render_rows(

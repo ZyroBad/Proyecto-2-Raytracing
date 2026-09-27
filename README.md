@@ -69,7 +69,25 @@ Ejecutar las pruebas:
 cargo test
 ```
 
-## Camara interactiva
+## Ventana interactiva
+
+Abrir el diorama en una ventana nativa de Windows:
+
+```bash
+cargo run --release -- --window --width 400 --height 225
+```
+
+Controles:
+
+- `a` / `d` o flechas izquierda/derecha: orbitar alrededor de la escena.
+- `w` / `s` o flechas arriba/abajo: subir y bajar la camara.
+- `+` / `-`: acercar y alejar la camara.
+- `r`: volver a renderizar la vista.
+- `Esc`: cerrar la ventana.
+
+La ventana usa una resolucion interactiva y ajustes moderados para responder bien en graficos integrados. El render final puede generarse despues con mayor resolucion, muestras y profundidad.
+
+## Camara por consola
 
 ```bash
 cargo run --release -- --interactive --width 320 --height 180 --samples 1 --depth 2
@@ -78,7 +96,7 @@ cargo run --release -- --interactive --width 320 --height 180 --samples 1 --dept
 Controles:
 
 - `a` / `d`: rotar la camara.
-- `w` / `s`: ajuste fino del angulo orbital.
+- `w` / `s`: subir y bajar la camara.
 - `+` / `-`: acercar y alejar la camara.
 - `r`: volver a renderizar.
 - `q`: salir.
@@ -103,9 +121,11 @@ Los cuadros se guardan en `frames/` y pueden grabarse o convertirse en video par
 --frame N       cuadro individual de la orbita
 --frames N      cantidad de cuadros de la animacion
 --animate       renderiza todos los cuadros en frames/
+--window        abre una ventana nativa interactiva
 --interactive   abre el control de camara por consola
 --summary       muestra el resumen de la escena
 --angle N       angulo manual de camara en grados
+--elevation N   desplazamiento vertical de la camara
 --zoom N        acercamiento de camara
 --samples N     muestras por eje
 --depth N       rebotes maximos de raytracing
