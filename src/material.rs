@@ -24,6 +24,7 @@ pub enum MaterialKind {
     RoofTile,
     DustSmoke,
     CarvedStone,
+    GamahiroMarking,
 }
 
 #[derive(Clone, Copy)]
@@ -127,6 +128,10 @@ impl Material {
                 let erosion = noise(p * 5.2) * 0.16;
                 let veins = stripe(p.x * 0.65 + p.y * 0.22, 2.6) * 0.08;
                 self.albedo * (0.80 + erosion - veins)
+            }
+            MaterialKind::GamahiroMarking => {
+                let mottled = noise(p * 6.4) * 0.12;
+                self.albedo * (0.82 + mottled)
             }
         }
         .clamp01()
@@ -288,6 +293,14 @@ pub fn scene_materials() -> Vec<Material> {
             0.18,
             0.0,
             0.05,
+            1.0,
+        ),
+        material(
+            MaterialKind::GamahiroMarking,
+            [0.055, 0.25, 0.24],
+            0.26,
+            0.0,
+            0.045,
             1.0,
         ),
     ]
