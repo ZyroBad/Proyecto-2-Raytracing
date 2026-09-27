@@ -42,7 +42,7 @@ fn main() -> std::io::Result<()> {
     if cfg.summary {
         print_scene_summary(&scene);
     } else if cfg.window {
-        window::run_window(&scene, cfg, render_pixels)?;
+        window::run_window(&scene, cfg, render_pixels_with_bvh)?;
     } else if cfg.interactive {
         run_interactive(&scene, cfg)?;
     } else if cfg.animate {
@@ -137,6 +137,11 @@ fn render_to_file(scene: &Scene, cfg: &Config, frame: usize, path: &str) -> std:
 }
 
 fn render_pixels(scene: &Scene, cfg: &Config, frame: usize) -> Vec<Color> {
+    let bvh = Bvh::build(&scene.cubes);
+    render_pixels_with_bvh(scene, &bvh, cfg, frame)
+}
+
+fn render_pixels_with_bvh(scene: &Scene, bvh: &Bvh, cfg: &Config, frame: usize) -> Vec<Color> {
     let aspect = cfg.width as f32 / cfg.height as f32;
     let t = frame as f32 / cfg.frames.max(1) as f32;
     let angle = cfg
@@ -151,8 +156,6 @@ fn render_pixels(scene: &Scene, cfg: &Config, frame: usize) -> Vec<Color> {
         angle.sin() * radius,
     );
     let camera = Camera::look_at(camera_pos, Vec3::new(0.0, 5.4, -1.0), 44.0, aspect);
-    let bvh = Bvh::build(&scene.cubes);
-
     let mut pixels = vec![Color::default(); cfg.width * cfg.height];
     let worker_count = thread::available_parallelism()
         .map(|count| count.get())
@@ -165,7 +168,6 @@ fn render_pixels(scene: &Scene, cfg: &Config, frame: usize) -> Vec<Color> {
         for (worker, pixel_chunk) in pixels.chunks_mut(pixels_per_worker).enumerate() {
             let start_y = worker * rows_per_worker;
             let camera = &camera;
-            let bvh = &bvh;
             scope.spawn(move || {
                 render_rows(scene, bvh, camera, cfg, start_y, pixel_chunk);
             });
@@ -327,11 +329,17 @@ fn tone_map(color: Color) -> Color {
 
 fn intersect_scene(scene: &Scene, bvh: &Bvh, ray: Ray) -> Option<Hit> {
     bvh.nearest(&scene.cubes, ray)
-        .map(|(index, distance, normal)| Hit {
-            point: ray.at(distance),
-            normal,
-            material: scene.materials[scene.cubes[index].material],
-            distance,
+        .map(|(index, distance, geometric_normal)| {
+            let mut normal = scene.cubes[index].smooth_normal.unwrap_or(geometric_normal);
+            if normal.dot(ray.direction) > 0.0 {
+                normal = -normal;
+            }
+            Hit {
+                point: ray.at(distance),
+                normal,
+                material: scene.materials[scene.cubes[index].material],
+                distance,
+            }
         })
 }
 
@@ -407,6 +415,7 @@ fn add_block(scene: &mut Scene, center: Vec3, size: Vec3, material: usize) {
         min: center - size * 0.5,
         max: center + size * 0.5,
         material,
+        smooth_normal: None,
     });
 }
 
@@ -426,6 +435,7 @@ mod tests {
             min: Vec3::new(-1.0, -1.0, -1.0),
             max: Vec3::new(1.0, 1.0, 1.0),
             material: 0,
+            smooth_normal: None,
         }
     }
 

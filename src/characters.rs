@@ -1431,9 +1431,20 @@ fn add_cloud_cluster(scene: &mut Scene, base: Vec3, scale: f32) {
 }
 
 fn add_voxel_ellipsoid(scene: &mut Scene, center: Vec3, radii: Vec3, cell: f32, material: usize) {
+    let is_cloud = material == 1;
+    let cell = if is_cloud {
+        (cell * 0.65).max(0.09)
+    } else {
+        (cell * 0.52).max(0.055)
+    };
     let cells_x = (radii.x / cell).ceil() as i32;
     let cells_y = (radii.y / cell).ceil() as i32;
     let cells_z = (radii.z / cell).ceil() as i32;
+    let inner = Vec3::new(
+        (radii.x - cell * 1.35).max(0.0),
+        (radii.y - cell * 1.35).max(0.0),
+        (radii.z - cell * 1.35).max(0.0),
+    );
     for y in -cells_y..=cells_y {
         for z in -cells_z..=cells_z {
             for x in -cells_x..=cells_x {
@@ -1441,13 +1452,32 @@ fn add_voxel_ellipsoid(scene: &mut Scene, center: Vec3, radii: Vec3, cell: f32, 
                 let normalized = (offset.x / radii.x).powi(2)
                     + (offset.y / radii.y).powi(2)
                     + (offset.z / radii.z).powi(2);
-                if normalized <= 1.0 {
-                    add_block(
-                        scene,
-                        center + offset,
-                        Vec3::new(cell, cell, cell),
-                        material,
+                let inside_inner = inner.x > 0.0
+                    && inner.y > 0.0
+                    && inner.z > 0.0
+                    && (offset.x / inner.x).powi(2)
+                        + (offset.y / inner.y).powi(2)
+                        + (offset.z / inner.z).powi(2)
+                        < 1.0;
+                if normalized <= 1.0 && !inside_inner {
+                    let normal = Vec3::new(
+                        offset.x / (radii.x * radii.x),
+                        offset.y / (radii.y * radii.y),
+                        offset.z / (radii.z * radii.z),
                     );
+                    let smooth_normal = if normal.length() > 0.0001 {
+                        Some(normal.normalized())
+                    } else {
+                        None
+                    };
+                    let voxel_center = center + offset;
+                    let size = Vec3::new(cell, cell, cell);
+                    scene.cubes.push(Cube {
+                        min: voxel_center - size * 0.5,
+                        max: voxel_center + size * 0.5,
+                        material,
+                        smooth_normal,
+                    });
                 }
             }
         }
@@ -1496,6 +1526,7 @@ fn add_block(scene: &mut Scene, center: Vec3, size: Vec3, material: usize) {
         min: center - size * 0.5,
         max: center + size * 0.5,
         material,
+        smooth_normal: None,
     });
 }
 

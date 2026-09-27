@@ -90,6 +90,8 @@ Controles:
 
 La ventana usa una resolucion interactiva y ajustes moderados para responder bien en graficos integrados. El render final puede generarse despues con mayor resolucion, muestras y profundidad.
 
+Mientras una tecla permanece presionada, la ventana reduce temporalmente la resolucion y la profundidad de rayos para mantener el movimiento continuo. Al soltarla, restaura automaticamente una vista detallada. El BVH se construye una sola vez al abrir la ventana y se reutiliza durante toda la navegacion.
+
 ## Camara por consola
 
 ```bash

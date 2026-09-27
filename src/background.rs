@@ -489,5 +489,6 @@ fn add_block(scene: &mut Scene, center: Vec3, size: Vec3, material: usize) {
         min: center - size * 0.5,
         max: center + size * 0.5,
         material,
+        smooth_normal: None,
     });
 }

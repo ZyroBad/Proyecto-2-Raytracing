@@ -6,6 +6,7 @@ pub struct Cube {
     pub min: Vec3,
     pub max: Vec3,
     pub material: usize,
+    pub smooth_normal: Option<Vec3>,
 }
 
 pub struct Scene {

@@ -1,9 +1,10 @@
+use crate::bvh::Bvh;
 use crate::config::Config;
 use crate::math::Color;
 use crate::scene::Scene;
 use std::io;
 
-pub type RenderFunction = fn(&Scene, &Config, usize) -> Vec<Color>;
+pub type RenderFunction = fn(&Scene, &Bvh, &Config, usize) -> Vec<Color>;
 
 #[cfg(windows)]
 pub fn run_window(scene: &Scene, mut cfg: Config, render: RenderFunction) -> io::Result<()> {
@@ -26,6 +27,12 @@ mod windows {
     use std::ptr::{null, null_mut};
     use std::thread;
     use std::time::{Duration, Instant};
+
+    struct PreviewFrame {
+        pixels: Vec<u8>,
+        width: usize,
+        height: usize,
+    }
 
     type Handle = *mut c_void;
     type Hwnd = Handle;
@@ -213,6 +220,7 @@ mod windows {
     pub fn run(scene: &Scene, cfg: &mut Config, render: RenderFunction) -> io::Result<()> {
         configure_preview(cfg);
         cfg.angle_deg = cfg.angle_deg.or(Some(90.0));
+        let bvh = Bvh::build(&scene.cubes);
 
         unsafe {
             let instance = GetModuleHandleW(null());
@@ -257,7 +265,7 @@ mod windows {
             println!("Ventana interactiva abierta");
             println!("A/D: orbitar | W/S: elevar | +/-: zoom | R: render | Esc: salir");
 
-            let mut pixels = render_preview(scene, cfg, render, hwnd);
+            let mut frame = render_preview(scene, &bvh, cfg, render, hwnd, false);
             let mut previous_keys = [false; 11];
             let keys = [
                 VK_A,
@@ -294,36 +302,34 @@ mod windows {
 
                 let current_keys = keys.map(|key| key_down(key));
                 let pressed = |index: usize| current_keys[index] && !previous_keys[index];
-                let mut changed = false;
-                if pressed(0) || pressed(4) {
-                    cfg.angle_deg = Some(cfg.angle_deg.unwrap_or(90.0) - 10.0);
-                    changed = true;
+                let moving = current_keys[..10].iter().any(|&down| down);
+                if current_keys[0] || current_keys[4] {
+                    cfg.angle_deg = Some(cfg.angle_deg.unwrap_or(90.0) - 3.0);
                 }
-                if pressed(1) || pressed(5) {
-                    cfg.angle_deg = Some(cfg.angle_deg.unwrap_or(90.0) + 10.0);
-                    changed = true;
+                if current_keys[1] || current_keys[5] {
+                    cfg.angle_deg = Some(cfg.angle_deg.unwrap_or(90.0) + 3.0);
                 }
-                if pressed(2) || pressed(6) {
-                    cfg.elevation = (cfg.elevation + 0.8).min(8.0);
-                    changed = true;
+                if current_keys[2] || current_keys[6] {
+                    cfg.elevation = (cfg.elevation + 0.24).min(8.0);
                 }
-                if pressed(3) || pressed(7) {
-                    cfg.elevation = (cfg.elevation - 0.8).max(-6.0);
-                    changed = true;
+                if current_keys[3] || current_keys[7] {
+                    cfg.elevation = (cfg.elevation - 0.24).max(-6.0);
                 }
-                if pressed(8) {
-                    cfg.zoom = (cfg.zoom + 0.12).min(2.5);
-                    changed = true;
+                if current_keys[8] {
+                    cfg.zoom = (cfg.zoom + 0.035).min(2.5);
                 }
-                if pressed(9) {
-                    cfg.zoom = (cfg.zoom - 0.12).max(0.45);
-                    changed = true;
+                if current_keys[9] {
+                    cfg.zoom = (cfg.zoom - 0.035).max(0.45);
                 }
-                if changed || pressed(10) {
-                    pixels = render_preview(scene, cfg, render, hwnd);
+
+                let was_moving = previous_keys[..10].iter().any(|&down| down);
+                if moving {
+                    frame = render_preview(scene, &bvh, cfg, render, hwnd, true);
+                } else if was_moving || pressed(10) {
+                    frame = render_preview(scene, &bvh, cfg, render, hwnd, false);
                 }
                 previous_keys = current_keys;
-                draw_frame(hwnd, cfg.width, cfg.height, &pixels);
+                draw_frame(hwnd, frame.width, frame.height, &frame.pixels);
                 thread::sleep(Duration::from_millis(16));
             }
         }
@@ -332,8 +338,8 @@ mod windows {
 
     fn configure_preview(cfg: &mut Config) {
         let aspect = cfg.width as f32 / cfg.height.max(1) as f32;
-        if cfg.width > 400 {
-            cfg.width = 400;
+        if cfg.width > 480 {
+            cfg.width = 480;
             cfg.height = (cfg.width as f32 / aspect).round().max(1.0) as usize;
         }
         cfg.samples_per_axis = 1;
@@ -342,22 +348,38 @@ mod windows {
 
     unsafe fn render_preview(
         scene: &Scene,
+        bvh: &Bvh,
         cfg: &Config,
         render: RenderFunction,
         hwnd: Hwnd,
-    ) -> Vec<u8> {
+        fast: bool,
+    ) -> PreviewFrame {
+        let mut render_cfg = cfg.clone();
+        if fast && render_cfg.width > 160 {
+            let aspect = render_cfg.width as f32 / render_cfg.height.max(1) as f32;
+            render_cfg.width = 160;
+            render_cfg.height = (render_cfg.width as f32 / aspect).round().max(1.0) as usize;
+        }
+        render_cfg.samples_per_axis = 1;
+        render_cfg.max_depth = if fast { 1 } else { cfg.max_depth.min(2) };
+
         let started = Instant::now();
-        let colors = render(scene, cfg, 0);
+        let colors = render(scene, bvh, &render_cfg, 0);
         let elapsed = started.elapsed().as_secs_f32();
         let title = wide(&format!(
-            "Diorama | angulo {:.0} | zoom {:.2} | altura {:+.1} | {:.2}s",
+            "Diorama | angulo {:.0} | zoom {:.2} | altura {:+.1} | {} {:.2}s",
             cfg.angle_deg.unwrap_or(90.0),
             cfg.zoom,
             cfg.elevation,
+            if fast { "movimiento" } else { "detalle" },
             elapsed
         ));
         SetWindowTextW(hwnd, title.as_ptr());
-        colors_to_bgra(&colors)
+        PreviewFrame {
+            pixels: colors_to_bgra(&colors),
+            width: render_cfg.width,
+            height: render_cfg.height,
+        }
     }
 
     fn colors_to_bgra(colors: &[Color]) -> Vec<u8> {
