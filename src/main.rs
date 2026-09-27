@@ -21,6 +21,7 @@ use std::f32::consts::PI;
 use std::fs::create_dir_all;
 use std::io::{self, Write};
 use std::path::Path;
+use std::thread;
 
 const EPSILON: f32 = 0.001;
 
@@ -138,8 +139,43 @@ fn render_to_file(scene: &Scene, cfg: &Config, frame: usize, path: &str) -> std:
     let bvh = Bvh::build(&scene.cubes);
 
     let mut pixels = vec![Color::default(); cfg.width * cfg.height];
+    let worker_count = thread::available_parallelism()
+        .map(|count| count.get())
+        .unwrap_or(1)
+        .min(cfg.height.max(1));
+    let rows_per_worker = (cfg.height + worker_count - 1) / worker_count;
+    let pixels_per_worker = rows_per_worker * cfg.width;
 
-    for y in 0..cfg.height {
+    thread::scope(|scope| {
+        for (worker, pixel_chunk) in pixels.chunks_mut(pixels_per_worker).enumerate() {
+            let start_y = worker * rows_per_worker;
+            let camera = &camera;
+            let bvh = &bvh;
+            scope.spawn(move || {
+                render_rows(scene, bvh, camera, cfg, start_y, pixel_chunk);
+            });
+        }
+    });
+
+    if path.to_ascii_lowercase().ends_with(".bmp") {
+        save_bmp(path, cfg.width, cfg.height, &pixels)?;
+    } else {
+        save_ppm(path, cfg.width, cfg.height, &pixels)?;
+    }
+
+    Ok(())
+}
+
+fn render_rows(
+    scene: &Scene,
+    bvh: &Bvh,
+    camera: &Camera,
+    cfg: &Config,
+    start_y: usize,
+    pixels: &mut [Color],
+) {
+    for (local_y, row) in pixels.chunks_mut(cfg.width).enumerate() {
+        let y = start_y + local_y;
         for x in 0..cfg.width {
             let mut color = Color::default();
             let samples = cfg.samples_per_axis;
@@ -157,17 +193,9 @@ fn render_to_file(scene: &Scene, cfg: &Config, frame: usize, path: &str) -> std:
             let ny = (y as f32 / cfg.height as f32 - 0.5) * 2.0;
             let vignette = (1.0 - (nx * nx + ny * ny) * 0.08).clamp(0.78, 1.0);
             color = tone_map(color) * vignette;
-            pixels[y * cfg.width + x] = color;
+            row[x] = color;
         }
     }
-
-    if path.to_ascii_lowercase().ends_with(".bmp") {
-        save_bmp(path, cfg.width, cfg.height, &pixels)?;
-    } else {
-        save_ppm(path, cfg.width, cfg.height, &pixels)?;
-    }
-
-    Ok(())
 }
 
 fn trace(scene: &Scene, bvh: &Bvh, ray: Ray, depth: u32, max_depth: u32) -> Color {
