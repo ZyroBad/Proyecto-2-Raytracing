@@ -12,12 +12,12 @@ const PAIN_HAIR: usize = 28;
 
 pub fn add_six_paths(scene: &mut Scene) {
     let paths = [
-        (Vec3::new(-10.0, -0.38, 9.6), 0usize),
-        (Vec3::new(-6.0, -0.38, 10.4), 1usize),
-        (Vec3::new(-2.0, -0.38, 10.8), 2usize),
-        (Vec3::new(2.0, -0.38, 10.8), 3usize),
-        (Vec3::new(6.0, -0.38, 10.4), 4usize),
-        (Vec3::new(10.0, -0.38, 9.6), 5usize),
+        (Vec3::new(-10.0, -0.12, 5.8), 0usize),
+        (Vec3::new(-6.0, -0.78, 7.0), 1usize),
+        (Vec3::new(-2.0, -1.20, 7.8), 2usize),
+        (Vec3::new(2.0, -1.20, 7.8), 3usize),
+        (Vec3::new(6.0, -0.78, 7.0), 4usize),
+        (Vec3::new(10.0, -0.12, 5.8), 5usize),
     ];
 
     for (base, style) in paths {
@@ -26,6 +26,7 @@ pub fn add_six_paths(scene: &mut Scene) {
 }
 
 fn add_path(scene: &mut Scene, base: Vec3, style: usize) {
+    let first_cube = scene.cubes.len();
     let height_scale = match style {
         1 => 0.91,
         4 => 1.05,
@@ -95,6 +96,16 @@ fn add_path(scene: &mut Scene, base: Vec3, style: usize) {
 
     add_face(scene, head_center, style, height_scale);
     add_hair(scene, head_center, style, height_scale);
+
+    // Los seis observan el centro del crater; la camara ve sus capas desde atras.
+    for cube in &mut scene.cubes[first_cube..] {
+        let old_min_z = cube.min.z;
+        cube.min.z = 2.0 * base.z - cube.max.z;
+        cube.max.z = 2.0 * base.z - old_min_z;
+        if let Some(normal) = &mut cube.smooth_normal {
+            normal.z = -normal.z;
+        }
+    }
 }
 
 fn add_face(scene: &mut Scene, head: Vec3, style: usize, scale: f32) {

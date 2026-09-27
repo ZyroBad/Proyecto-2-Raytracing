@@ -157,7 +157,9 @@ fn render_pixels_with_bvh(scene: &Scene, bvh: &Bvh, cfg: &Config, frame: usize) 
         14.2 + cfg.elevation + zoom_wave * 2.8,
         angle.sin() * radius,
     );
-    let camera = Camera::look_at(camera_pos, Vec3::new(0.0, 3.6, -1.0), 44.0, aspect);
+    let camera_right = Vec3::new(angle.sin(), 0.0, -angle.cos());
+    let camera_target = Vec3::new(0.0, 3.3 + cfg.look_y, -1.0) + camera_right * cfg.look_x;
+    let camera = Camera::look_at(camera_pos, camera_target, 44.0, aspect);
     let mut pixels = vec![Color::default(); cfg.width * cfg.height];
     let worker_count = thread::available_parallelism()
         .map(|count| count.get())
@@ -398,7 +400,7 @@ fn build_scene() -> Scene {
 }
 
 fn build_sage_arrival(scene: &mut Scene) {
-    const CRATER_DEPTH: f32 = 2.5;
+    const CRATER_DEPTH: f32 = 3.0;
     add_block(
         scene,
         Vec3::new(0.0, -0.65 - CRATER_DEPTH, 0.0),

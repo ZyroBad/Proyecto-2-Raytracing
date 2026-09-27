@@ -7,7 +7,7 @@ La escena muestra Konoha destruida, el crater de la aldea, Monte Hokage y las in
 ## Caracteristicas
 
 - Diorama construido con cubos texturizados proceduralmente.
-- Camara orbital de 360 grados con acercamiento y alejamiento.
+- Camara tipo dron con orbita de 360 grados, acercamiento, altura y direccion de mirada mediante el mouse.
 - BVH para acelerar la interseccion de miles de cubos.
 - Renderizado paralelo usando los nucleos disponibles del procesador.
 - Sombras suaves, iluminacion difusa, brillo especular y niebla atmosferica.
@@ -88,6 +88,7 @@ cargo run --release -- --window --width 400 --height 225
 
 Controles:
 
+- Mover el mouse dentro de la ventana: dirigir la mirada de la camara.
 - `a` / `d` o flechas izquierda/derecha: orbitar alrededor de la escena.
 - `w` / `s` o flechas arriba/abajo: subir y bajar la camara.
 - `+` / `-`: acercar y alejar la camara.
@@ -96,7 +97,7 @@ Controles:
 
 La ventana usa una resolucion interactiva y ajustes moderados para responder bien en graficos integrados. El render final puede generarse despues con mayor resolucion, muestras y profundidad.
 
-Mientras una tecla permanece presionada, la ventana reduce temporalmente la resolucion, la profundidad de rayos y las muestras de sombra para mantener el movimiento continuo. Al soltarla, restaura automaticamente una vista detallada con sombras suaves. El BVH se construye una sola vez al abrir la ventana y se reutiliza durante toda la navegacion.
+Mientras se mueve el mouse o una tecla permanece presionada, la ventana reduce temporalmente la resolucion, la profundidad de rayos y las muestras de sombra para mantener el movimiento continuo. Al detenerse, restaura automaticamente una vista detallada con sombras suaves. El BVH se construye una sola vez al abrir la ventana y se reutiliza durante toda la navegacion.
 
 ## Camara por consola
 

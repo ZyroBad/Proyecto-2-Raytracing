@@ -73,6 +73,7 @@ mod windows {
     const VK_OEM_MINUS: i32 = 0xBD;
 
     #[repr(C)]
+    #[derive(Clone, Copy)]
     struct Point {
         x: i32,
         y: i32,
@@ -174,6 +175,8 @@ mod windows {
         fn PostQuitMessage(exit_code: i32);
         fn DestroyWindow(hwnd: Hwnd) -> i32;
         fn GetClientRect(hwnd: Hwnd, rect: *mut Rect) -> i32;
+        fn GetCursorPos(point: *mut Point) -> i32;
+        fn ScreenToClient(hwnd: Hwnd, point: *mut Point) -> i32;
         fn GetDC(hwnd: Hwnd) -> Hdc;
         fn ReleaseDC(hwnd: Hwnd, dc: Hdc) -> i32;
         fn SetStretchBltMode(dc: Hdc, mode: i32) -> i32;
@@ -265,7 +268,9 @@ mod windows {
             ShowWindow(hwnd, SW_SHOW);
             UpdateWindow(hwnd);
             println!("Ventana interactiva abierta");
-            println!("A/D: orbitar | W/S: elevar | +/-: zoom | R: render | Esc: salir");
+            println!(
+                "Mouse: dirigir mirada | A/D: orbitar | W/S: elevar | +/-: zoom | R: render | Esc: salir"
+            );
 
             let mut frame = render_preview(scene, &bvh, cfg, render, hwnd, false);
             let mut previous_keys = [false; 11];
@@ -284,6 +289,8 @@ mod windows {
             ];
             let mut message: Message = zeroed();
             let mut running = true;
+            let mut previous_mouse = client_cursor(hwnd);
+            let mut mouse_was_moving = false;
 
             while running {
                 while PeekMessageW(&mut message, null_mut(), 0, 0, PM_REMOVE) != 0 {
@@ -304,7 +311,27 @@ mod windows {
 
                 let current_keys = keys.map(|key| key_down(key));
                 let pressed = |index: usize| current_keys[index] && !previous_keys[index];
-                let moving = current_keys[..10].iter().any(|&down| down);
+                let current_mouse = client_cursor(hwnd);
+                let mouse_moving = match (current_mouse, previous_mouse) {
+                    (Some(current), Some(previous)) => {
+                        (current.x - previous.x).abs() > 2 || (current.y - previous.y).abs() > 2
+                    }
+                    _ => false,
+                };
+                if mouse_moving {
+                    let mut rect: Rect = zeroed();
+                    if GetClientRect(hwnd, &mut rect) != 0 && rect.right > 1 && rect.bottom > 1 {
+                        if let Some(cursor) = current_mouse {
+                            let nx =
+                                (cursor.x as f32 / rect.right as f32 * 2.0 - 1.0).clamp(-1.0, 1.0);
+                            let ny =
+                                (cursor.y as f32 / rect.bottom as f32 * 2.0 - 1.0).clamp(-1.0, 1.0);
+                            cfg.look_x = nx * 8.0;
+                            cfg.look_y = -ny * 4.8;
+                        }
+                    }
+                }
+                let moving = current_keys[..10].iter().any(|&down| down) || mouse_moving;
                 if current_keys[0] || current_keys[4] {
                     cfg.angle_deg = Some(cfg.angle_deg.unwrap_or(90.0) - 3.0);
                 }
@@ -324,13 +351,15 @@ mod windows {
                     cfg.zoom = (cfg.zoom - 0.035).max(0.45);
                 }
 
-                let was_moving = previous_keys[..10].iter().any(|&down| down);
+                let was_moving = previous_keys[..10].iter().any(|&down| down) || mouse_was_moving;
                 if moving {
                     frame = render_preview(scene, &bvh, cfg, render, hwnd, true);
                 } else if was_moving || pressed(10) {
                     frame = render_preview(scene, &bvh, cfg, render, hwnd, false);
                 }
                 previous_keys = current_keys;
+                previous_mouse = current_mouse;
+                mouse_was_moving = mouse_moving;
                 draw_frame(hwnd, frame.width, frame.height, &frame.pixels);
                 thread::sleep(Duration::from_millis(16));
             }
@@ -369,10 +398,12 @@ mod windows {
         let colors = render(scene, bvh, &render_cfg, 0);
         let elapsed = started.elapsed().as_secs_f32();
         let title = wide(&format!(
-            "Diorama | angulo {:.0} | zoom {:.2} | altura {:+.1} | {} {:.2}s",
+            "Diorama | angulo {:.0} | zoom {:.2} | altura {:+.1} | mirada {:+.1},{:+.1} | {} {:.2}s",
             cfg.angle_deg.unwrap_or(90.0),
             cfg.zoom,
             cfg.elevation,
+            cfg.look_x,
+            cfg.look_y,
             if fast { "movimiento" } else { "detalle" },
             elapsed
         ));
@@ -450,6 +481,29 @@ mod windows {
 
     unsafe fn key_down(key: i32) -> bool {
         GetAsyncKeyState(key) < 0
+    }
+
+    unsafe fn client_cursor(hwnd: Hwnd) -> Option<Point> {
+        let mut point = Point { x: 0, y: 0 };
+        if GetCursorPos(&mut point) == 0 || ScreenToClient(hwnd, &mut point) == 0 {
+            return None;
+        }
+        let mut rect = Rect {
+            left: 0,
+            top: 0,
+            right: 0,
+            bottom: 0,
+        };
+        if GetClientRect(hwnd, &mut rect) == 0
+            || point.x < rect.left
+            || point.x >= rect.right
+            || point.y < rect.top
+            || point.y >= rect.bottom
+        {
+            None
+        } else {
+            Some(point)
+        }
     }
 
     fn wide(value: &str) -> Vec<u16> {
