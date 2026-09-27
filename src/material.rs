@@ -23,6 +23,7 @@ pub enum MaterialKind {
     RuinStone,
     RoofTile,
     DustSmoke,
+    CarvedStone,
 }
 
 #[derive(Clone, Copy)]
@@ -121,6 +122,11 @@ impl Material {
             MaterialKind::DustSmoke => {
                 let billow = noise(p * 1.8) * 0.20;
                 self.albedo * (0.72 + billow)
+            }
+            MaterialKind::CarvedStone => {
+                let erosion = noise(p * 5.2) * 0.16;
+                let veins = stripe(p.x * 0.65 + p.y * 0.22, 2.6) * 0.08;
+                self.albedo * (0.80 + erosion - veins)
             }
         }
         .clamp01()
@@ -275,6 +281,14 @@ pub fn scene_materials() -> Vec<Material> {
             0.22,
             0.015,
             1.03,
+        ),
+        material(
+            MaterialKind::CarvedStone,
+            [0.68, 0.59, 0.45],
+            0.18,
+            0.0,
+            0.05,
+            1.0,
         ),
     ]
 }

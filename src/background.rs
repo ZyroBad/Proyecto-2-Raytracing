@@ -11,10 +11,11 @@ pub fn add_destroyed_konoha(scene: &mut Scene) {
         17,
     );
 
-    add_crater_ring(scene, 7.2, 0.18, 1.15, 36);
-    add_crater_ring(scene, 10.1, 0.58, 1.55, 44);
-    add_crater_ring(scene, 13.2, 1.12, 2.0, 52);
+    add_crater_ring(scene, 7.2, 0.06, 0.82, 36);
+    add_crater_ring(scene, 10.1, 0.18, 1.05, 44);
+    add_crater_ring(scene, 13.2, 0.32, 1.30, 52);
     add_crater_wall(scene);
+    add_hokage_mountain(scene);
 
     for (x, z, width, height) in [
         (-10.4, -4.8, 2.7, 4.6),
@@ -89,7 +90,7 @@ fn add_crater_wall(scene: &mut Scene) {
         let edge = (index.abs() as f32 / 10.0).powf(1.5);
         let z = -12.2 + edge * 2.6;
         let variation = noise(Vec3::new(x, 2.0, z));
-        let height = 3.4 + edge * 3.4 + variation * 1.2;
+        let height = 1.7 + edge * 1.9 + variation * 0.65;
         add_block(
             scene,
             Vec3::new(x, height * 0.5 - 0.15, z),
@@ -104,6 +105,100 @@ fn add_crater_wall(scene: &mut Scene) {
                 18,
             );
         }
+    }
+}
+
+fn add_hokage_mountain(scene: &mut Scene) {
+    add_block(
+        scene,
+        Vec3::new(0.0, 2.75, -16.4),
+        Vec3::new(34.0, 6.2, 4.2),
+        0,
+    );
+    add_block(
+        scene,
+        Vec3::new(0.0, 6.25, -16.7),
+        Vec3::new(30.5, 2.5, 3.5),
+        18,
+    );
+    for index in -7i32..=7 {
+        let x = index as f32 * 2.05;
+        let variation = noise(Vec3::new(x * 0.32, 5.0, -16.0));
+        let height = 1.6 + variation * 2.2;
+        add_block(
+            scene,
+            Vec3::new(x, 7.35 + height * 0.5, -16.9 - variation * 0.45),
+            Vec3::new(2.35, height, 3.0),
+            if index % 3 == 0 { 18 } else { 0 },
+        );
+    }
+
+    for (index, x) in [-8.0, -4.0, 0.0, 4.0, 8.0].into_iter().enumerate() {
+        add_hokage_face(
+            scene,
+            Vec3::new(x, 7.75 + (index % 2) as f32 * 0.20, -14.48),
+            index,
+        );
+    }
+}
+
+fn add_hokage_face(scene: &mut Scene, center: Vec3, style: usize) {
+    let stone = 21;
+    let shadow = 0;
+    add_block(scene, center, Vec3::new(2.35, 2.45, 0.36), stone);
+    add_block(
+        scene,
+        center + Vec3::new(0.0, -1.28, 0.05),
+        Vec3::new(1.55, 0.72, 0.40),
+        stone,
+    );
+    add_block(
+        scene,
+        center + Vec3::new(0.0, -0.20, 0.29),
+        Vec3::new(0.34, 0.76, 0.28),
+        stone,
+    );
+    for side in [-1.0, 1.0] {
+        add_block(
+            scene,
+            center + Vec3::new(side * 0.57, 0.30, 0.28),
+            Vec3::new(0.62, 0.18, 0.25),
+            shadow,
+        );
+        add_block(
+            scene,
+            center + Vec3::new(side * 0.55, 0.08, 0.34),
+            Vec3::new(0.22, 0.16, 0.18),
+            shadow,
+        );
+        add_block(
+            scene,
+            center + Vec3::new(side * 1.12, 0.35, 0.0),
+            Vec3::new(0.34, 1.65, 0.42),
+            stone,
+        );
+    }
+    add_block(
+        scene,
+        center + Vec3::new(0.0, -0.78, 0.29),
+        Vec3::new(0.72, 0.16, 0.22),
+        shadow,
+    );
+
+    let hair_width = if style == 1 { 2.75 } else { 2.35 };
+    add_block(
+        scene,
+        center + Vec3::new(0.0, 1.34, -0.02),
+        Vec3::new(hair_width, 0.48, 0.48),
+        shadow,
+    );
+    if style == 3 {
+        add_block(
+            scene,
+            center + Vec3::new(0.0, 1.70, -0.05),
+            Vec3::new(1.15, 0.46, 0.42),
+            shadow,
+        );
     }
 }
 
