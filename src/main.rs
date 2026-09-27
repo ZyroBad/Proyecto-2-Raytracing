@@ -155,7 +155,7 @@ fn render_pixels_with_bvh(scene: &Scene, bvh: &Bvh, cfg: &Config, frame: usize) 
         14.2 + cfg.elevation + zoom_wave * 2.8,
         angle.sin() * radius,
     );
-    let camera = Camera::look_at(camera_pos, Vec3::new(0.0, 5.4, -1.0), 44.0, aspect);
+    let camera = Camera::look_at(camera_pos, Vec3::new(0.0, 4.2, -1.0), 44.0, aspect);
     let mut pixels = vec![Color::default(); cfg.width * cfg.height];
     let worker_count = thread::available_parallelism()
         .map(|count| count.get())
@@ -396,26 +396,32 @@ fn build_scene() -> Scene {
 }
 
 fn build_sage_arrival(scene: &mut Scene) {
+    const CRATER_DEPTH: f32 = 1.5;
     add_block(
         scene,
-        Vec3::new(0.0, -0.65, 0.0),
+        Vec3::new(0.0, -0.65 - CRATER_DEPTH, 0.0),
         Vec3::new(24.0, 1.3, 12.0),
         0,
     );
     add_block(
         scene,
-        Vec3::new(0.0, 0.08, 0.4),
+        Vec3::new(0.0, 0.08 - CRATER_DEPTH, 0.4),
         Vec3::new(16.0, 0.25, 7.5),
         17,
     );
 
     add_destroyed_konoha(scene);
+    let first_character_cube = scene.cubes.len();
     add_gamabunta(scene, Vec3::new(0.0, 0.0, -0.3));
     add_gamaken(scene, Vec3::new(-8.6, 0.0, -1.3));
     add_gamahiro(scene, Vec3::new(8.6, 0.0, -1.3));
     add_gamakichi(scene, Vec3::new(0.0, 8.78, 0.12));
     add_naruto_sage(scene, Vec3::new(0.0, 11.68, 0.30));
     add_summoning_clouds(scene);
+    for cube in &mut scene.cubes[first_character_cube..] {
+        cube.min.y -= CRATER_DEPTH;
+        cube.max.y -= CRATER_DEPTH;
+    }
 }
 
 fn add_block(scene: &mut Scene, center: Vec3, size: Vec3, material: usize) {

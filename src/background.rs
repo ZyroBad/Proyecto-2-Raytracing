@@ -10,16 +10,16 @@ pub fn add_destroyed_konoha(scene: &mut Scene) {
 
     add_block(
         scene,
-        Vec3::new(0.0, -0.05, -7.2),
+        Vec3::new(0.0, -1.62, -7.2),
         Vec3::new(27.0, 0.32, 13.5),
         17,
     );
 
-    add_crater_ring(scene, 7.2, 0.06, 0.82, 36);
-    add_crater_ring(scene, 8.6, 0.11, 0.90, 40);
-    add_crater_ring(scene, 10.1, 0.18, 1.05, 44);
-    add_crater_ring(scene, 11.7, 0.25, 1.16, 48);
-    add_crater_ring(scene, 13.2, 0.32, 1.30, 52);
+    add_crater_ring(scene, 7.2, -1.48, 0.82, 36);
+    add_crater_ring(scene, 8.6, -1.20, 0.90, 40);
+    add_crater_ring(scene, 10.1, -0.86, 1.05, 44);
+    add_crater_ring(scene, 11.7, -0.46, 1.16, 48);
+    add_crater_ring(scene, 13.2, -0.08, 1.30, 52);
     add_crater_wall(scene);
     add_hokage_mountain(scene);
     add_debris_field(scene);
@@ -48,7 +48,7 @@ pub fn add_destroyed_konoha(scene: &mut Scene) {
     ] {
         add_block(
             scene,
-            Vec3::new(x, 0.42, z),
+            Vec3::new(x, -1.42 + sy * 0.5, z),
             Vec3::new(sx, sy, sz),
             material,
         );
@@ -56,25 +56,29 @@ pub fn add_destroyed_konoha(scene: &mut Scene) {
 
     add_crack_path(
         scene,
-        Vec3::new(-0.8, 0.18, -1.8),
-        Vec3::new(-7.0, 0.18, -8.5),
+        Vec3::new(-0.8, -1.43, -1.8),
+        Vec3::new(-7.0, -1.43, -8.5),
     );
     add_crack_path(
         scene,
-        Vec3::new(1.2, 0.18, -2.2),
-        Vec3::new(7.8, 0.18, -7.4),
+        Vec3::new(1.2, -1.43, -2.2),
+        Vec3::new(7.8, -1.43, -7.4),
     );
     add_crack_path(
         scene,
-        Vec3::new(0.2, 0.18, -2.0),
-        Vec3::new(-1.3, 0.18, -10.2),
+        Vec3::new(0.2, -1.43, -2.0),
+        Vec3::new(-1.3, -1.43, -10.2),
     );
     add_crack_path(
         scene,
-        Vec3::new(-1.8, 0.18, 0.4),
-        Vec3::new(-8.4, 0.18, 6.8),
+        Vec3::new(-1.8, -1.43, 0.4),
+        Vec3::new(-8.4, -1.43, 6.8),
     );
-    add_crack_path(scene, Vec3::new(2.0, 0.18, 0.2), Vec3::new(8.0, 0.18, 6.2));
+    add_crack_path(
+        scene,
+        Vec3::new(2.0, -1.43, 0.2),
+        Vec3::new(8.0, -1.43, 6.2),
+    );
 
     add_dust_plume(scene, Vec3::new(-9.4, 1.2, -9.4), 1.15);
     add_dust_plume(scene, Vec3::new(9.2, 1.0, -9.0), 1.0);
@@ -365,18 +369,19 @@ fn add_broken_gate(scene: &mut Scene, base: Vec3, scale: f32) {
     );
 }
 
-fn add_crater_ring(scene: &mut Scene, radius: f32, height: f32, block_size: f32, segments: usize) {
+fn add_crater_ring(scene: &mut Scene, radius: f32, floor_y: f32, block_size: f32, segments: usize) {
     for index in 0..=segments {
         let angle = 2.0 * PI * index as f32 / segments as f32;
         let x = angle.cos() * radius;
         let z = angle.sin() * radius - 2.2;
-        let uneven = noise(Vec3::new(x, height, z));
+        let uneven = noise(Vec3::new(x, floor_y, z));
         let backness = (-angle.sin() + 1.0) * 0.5;
         let vertical_scale = 0.35 + backness * 0.55 + uneven * 0.25;
+        let block_height = block_size * vertical_scale;
         add_block(
             scene,
-            Vec3::new(x, height * (0.35 + backness * 0.65) + uneven * 0.25, z),
-            Vec3::new(block_size, block_size * vertical_scale, block_size),
+            Vec3::new(x, floor_y + block_height * 0.5 + uneven * 0.08, z),
+            Vec3::new(block_size, block_height, block_size),
             if index % 5 == 0 { 18 } else { 17 },
         );
     }
@@ -388,17 +393,18 @@ fn add_crater_wall(scene: &mut Scene) {
         let edge = (index.abs() as f32 / 10.0).powf(1.5);
         let z = -12.2 + edge * 2.6;
         let variation = noise(Vec3::new(x, 2.0, z));
-        let height = 1.7 + edge * 1.9 + variation * 0.65;
+        let rim_height = 1.7 + edge * 1.9 + variation * 0.65;
+        let wall_height = rim_height + 1.55;
         add_block(
             scene,
-            Vec3::new(x, height * 0.5 - 0.15, z),
-            Vec3::new(1.42, height, 2.25),
+            Vec3::new(x, -1.55 + wall_height * 0.5, z),
+            Vec3::new(1.42, wall_height, 2.25),
             if index % 6 == 0 { 18 } else { 17 },
         );
         if index % 4 == 0 {
             add_block(
                 scene,
-                Vec3::new(x + 0.28, height + 0.22, z - 0.15),
+                Vec3::new(x + 0.28, rim_height + 0.22, z - 0.15),
                 Vec3::new(0.72, 0.42, 1.35),
                 18,
             );
@@ -407,55 +413,55 @@ fn add_crater_wall(scene: &mut Scene) {
 }
 
 fn add_hokage_mountain(scene: &mut Scene) {
-    // Columnas solapadas forman una pared erosionada sin una silueta rectangular.
-    for index in -12i32..=12 {
-        let x = index as f32 * 1.55;
-        let center_falloff = (1.0 - (x.abs() / 21.0).powf(1.7)).max(0.0);
-        let variation = noise(Vec3::new(x * 0.27, 5.0, -16.0));
-        let height = 5.4 + center_falloff * 4.8 + variation * 1.7;
-        let depth = 3.8 + noise(Vec3::new(x * 0.41, 8.0, -4.0)) * 2.1;
-        let z = -17.0 - noise(Vec3::new(x * 0.19, 3.0, 2.0)) * 0.8;
+    // Macizo distante integrado con el bosque y la cordillera exterior.
+    for index in -11i32..=11 {
+        let x = index as f32 * 2.90;
+        let center_falloff = (1.0 - (x.abs() / 35.0).powf(1.65)).max(0.0);
+        let variation = noise(Vec3::new(x * 0.19, 5.0, -44.0));
+        let height = 8.0 + center_falloff * 7.0 + variation * 2.2;
+        let depth = 8.5 + noise(Vec3::new(x * 0.31, 8.0, -9.0)) * 3.5;
+        let z = -51.0 - noise(Vec3::new(x * 0.15, 3.0, 2.0)) * 1.2;
         add_block(
             scene,
-            Vec3::new(x, height * 0.5 - 0.18, z),
-            Vec3::new(1.85, height, depth),
-            if index % 4 == 0 { 18 } else { 0 },
+            Vec3::new(x, height * 0.5 - 0.45, z),
+            Vec3::new(3.55, height, depth),
+            if index % 4 == 0 { 25 } else { 0 },
         );
 
         if index % 2 == 0 {
-            let ledge_y = 3.1 + variation * 2.8;
+            let ledge_y = 3.0 + variation * 5.0;
             add_block(
                 scene,
-                Vec3::new(x + 0.28, ledge_y, z + depth * 0.48),
-                Vec3::new(2.15, 0.42, 0.90),
-                18,
+                Vec3::new(x + 0.42, ledge_y, z + depth * 0.49),
+                Vec3::new(4.10, 0.58, 1.25),
+                25,
             );
         }
     }
 
-    // Crestas traseras y hombros laterales dan profundidad desde la orbita completa.
     for index in -9i32..=9 {
-        let x = index as f32 * 2.05;
-        let variation = noise(Vec3::new(x * 0.36, 11.0, -18.0));
-        let peak = 1.5 + variation * 3.4;
+        let x = index as f32 * 3.45;
+        let variation = noise(Vec3::new(x * 0.25, 11.0, -50.0));
+        let peak = 2.0 + variation * 5.0;
         add_block(
             scene,
-            Vec3::new(x, 8.0 + peak * 0.5, -19.2),
-            Vec3::new(2.45, peak, 3.0),
-            if index % 3 == 0 { 18 } else { 0 },
+            Vec3::new(x, 13.0 + peak * 0.5, -55.0),
+            Vec3::new(4.4, peak, 5.5),
+            if index % 3 == 0 { 25 } else { 0 },
         );
     }
 
-    for (index, x) in [-10.0, -5.0, 0.0, 5.0, 10.0].into_iter().enumerate() {
+    for (index, x) in [-17.0, -8.5, 0.0, 8.5, 17.0].into_iter().enumerate() {
         add_hokage_face(
             scene,
-            Vec3::new(x, 7.55 + (index % 2) as f32 * 0.28, -14.42),
+            Vec3::new(x, 10.0 + (index % 2) as f32 * 0.48, -45.45),
             index,
         );
     }
 }
 
 fn add_hokage_face(scene: &mut Scene, center: Vec3, style: usize) {
+    let first_cube = scene.cubes.len();
     let stone = 21;
     let shadow = 0;
 
@@ -571,6 +577,87 @@ fn add_hokage_face(scene: &mut Scene, center: Vec3, style: usize) {
             shadow,
         );
     }
+
+    match style {
+        0 => {
+            add_block(
+                scene,
+                center + Vec3::new(0.0, 0.82, 0.28),
+                Vec3::new(1.82, 0.22, 0.18),
+                shadow,
+            );
+            add_block(
+                scene,
+                center + Vec3::new(0.0, 0.83, 0.39),
+                Vec3::new(0.62, 0.25, 0.12),
+                stone,
+            );
+        }
+        1 => {
+            add_block(
+                scene,
+                center + Vec3::new(0.0, 1.02, 0.02),
+                Vec3::new(2.28, 0.28, 0.42),
+                stone,
+            );
+            for side in [-1.0, 1.0] {
+                add_block(
+                    scene,
+                    center + Vec3::new(side * 0.96, -0.22, 0.08),
+                    Vec3::new(0.22, 1.42, 0.28),
+                    shadow,
+                );
+            }
+        }
+        2 => {
+            add_block(
+                scene,
+                center + Vec3::new(0.0, -1.12, 0.20),
+                Vec3::new(1.12, 0.50, 0.24),
+                shadow,
+            );
+            for side in [-1.0, 1.0] {
+                add_block(
+                    scene,
+                    center + Vec3::new(side * 0.78, -0.68, 0.22),
+                    Vec3::new(0.34, 0.76, 0.22),
+                    shadow,
+                );
+            }
+        }
+        3 => {
+            for lock in 0..4 {
+                add_block(
+                    scene,
+                    center + Vec3::new(-1.02 + lock as f32 * 0.22, 0.62 - lock as f32 * 0.28, 0.05),
+                    Vec3::new(0.24, 1.10, 0.26),
+                    shadow,
+                );
+            }
+        }
+        _ => {
+            for side in [-1.0, 1.0] {
+                add_block(
+                    scene,
+                    center + Vec3::new(side * 0.94, -0.10, 0.04),
+                    Vec3::new(0.34, 2.42, 0.28),
+                    shadow,
+                );
+            }
+            add_block(
+                scene,
+                center + Vec3::new(0.0, 0.68, 0.42),
+                Vec3::new(0.18, 0.30, 0.10),
+                shadow,
+            );
+        }
+    }
+
+    const FACE_SCALE: f32 = 1.95;
+    for cube in &mut scene.cubes[first_cube..] {
+        cube.min = center + (cube.min - center) * FACE_SCALE;
+        cube.max = center + (cube.max - center) * FACE_SCALE;
+    }
 }
 
 fn add_ruined_building(scene: &mut Scene, base: Vec3, width: f32, height: f32) {
@@ -635,9 +722,10 @@ fn add_debris_field(scene: &mut Scene) {
             1 | 2 => 18,
             _ => 17,
         };
+        let floor_y = -1.46 + ((radius - 7.0) / 6.2).clamp(0.0, 1.0) * 1.20;
         add_block(
             scene,
-            Vec3::new(x, 0.14 + height * 0.5, z),
+            Vec3::new(x, floor_y + height * 0.5, z),
             Vec3::new(width, height, depth),
             material,
         );
