@@ -670,6 +670,7 @@ fn add_gamahiro_limbs(scene: &mut Scene, base: Vec3, skin: usize) {
 }
 
 pub fn add_naruto_sage(scene: &mut Scene, base: Vec3) {
+    let first_cube = scene.cubes.len();
     let orange = 6;
     let cloak = 7;
     let skin = 8;
@@ -929,6 +930,12 @@ pub fn add_naruto_sage(scene: &mut Scene, base: Vec3) {
         (Vec3::new(0.62, 3.72, -0.12), Vec3::new(0.52, 4.12, -0.10)),
     ] {
         add_voxel_segment(scene, base + start, base + end, 0.09, chakra);
+    }
+
+    const NARUTO_SCALE: f32 = 0.68;
+    for cube in &mut scene.cubes[first_cube..] {
+        cube.min = base + (cube.min - base) * NARUTO_SCALE;
+        cube.max = base + (cube.max - base) * NARUTO_SCALE;
     }
 }
 
