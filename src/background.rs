@@ -5,6 +5,8 @@ use std::f32::consts::PI;
 
 pub fn add_destroyed_konoha(scene: &mut Scene) {
     add_konoha_basin(scene);
+    add_distant_forest(scene);
+    add_mountain_horizon(scene);
 
     add_block(
         scene,
@@ -84,7 +86,7 @@ fn add_konoha_basin(scene: &mut Scene) {
     add_block(
         scene,
         Vec3::new(0.0, -1.18, -2.0),
-        Vec3::new(92.0, 1.42, 92.0),
+        Vec3::new(150.0, 1.42, 150.0),
         17,
     );
 
@@ -176,6 +178,88 @@ fn add_konoha_basin(scene: &mut Scene) {
             Vec3::new(0.78, 0.18, 0.20),
             13,
         );
+    }
+}
+
+fn add_distant_forest(scene: &mut Scene) {
+    let leaves = 24;
+    for index in 0..190 {
+        let angle = index as f32 * 2.399_963;
+        let radial_noise = noise(Vec3::new(index as f32 * 0.63, 12.0, 4.8));
+        let radius = 43.0 + radial_noise * 16.0;
+        let x = angle.cos() * radius;
+        let z = angle.sin() * radius - 2.0;
+        let height = 2.5 + noise(Vec3::new(x * 0.18, z * 0.15, 7.0)) * 3.4;
+        let crown = 1.35 + radial_noise * 1.20;
+
+        add_block(
+            scene,
+            Vec3::new(x, -0.42 + height * 0.5, z),
+            Vec3::new(
+                0.32 + radial_noise * 0.18,
+                height,
+                0.36 + radial_noise * 0.16,
+            ),
+            13,
+        );
+        for offset in [
+            Vec3::new(0.0, 0.0, 0.0),
+            Vec3::new(-0.62, -0.20, 0.12),
+            Vec3::new(0.58, -0.12, -0.18),
+            Vec3::new(0.08, 0.56, 0.06),
+        ] {
+            add_block(
+                scene,
+                Vec3::new(x, height - 0.30, z) + offset * crown,
+                Vec3::new(crown * 1.15, crown * 0.92, crown * 1.10),
+                leaves,
+            );
+        }
+    }
+}
+
+fn add_mountain_horizon(scene: &mut Scene) {
+    let mountain = 25;
+    for index in 0..52 {
+        let angle = 2.0 * PI * index as f32 / 52.0;
+        let variation = noise(Vec3::new(index as f32 * 0.54, 15.0, 1.7));
+        let radius = 67.0 + variation * 7.0;
+        let x = angle.cos() * radius;
+        let z = angle.sin() * radius - 2.0;
+        let peak_height = 8.0 + variation * 11.0;
+        let base_width = 8.0 + variation * 5.0;
+
+        let layer_count = 8;
+        let layer_height = peak_height / layer_count as f32;
+        for layer in 0..layer_count {
+            let progress = layer as f32 / layer_count as f32;
+            let taper = (1.0 - progress).powf(0.78).max(0.16);
+            let drift = (index as f32 * 1.7 + layer as f32 * 0.8).sin() * base_width * 0.045;
+            add_block(
+                scene,
+                Vec3::new(
+                    x + drift,
+                    -0.38 + layer_height * (layer as f32 + 0.5),
+                    z + drift * 0.35,
+                ),
+                Vec3::new(
+                    base_width * taper,
+                    layer_height + 0.12,
+                    base_width * (0.82 * taper).max(1.1),
+                ),
+                mountain,
+            );
+        }
+
+        if index % 3 == 0 {
+            let side = if index % 2 == 0 { -1.0 } else { 1.0 };
+            add_block(
+                scene,
+                Vec3::new(x + side * base_width * 0.56, 1.55, z + 0.4),
+                Vec3::new(base_width * 0.52, 3.8, base_width * 0.48),
+                mountain,
+            );
+        }
     }
 }
 

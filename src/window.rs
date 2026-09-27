@@ -357,9 +357,9 @@ mod windows {
         fast: bool,
     ) -> PreviewFrame {
         let mut render_cfg = cfg.clone();
-        if fast && render_cfg.width > 220 {
+        if fast && render_cfg.width > 180 {
             let aspect = render_cfg.width as f32 / render_cfg.height.max(1) as f32;
-            render_cfg.width = 220;
+            render_cfg.width = 180;
             render_cfg.height = (render_cfg.width as f32 / aspect).round().max(1.0) as usize;
         }
         render_cfg.samples_per_axis = 1;

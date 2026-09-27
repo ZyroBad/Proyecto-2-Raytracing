@@ -14,7 +14,7 @@ La escena muestra Konoha destruida, el crater de la aldea, Monte Hokage y las in
 - Reflexion en armas, protectores y superficies metalicas.
 - Refraccion y transparencia en chakra, humo y nubes de invocacion.
 - Skybox procedural con horizonte, sol y nubes.
-- Konoha destruida en 360 grados con terreno continuo, crater, barrios derrumbados, torres, puertas y Monte Hokage.
+- Konoha destruida en 360 grados con terreno continuo, crater, barrios derrumbados, bosque, cordillera, torres, puertas y Monte Hokage.
 - Personajes modelados con volumen completo, haori posterior y detalles visibles desde diferentes angulos.
 - Sello de invocacion refractivo alrededor de la escena principal.
 
@@ -43,6 +43,8 @@ Cada material posee textura procedural y parametros independientes de albedo, br
 | Nubes y humo | Ruido de baja frecuencia | Transparencia |
 | Roca y crater | Grietas, grava y erosion | Superficie rugosa |
 | Madera y cuerda | Vetas y patron trenzado | Reflexion baja |
+| Follaje distante | Grupos de hojas, ruido y luz superior | Reflexion suave |
+| Montana distante | Estratos y erosion procedural | Superficie mate |
 
 ## Ejecutar
 
@@ -90,7 +92,7 @@ Controles:
 
 La ventana usa una resolucion interactiva y ajustes moderados para responder bien en graficos integrados. El render final puede generarse despues con mayor resolucion, muestras y profundidad.
 
-Mientras una tecla permanece presionada, la ventana reduce temporalmente la resolucion y la profundidad de rayos para mantener el movimiento continuo. Al soltarla, restaura automaticamente una vista detallada. El BVH se construye una sola vez al abrir la ventana y se reutiliza durante toda la navegacion.
+Mientras una tecla permanece presionada, la ventana reduce temporalmente la resolucion, la profundidad de rayos y las muestras de sombra para mantener el movimiento continuo. Al soltarla, restaura automaticamente una vista detallada con sombras suaves. El BVH se construye una sola vez al abrir la ventana y se reutiliza durante toda la navegacion.
 
 ## Camara por consola
 

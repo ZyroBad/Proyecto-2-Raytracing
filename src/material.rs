@@ -26,6 +26,8 @@ pub enum MaterialKind {
     CarvedStone,
     GamahiroMarking,
     GamakichiSkin,
+    ForestCanopy,
+    DistantMountain,
 }
 
 #[derive(Clone, Copy)]
@@ -143,6 +145,17 @@ impl Material {
                 let scales = scale_pattern(p + Vec3::new(0.15, 0.0, 0.0), 3.8) * 0.16;
                 let freckles = noise(p * 7.0) * 0.10;
                 self.albedo * (0.90 + freckles - scales)
+            }
+            MaterialKind::ForestCanopy => {
+                let clusters = noise(p * 3.4) * 0.22;
+                let leaves = noise(p * 11.0) * 0.10;
+                let sunlight = normal.y.max(0.0) * 0.12;
+                self.albedo * (0.68 + clusters + leaves + sunlight)
+            }
+            MaterialKind::DistantMountain => {
+                let strata = (p.y * 0.55 + p.x * 0.08).sin().abs() * 0.10;
+                let erosion = noise(p * 1.8) * 0.18;
+                self.albedo * (0.72 + erosion - strata)
             }
         }
         .clamp01()
@@ -320,6 +333,22 @@ pub fn scene_materials() -> Vec<Material> {
             0.24,
             0.0,
             0.035,
+            1.0,
+        ),
+        material(
+            MaterialKind::ForestCanopy,
+            [0.12, 0.34, 0.16],
+            0.10,
+            0.0,
+            0.025,
+            1.0,
+        ),
+        material(
+            MaterialKind::DistantMountain,
+            [0.31, 0.39, 0.34],
+            0.08,
+            0.0,
+            0.02,
             1.0,
         ),
     ]

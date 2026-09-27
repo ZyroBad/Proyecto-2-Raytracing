@@ -226,7 +226,8 @@ fn shade(scene: &Scene, bvh: &Bvh, ray: Ray, hit: Hit, depth: u32, max_depth: u3
     let light_dir = -scene.light_dir.normalized();
     let base = hit.material.texture(hit.point, hit.normal);
 
-    let visibility = soft_shadow(scene, bvh, hit.point, hit.normal, light_dir);
+    let shadow_samples = if max_depth <= 1 { 1 } else { 3 };
+    let visibility = soft_shadow(scene, bvh, hit.point, hit.normal, light_dir, shadow_samples);
     let ndotl = hit.normal.dot(light_dir).max(0.0);
     let diffuse_strength = ndotl * (0.16 + visibility * 0.84);
     let diffuse = base.hadamard(scene.light_color) * diffuse_strength;
@@ -292,18 +293,25 @@ fn shade(scene: &Scene, bvh: &Bvh, ray: Ray, hit: Hit, depth: u32, max_depth: u3
     let distance_fog = ((hit.distance - 16.0) / 38.0).clamp(0.0, 1.0);
     let low_dust = (1.0 - (hit.point.y / 11.0).clamp(0.0, 1.0)) * distance_fog;
     let fog = (distance_fog * 0.24 + low_dust * 0.13).min(0.38);
-    let fog_color = skybox(ray.direction) * 0.72 + Color::new(0.46, 0.20, 0.08) * 0.28;
+    let fog_color = skybox(ray.direction) * 0.80 + Color::new(0.46, 0.34, 0.20) * 0.20;
     color = color * (1.0 - fog) + fog_color * fog;
     color.clamp01()
 }
 
-fn soft_shadow(scene: &Scene, bvh: &Bvh, point: Vec3, normal: Vec3, light_dir: Vec3) -> f32 {
+fn soft_shadow(
+    scene: &Scene,
+    bvh: &Bvh,
+    point: Vec3,
+    normal: Vec3,
+    light_dir: Vec3,
+    sample_count: usize,
+) -> f32 {
     let tangent = light_dir.cross(Vec3::new(0.0, 1.0, 0.0)).normalized();
     let bitangent = tangent.cross(light_dir).normalized();
     let offsets = [(0.0, 0.0), (0.045, -0.025), (-0.035, 0.040)];
     let mut visible = 0.0;
 
-    for (x, y) in offsets {
+    for &(x, y) in offsets.iter().take(sample_count) {
         let direction = (light_dir + tangent * x + bitangent * y).normalized();
         let shadow_ray = Ray {
             origin: point + normal * EPSILON,
@@ -314,7 +322,7 @@ fn soft_shadow(scene: &Scene, bvh: &Bvh, point: Vec3, normal: Vec3, light_dir: V
         }
     }
 
-    visible / offsets.len() as f32
+    visible / sample_count as f32
 }
 
 fn tone_map(color: Color) -> Color {
@@ -344,9 +352,9 @@ fn intersect_scene(scene: &Scene, bvh: &Bvh, ray: Ray) -> Option<Hit> {
 }
 
 fn skybox(dir: Vec3) -> Color {
-    let t = ((dir.y + 0.16) * 2.35).clamp(0.0, 1.0);
-    let horizon = Color::new(0.52, 0.16, 0.045);
-    let zenith = Color::new(0.025, 0.14, 0.48);
+    let t = ((dir.y + 0.12) * 2.05).clamp(0.0, 1.0);
+    let horizon = Color::new(0.20, 0.43, 0.68);
+    let zenith = Color::new(0.025, 0.18, 0.58);
     let mut color = horizon * (1.0 - t) + zenith * t;
 
     let sun_dir = Vec3::new(-0.42, 0.29, -0.86).normalized();
@@ -354,24 +362,24 @@ fn skybox(dir: Vec3) -> Color {
     let inner_glow = dir.dot(sun_dir).max(0.0).powf(42.0);
     let outer_glow = dir.dot(sun_dir).max(0.0).powf(8.0);
     color += Color::new(1.0, 0.90, 0.62) * sun * 1.35;
-    color += Color::new(0.96, 0.48, 0.16) * inner_glow * 0.38;
-    color += Color::new(0.70, 0.20, 0.07) * outer_glow * 0.12;
+    color += Color::new(0.96, 0.62, 0.26) * inner_glow * 0.30;
+    color += Color::new(0.72, 0.36, 0.16) * outer_glow * 0.08;
 
     let cloud_band = (1.0 - (dir.y - 0.14).abs() * 6.0).max(0.0);
     let cloud_shape =
         ((dir.x * 18.0 + dir.z * 11.0).sin() + (dir.x * 31.0 - dir.z * 7.0).sin() * 0.45) * 0.5
             + 0.42;
-    color += Color::new(0.58, 0.54, 0.56) * cloud_shape.max(0.0) * cloud_band * 0.38;
+    color += Color::new(0.66, 0.72, 0.80) * cloud_shape.max(0.0) * cloud_band * 0.36;
 
     let high_band = (1.0 - (dir.y - 0.42).abs() * 8.0).max(0.0);
     let high_shape = ((dir.x * 27.0 - dir.z * 19.0).sin() * 0.55
         + (dir.x * 43.0 + dir.z * 13.0).sin() * 0.25
         + 0.38)
         .max(0.0);
-    color += Color::new(0.32, 0.38, 0.52) * high_shape * high_band * 0.24;
+    color += Color::new(0.50, 0.61, 0.76) * high_shape * high_band * 0.22;
 
     let dust_haze = (1.0 - (dir.y + 0.02).abs() * 4.2).max(0.0);
-    color += Color::new(0.44, 0.16, 0.055) * dust_haze * 0.15;
+    color += Color::new(0.34, 0.24, 0.13) * dust_haze * 0.11;
     color.clamp01()
 }
 
