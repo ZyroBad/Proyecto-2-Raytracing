@@ -11,9 +11,9 @@ pub fn add_destroyed_konoha(scene: &mut Scene) {
         17,
     );
 
-    add_crater_arc(scene, 7.2, 0.18, 1.15, 20);
-    add_crater_arc(scene, 10.1, 0.58, 1.55, 24);
-    add_crater_arc(scene, 13.2, 1.12, 2.0, 28);
+    add_crater_ring(scene, 7.2, 0.18, 1.15, 36);
+    add_crater_ring(scene, 10.1, 0.58, 1.55, 44);
+    add_crater_ring(scene, 13.2, 1.12, 2.0, 52);
     add_crater_wall(scene);
 
     for (x, z, width, height) in [
@@ -21,6 +21,8 @@ pub fn add_destroyed_konoha(scene: &mut Scene) {
         (-7.8, -8.6, 3.4, 3.0),
         (8.1, -8.4, 3.2, 3.4),
         (10.6, -4.5, 2.8, 4.9),
+        (-11.3, 2.8, 2.5, 2.6),
+        (11.2, 2.5, 2.6, 2.8),
     ] {
         add_ruined_building(scene, Vec3::new(x, 0.0, z), width, height);
     }
@@ -64,16 +66,18 @@ pub fn add_destroyed_konoha(scene: &mut Scene) {
     add_dust_plume(scene, Vec3::new(4.8, 0.8, -11.5), 0.72);
 }
 
-fn add_crater_arc(scene: &mut Scene, radius: f32, height: f32, block_size: f32, segments: usize) {
+fn add_crater_ring(scene: &mut Scene, radius: f32, height: f32, block_size: f32, segments: usize) {
     for index in 0..=segments {
-        let angle = PI + PI * index as f32 / segments as f32;
+        let angle = 2.0 * PI * index as f32 / segments as f32;
         let x = angle.cos() * radius;
         let z = angle.sin() * radius - 2.2;
         let uneven = noise(Vec3::new(x, height, z));
+        let backness = (-angle.sin() + 1.0) * 0.5;
+        let vertical_scale = 0.35 + backness * 0.55 + uneven * 0.25;
         add_block(
             scene,
-            Vec3::new(x, height + uneven * 0.35, z),
-            Vec3::new(block_size, block_size * (0.65 + uneven * 0.45), block_size),
+            Vec3::new(x, height * (0.35 + backness * 0.65) + uneven * 0.25, z),
+            Vec3::new(block_size, block_size * vertical_scale, block_size),
             if index % 5 == 0 { 18 } else { 17 },
         );
     }
