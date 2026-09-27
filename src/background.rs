@@ -4,6 +4,8 @@ use crate::scene::{Cube, Scene};
 use std::f32::consts::PI;
 
 pub fn add_destroyed_konoha(scene: &mut Scene) {
+    add_konoha_basin(scene);
+
     add_block(
         scene,
         Vec3::new(0.0, -0.05, -7.2),
@@ -75,6 +77,106 @@ pub fn add_destroyed_konoha(scene: &mut Scene) {
     add_dust_plume(scene, Vec3::new(-9.4, 1.2, -9.4), 1.15);
     add_dust_plume(scene, Vec3::new(9.2, 1.0, -9.0), 1.0);
     add_dust_plume(scene, Vec3::new(4.8, 0.8, -11.5), 0.72);
+}
+
+fn add_konoha_basin(scene: &mut Scene) {
+    // Terreno continuo bajo toda la orbita para evitar el efecto de isla flotante.
+    add_block(
+        scene,
+        Vec3::new(0.0, -1.18, -2.0),
+        Vec3::new(92.0, 1.42, 92.0),
+        17,
+    );
+
+    for index in 0..36 {
+        let angle = index as f32 * 2.399_963;
+        let variation = noise(Vec3::new(index as f32 * 0.47, 2.7, 6.2));
+        let radius = 13.0 + variation * 22.0;
+        let width = 2.0 + variation * 5.0;
+        add_block(
+            scene,
+            Vec3::new(
+                angle.cos() * radius,
+                -0.43 + variation * 0.035,
+                angle.sin() * radius - 2.0,
+            ),
+            Vec3::new(width, 0.10, width * (0.52 + variation * 0.38)),
+            if index % 4 == 0 { 18 } else { 0 },
+        );
+    }
+
+    // Colinas bajas y restos urbanos cierran el horizonte desde cualquier angulo.
+    for index in 0..72 {
+        let angle = 2.0 * PI * index as f32 / 72.0;
+        let variation = noise(Vec3::new(index as f32 * 0.71, 9.0, 3.5));
+        let radius = 37.0 + variation * 3.0;
+        let height = 1.4 + variation * 3.8;
+        let width = 2.8 + variation * 2.2;
+        add_block(
+            scene,
+            Vec3::new(
+                angle.cos() * radius,
+                height * 0.5 - 0.35,
+                angle.sin() * radius - 2.0,
+            ),
+            Vec3::new(width, height, 3.4 + variation * 1.8),
+            if index % 5 == 0 { 18 } else { 0 },
+        );
+    }
+
+    for index in 0..18 {
+        let angle = 2.0 * PI * index as f32 / 18.0 + 0.17;
+        let radius = 27.0 + noise(Vec3::new(index as f32, 4.2, 8.7)) * 5.0;
+        let height = 1.5 + (index % 5) as f32 * 0.62;
+        add_ruined_building(
+            scene,
+            Vec3::new(angle.cos() * radius, -0.38, angle.sin() * radius - 2.0),
+            1.8 + (index % 3) as f32 * 0.48,
+            height,
+        );
+    }
+
+    for index in 0..140 {
+        let angle = index as f32 * 2.399_963;
+        let variation = noise(Vec3::new(index as f32 * 0.83, 6.1, 2.4));
+        let radius = 16.0 + variation * 19.0;
+        let x = angle.cos() * radius;
+        let z = angle.sin() * radius - 2.0;
+        let width = 0.24 + noise(Vec3::new(x, 1.4, z)) * 1.15;
+        let height = 0.14 + noise(Vec3::new(z, 3.7, x)) * 0.52;
+        let depth = 0.30 + noise(Vec3::new(x * 0.4, z * 0.7, 5.0)) * 1.30;
+        add_block(
+            scene,
+            Vec3::new(x, -0.34 + height * 0.5, z),
+            Vec3::new(width, height, depth),
+            match index % 6 {
+                0 => 13,
+                1 | 2 => 18,
+                3 => 19,
+                _ => 17,
+            },
+        );
+    }
+
+    for index in 0..14 {
+        let angle = 2.0 * PI * index as f32 / 14.0 + 0.31;
+        let radius = 24.0 + (index % 4) as f32 * 1.8;
+        let x = angle.cos() * radius;
+        let z = angle.sin() * radius - 2.0;
+        let trunk_height = 1.4 + (index % 3) as f32 * 0.55;
+        add_block(
+            scene,
+            Vec3::new(x, -0.38 + trunk_height * 0.5, z),
+            Vec3::new(0.24, trunk_height, 0.28),
+            13,
+        );
+        add_block(
+            scene,
+            Vec3::new(x + 0.32, -0.38 + trunk_height * 0.72, z),
+            Vec3::new(0.78, 0.18, 0.20),
+            13,
+        );
+    }
 }
 
 fn add_destroyed_districts(scene: &mut Scene) {
@@ -274,30 +376,34 @@ fn add_hokage_face(scene: &mut Scene, center: Vec3, style: usize) {
     let shadow = 0;
 
     // El relieve se construye por planos: craneo, mejillas, mandibula y rasgos salientes.
-    add_block(
+    add_ellipsoid_surface(
         scene,
         center + Vec3::new(0.0, 0.30, 0.0),
-        Vec3::new(2.05, 1.72, 0.34),
+        Vec3::new(1.05, 0.94, 0.25),
+        0.11,
         stone,
     );
-    add_block(
+    add_ellipsoid_surface(
         scene,
         center + Vec3::new(0.0, -0.72, 0.04),
-        Vec3::new(1.58, 0.62, 0.38),
+        Vec3::new(0.78, 0.42, 0.23),
+        0.10,
         stone,
     );
-    add_block(
+    add_ellipsoid_surface(
         scene,
         center + Vec3::new(0.0, -1.08, 0.02),
-        Vec3::new(0.82, 0.28, 0.36),
+        Vec3::new(0.42, 0.20, 0.21),
+        0.09,
         stone,
     );
 
     for side in [-1.0, 1.0] {
-        add_block(
+        add_ellipsoid_surface(
             scene,
             center + Vec3::new(side * 0.68, -0.28, 0.22),
-            Vec3::new(0.60, 0.58, 0.24),
+            Vec3::new(0.34, 0.36, 0.18),
+            0.085,
             stone,
         );
         add_block(
@@ -312,10 +418,11 @@ fn add_hokage_face(scene: &mut Scene, center: Vec3, style: usize) {
             Vec3::new(0.20, 0.13, 0.16),
             shadow,
         );
-        add_block(
+        add_ellipsoid_surface(
             scene,
             center + Vec3::new(side * 1.10, 0.12, -0.02),
-            Vec3::new(0.26, 0.72, 0.34),
+            Vec3::new(0.16, 0.38, 0.20),
+            0.075,
             stone,
         );
     }
@@ -491,4 +598,50 @@ fn add_block(scene: &mut Scene, center: Vec3, size: Vec3, material: usize) {
         material,
         smooth_normal: None,
     });
+}
+
+fn add_ellipsoid_surface(scene: &mut Scene, center: Vec3, radii: Vec3, cell: f32, material: usize) {
+    let cells_x = (radii.x / cell).ceil() as i32;
+    let cells_y = (radii.y / cell).ceil() as i32;
+    let cells_z = (radii.z / cell).ceil() as i32;
+    let inner = Vec3::new(
+        (radii.x - cell * 1.35).max(0.0),
+        (radii.y - cell * 1.35).max(0.0),
+        (radii.z - cell * 1.35).max(0.0),
+    );
+
+    for y in -cells_y..=cells_y {
+        for z in -cells_z..=cells_z {
+            for x in -cells_x..=cells_x {
+                let offset = Vec3::new(x as f32 * cell, y as f32 * cell, z as f32 * cell);
+                let normalized = (offset.x / radii.x).powi(2)
+                    + (offset.y / radii.y).powi(2)
+                    + (offset.z / radii.z).powi(2);
+                let inside_inner = inner.x > 0.0
+                    && inner.y > 0.0
+                    && inner.z > 0.0
+                    && (offset.x / inner.x).powi(2)
+                        + (offset.y / inner.y).powi(2)
+                        + (offset.z / inner.z).powi(2)
+                        < 1.0;
+                if normalized > 1.0 || inside_inner {
+                    continue;
+                }
+
+                let normal = Vec3::new(
+                    offset.x / (radii.x * radii.x),
+                    offset.y / (radii.y * radii.y),
+                    offset.z / (radii.z * radii.z),
+                );
+                let voxel_center = center + offset;
+                let size = Vec3::new(cell, cell, cell);
+                scene.cubes.push(Cube {
+                    min: voxel_center - size * 0.5,
+                    max: voxel_center + size * 0.5,
+                    material,
+                    smooth_normal: (normal.length() > 0.0001).then(|| normal.normalized()),
+                });
+            }
+        }
+    }
 }

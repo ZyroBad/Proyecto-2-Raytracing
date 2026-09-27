@@ -14,8 +14,8 @@ La escena muestra Konoha destruida, el crater de la aldea, Monte Hokage y las in
 - Reflexion en armas, protectores y superficies metalicas.
 - Refraccion y transparencia en chakra, humo y nubes de invocacion.
 - Skybox procedural con horizonte, sol y nubes.
-- Konoha destruida en 360 grados con crater, barrios derrumbados, torres, puertas y Monte Hokage.
-- Personajes modelados con volumen completo y detalles visibles desde diferentes angulos.
+- Konoha destruida en 360 grados con terreno continuo, crater, barrios derrumbados, torres, puertas y Monte Hokage.
+- Personajes modelados con volumen completo, haori posterior y detalles visibles desde diferentes angulos.
 - Sello de invocacion refractivo alrededor de la escena principal.
 
 ## Personajes

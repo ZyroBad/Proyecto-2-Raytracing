@@ -56,6 +56,7 @@ mod windows {
     const DIB_RGB_COLORS: u32 = 0;
     const SRCCOPY: u32 = 0x00CC_0020;
     const BI_RGB: u32 = 0;
+    const HALFTONE: i32 = 4;
     const IDC_ARROW: usize = 32_512;
 
     const VK_ESCAPE: i32 = 0x1B;
@@ -175,6 +176,7 @@ mod windows {
         fn GetClientRect(hwnd: Hwnd, rect: *mut Rect) -> i32;
         fn GetDC(hwnd: Hwnd) -> Hdc;
         fn ReleaseDC(hwnd: Hwnd, dc: Hdc) -> i32;
+        fn SetStretchBltMode(dc: Hdc, mode: i32) -> i32;
         fn GetAsyncKeyState(key: i32) -> i16;
         fn SetWindowTextW(hwnd: Hwnd, text: *const u16) -> i32;
         fn LoadCursorW(instance: Hinstance, cursor_name: *const u16) -> Hcursor;
@@ -355,9 +357,9 @@ mod windows {
         fast: bool,
     ) -> PreviewFrame {
         let mut render_cfg = cfg.clone();
-        if fast && render_cfg.width > 160 {
+        if fast && render_cfg.width > 220 {
             let aspect = render_cfg.width as f32 / render_cfg.height.max(1) as f32;
-            render_cfg.width = 160;
+            render_cfg.width = 220;
             render_cfg.height = (render_cfg.width as f32 / aspect).round().max(1.0) as usize;
         }
         render_cfg.samples_per_axis = 1;
@@ -427,6 +429,7 @@ mod windows {
             }],
         };
         let dc = GetDC(hwnd);
+        SetStretchBltMode(dc, HALFTONE);
         StretchDIBits(
             dc,
             0,

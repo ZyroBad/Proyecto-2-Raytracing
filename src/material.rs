@@ -110,8 +110,10 @@ impl Material {
             }
             MaterialKind::CraterEarth => {
                 let grit = noise(p * 7.5) * 0.20;
-                let crack_a = stripe(p.x * 0.75 + p.z * 1.2, 1.7) * 0.14;
-                let crack_b = stripe(p.x * 1.1 - p.z * 0.55, 2.2) * 0.10;
+                let bend_a = p.x * 0.42 + p.z * 0.68 + (p.z * 0.23).sin() * 1.6;
+                let bend_b = p.x * 0.61 - p.z * 0.34 + (p.x * 0.19).sin() * 1.3;
+                let crack_a = ((bend_a.sin().abs() - 0.94).max(0.0) * 2.3).min(0.14);
+                let crack_b = ((bend_b.sin().abs() - 0.965).max(0.0) * 2.0).min(0.09);
                 self.albedo * (0.72 + grit - crack_a - crack_b)
             }
             MaterialKind::RuinStone => {

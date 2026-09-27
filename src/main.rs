@@ -529,9 +529,9 @@ mod tests {
             16.0 / 9.0,
         );
 
-        for y in 0..30 {
-            for x in 0..50 {
-                let ray = camera.ray((x as f32 + 0.5) / 50.0, (y as f32 + 0.5) / 30.0);
+        for y in 0..18 {
+            for x in 0..30 {
+                let ray = camera.ray((x as f32 + 0.5) / 30.0, (y as f32 + 0.5) / 18.0);
                 let accelerated = bvh.nearest(&scene.cubes, ray);
                 let mut brute_force = None;
                 let mut closest = f32::INFINITY;

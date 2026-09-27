@@ -197,6 +197,15 @@ pub fn add_gamabunta(scene: &mut Scene, base: Vec3) {
     );
     add_gamabunta_details(scene, base, skin, robe, pale, ink, eye, 6);
     add_gamabunta_limbs(scene, base, skin);
+    add_toad_haori_back(
+        scene,
+        base + Vec3::new(0.0, 3.45, -1.66),
+        Vec3::new(2.62, 1.78, 0.24),
+        robe,
+        pale,
+        ink,
+        0.68,
+    );
     scale_added_cubes(scene, first_cube, base, 1.18);
 }
 
@@ -376,6 +385,15 @@ pub fn add_gamaken(scene: &mut Scene, base: Vec3) {
     );
     add_gamaken_details(scene, base, skin, robe, pale, ink, eye);
     add_gamaken_limbs(scene, base, skin, metal);
+    add_toad_haori_back(
+        scene,
+        base + Vec3::new(0.0, 3.30, -1.42),
+        Vec3::new(2.02, 1.62, 0.22),
+        robe,
+        pale,
+        ink,
+        0.56,
+    );
     scale_added_cubes(scene, first_cube, base, 1.18);
 }
 
@@ -554,6 +572,15 @@ pub fn add_gamahiro(scene: &mut Scene, base: Vec3) {
     );
     add_gamahiro_details(scene, base, skin, pale, ink, eye, orange, 22);
     add_gamahiro_limbs(scene, base, skin);
+    add_toad_haori_back(
+        scene,
+        base + Vec3::new(0.0, 3.36, -1.48),
+        Vec3::new(2.14, 1.68, 0.23),
+        robe,
+        pale,
+        ink,
+        0.58,
+    );
     scale_added_cubes(scene, first_cube, base, 1.18);
 }
 
@@ -1024,6 +1051,76 @@ pub fn add_gamakichi(scene: &mut Scene, base: Vec3) {
         0.11,
         skin,
     );
+    add_toad_haori_back(
+        scene,
+        base + Vec3::new(0.0, 1.12, -0.72),
+        Vec3::new(0.92, 0.72, 0.13),
+        robe,
+        pale,
+        ink,
+        0.28,
+    );
+}
+
+fn add_toad_haori_back(
+    scene: &mut Scene,
+    center: Vec3,
+    radii: Vec3,
+    robe: usize,
+    emblem: usize,
+    ink: usize,
+    emblem_radius: f32,
+) {
+    add_voxel_ellipsoid(scene, center, radii, 0.18, robe);
+
+    let surface_z = center.z - radii.z - 0.035;
+    add_voxel_ellipsoid(
+        scene,
+        Vec3::new(center.x, center.y, surface_z),
+        Vec3::new(emblem_radius, emblem_radius * 0.92, 0.065),
+        0.09,
+        emblem,
+    );
+    add_voxel_segment(
+        scene,
+        Vec3::new(center.x, center.y - emblem_radius * 0.48, surface_z - 0.08),
+        Vec3::new(center.x, center.y + emblem_radius * 0.52, surface_z - 0.08),
+        0.085,
+        ink,
+    );
+    add_voxel_segment(
+        scene,
+        Vec3::new(
+            center.x - emblem_radius * 0.42,
+            center.y + emblem_radius * 0.12,
+            surface_z - 0.08,
+        ),
+        Vec3::new(
+            center.x + emblem_radius * 0.42,
+            center.y + emblem_radius * 0.12,
+            surface_z - 0.08,
+        ),
+        0.085,
+        ink,
+    );
+
+    for side in [-1.0, 1.0] {
+        add_voxel_segment(
+            scene,
+            Vec3::new(
+                center.x + side * radii.x * 0.72,
+                center.y + radii.y * 0.72,
+                surface_z,
+            ),
+            Vec3::new(
+                center.x + side * radii.x * 0.24,
+                center.y + radii.y * 0.42,
+                surface_z - 0.04,
+            ),
+            0.11,
+            emblem,
+        );
+    }
 }
 
 pub fn add_naruto_sage(scene: &mut Scene, base: Vec3) {
@@ -1433,9 +1530,9 @@ fn add_cloud_cluster(scene: &mut Scene, base: Vec3, scale: f32) {
 fn add_voxel_ellipsoid(scene: &mut Scene, center: Vec3, radii: Vec3, cell: f32, material: usize) {
     let is_cloud = material == 1;
     let cell = if is_cloud {
-        (cell * 0.65).max(0.09)
+        (cell * 0.50).max(0.07)
     } else {
-        (cell * 0.52).max(0.055)
+        (cell * 0.38).max(0.04)
     };
     let cells_x = (radii.x / cell).ceil() as i32;
     let cells_y = (radii.y / cell).ceil() as i32;
