@@ -2,6 +2,7 @@ use crate::math::Vec3;
 use crate::scene::{Cube, Scene};
 
 pub fn add_gamabunta(scene: &mut Scene, base: Vec3) {
+    let first_cube = scene.cubes.len();
     let skin = 2;
     let robe = 5;
     let pale = 15;
@@ -111,9 +112,10 @@ pub fn add_gamabunta(scene: &mut Scene, base: Vec3) {
         Vec3::new(0.22, 0.18, 0.10),
         ink,
     );
-    add_voxel_segment(
+    add_voxel_curve(
         scene,
         base + Vec3::new(-1.58, 4.82, 2.18),
+        base + Vec3::new(0.0, 4.58, 2.26),
         base + Vec3::new(1.58, 4.82, 2.18),
         0.16,
         ink,
@@ -194,9 +196,11 @@ pub fn add_gamabunta(scene: &mut Scene, base: Vec3) {
     );
     add_gamabunta_details(scene, base, skin, robe, pale, ink, eye, 6);
     add_gamabunta_limbs(scene, base, skin);
+    scale_added_cubes(scene, first_cube, base, 1.18);
 }
 
 pub fn add_gamaken(scene: &mut Scene, base: Vec3) {
+    let first_cube = scene.cubes.len();
     let skin = 3;
     let robe = 5;
     let pale = 15;
@@ -294,10 +298,12 @@ pub fn add_gamaken(scene: &mut Scene, base: Vec3) {
         Vec3::new(0.15, 0.38, 0.10),
         ink,
     );
-    add_block(
+    add_voxel_curve(
         scene,
-        base + Vec3::new(0.0, 4.55, 2.14),
-        Vec3::new(2.2, 0.16, 0.12),
+        base + Vec3::new(-1.10, 4.62, 2.14),
+        base + Vec3::new(0.0, 4.42, 2.20),
+        base + Vec3::new(1.10, 4.62, 2.14),
+        0.14,
         ink,
     );
 
@@ -369,9 +375,11 @@ pub fn add_gamaken(scene: &mut Scene, base: Vec3) {
     );
     add_gamaken_details(scene, base, skin, robe, pale, ink, eye);
     add_gamaken_limbs(scene, base, skin, metal);
+    scale_added_cubes(scene, first_cube, base, 1.18);
 }
 
 pub fn add_gamahiro(scene: &mut Scene, base: Vec3) {
+    let first_cube = scene.cubes.len();
     let skin = 4;
     let robe = 5;
     let orange = 6;
@@ -478,10 +486,12 @@ pub fn add_gamahiro(scene: &mut Scene, base: Vec3) {
         Vec3::new(0.15, 0.39, 0.10),
         ink,
     );
-    add_block(
+    add_voxel_curve(
         scene,
-        base + Vec3::new(0.0, 4.67, 2.18),
-        Vec3::new(2.35, 0.16, 0.12),
+        base + Vec3::new(-1.18, 4.75, 2.18),
+        base + Vec3::new(0.0, 4.54, 2.24),
+        base + Vec3::new(1.18, 4.75, 2.18),
+        0.14,
         ink,
     );
 
@@ -543,6 +553,7 @@ pub fn add_gamahiro(scene: &mut Scene, base: Vec3) {
     );
     add_gamahiro_details(scene, base, skin, pale, ink, eye, orange, 22);
     add_gamahiro_limbs(scene, base, skin);
+    scale_added_cubes(scene, first_cube, base, 1.18);
 }
 
 fn add_gamabunta_details(
@@ -900,6 +911,120 @@ fn add_gamahiro_limbs(scene: &mut Scene, base: Vec3, skin: usize) {
     }
 }
 
+pub fn add_gamakichi(scene: &mut Scene, base: Vec3) {
+    let skin = 23;
+    let robe = 5;
+    let pale = 15;
+    let ink = 10;
+    let eye = 14;
+
+    for side in [-1.0, 1.0] {
+        add_voxel_ellipsoid(
+            scene,
+            base + Vec3::new(side * 0.72, 0.30, 0.38),
+            Vec3::new(0.58, 0.28, 0.62),
+            0.14,
+            skin,
+        );
+    }
+    add_voxel_ellipsoid(
+        scene,
+        base + Vec3::new(0.0, 1.02, 0.0),
+        Vec3::new(1.12, 0.88, 0.76),
+        0.16,
+        skin,
+    );
+    add_voxel_ellipsoid(
+        scene,
+        base + Vec3::new(0.0, 1.02, 0.73),
+        Vec3::new(0.62, 0.58, 0.18),
+        0.12,
+        pale,
+    );
+    for side in [-1.0, 1.0] {
+        add_voxel_ellipsoid(
+            scene,
+            base + Vec3::new(side * 0.91, 1.12, 0.22),
+            Vec3::new(0.34, 0.68, 0.44),
+            0.13,
+            robe,
+        );
+        add_voxel_segment(
+            scene,
+            base + Vec3::new(side * 0.93, 1.12, 0.48),
+            base + Vec3::new(side * 1.08, 0.52, 0.78),
+            0.20,
+            skin,
+        );
+        add_voxel_ellipsoid(
+            scene,
+            base + Vec3::new(side * 1.02, 0.43, 0.86),
+            Vec3::new(0.40, 0.20, 0.34),
+            0.11,
+            skin,
+        );
+    }
+
+    add_voxel_ellipsoid(
+        scene,
+        base + Vec3::new(0.0, 2.10, 0.16),
+        Vec3::new(1.20, 0.68, 0.76),
+        0.14,
+        skin,
+    );
+    add_voxel_ellipsoid(
+        scene,
+        base + Vec3::new(0.0, 1.90, 0.87),
+        Vec3::new(0.86, 0.36, 0.30),
+        0.12,
+        skin,
+    );
+    for side in [-1.0, 1.0] {
+        add_voxel_ellipsoid(
+            scene,
+            base + Vec3::new(side * 0.58, 2.34, 0.86),
+            Vec3::new(0.30, 0.22, 0.13),
+            0.09,
+            eye,
+        );
+        add_voxel_curve(
+            scene,
+            base + Vec3::new(side * 0.30, 2.50, 0.94),
+            base + Vec3::new(side * 0.58, 2.62, 0.96),
+            base + Vec3::new(side * 0.88, 2.48, 0.90),
+            0.09,
+            ink,
+        );
+        add_block(
+            scene,
+            base + Vec3::new(side * 0.58, 2.34, 1.01),
+            Vec3::new(0.08, 0.22, 0.06),
+            ink,
+        );
+        add_block(
+            scene,
+            base + Vec3::new(side * 0.33, 2.02, 1.15),
+            Vec3::new(0.10, 0.09, 0.06),
+            ink,
+        );
+    }
+    add_voxel_curve(
+        scene,
+        base + Vec3::new(-0.72, 1.76, 1.09),
+        base + Vec3::new(0.0, 1.62, 1.14),
+        base + Vec3::new(0.72, 1.76, 1.09),
+        0.10,
+        ink,
+    );
+    add_voxel_ellipsoid(
+        scene,
+        base + Vec3::new(0.0, 2.72, 0.02),
+        Vec3::new(0.76, 0.20, 0.58),
+        0.11,
+        skin,
+    );
+}
+
 pub fn add_naruto_sage(scene: &mut Scene, base: Vec3) {
     let first_cube = scene.cubes.len();
     let orange = 6;
@@ -1165,7 +1290,7 @@ pub fn add_naruto_sage(scene: &mut Scene, base: Vec3) {
 
     add_naruto_costume_details(scene, base, orange, cloak, ink, metal, hair, rope);
 
-    const NARUTO_SCALE: f32 = 0.68;
+    const NARUTO_SCALE: f32 = 0.50;
     for cube in &mut scene.cubes[first_cube..] {
         cube.min = base + (cube.min - base) * NARUTO_SCALE;
         cube.max = base + (cube.max - base) * NARUTO_SCALE;
@@ -1308,10 +1433,40 @@ fn add_voxel_segment(scene: &mut Scene, start: Vec3, end: Vec3, thickness: f32, 
     }
 }
 
+fn add_voxel_curve(
+    scene: &mut Scene,
+    start: Vec3,
+    control: Vec3,
+    end: Vec3,
+    thickness: f32,
+    material: usize,
+) {
+    let estimated_length = (control - start).length() + (end - control).length();
+    let steps = (estimated_length / (thickness * 0.62)).ceil().max(2.0) as usize;
+    for step in 0..=steps {
+        let t = step as f32 / steps as f32;
+        let inverse = 1.0 - t;
+        let point = start * (inverse * inverse) + control * (2.0 * inverse * t) + end * (t * t);
+        add_block(
+            scene,
+            point,
+            Vec3::new(thickness, thickness, thickness),
+            material,
+        );
+    }
+}
+
 fn add_block(scene: &mut Scene, center: Vec3, size: Vec3, material: usize) {
     scene.cubes.push(Cube {
         min: center - size * 0.5,
         max: center + size * 0.5,
         material,
     });
+}
+
+fn scale_added_cubes(scene: &mut Scene, first_cube: usize, origin: Vec3, scale: f32) {
+    for cube in &mut scene.cubes[first_cube..] {
+        cube.min = origin + (cube.min - origin) * scale;
+        cube.max = origin + (cube.max - origin) * scale;
+    }
 }

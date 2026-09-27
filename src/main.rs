@@ -11,7 +11,9 @@ mod scene;
 use background::add_destroyed_konoha;
 use bvh::Bvh;
 use camera::{Camera, Ray};
-use characters::{add_gamabunta, add_gamahiro, add_gamaken, add_naruto_sage, add_summoning_clouds};
+use characters::{
+    add_gamabunta, add_gamahiro, add_gamaken, add_gamakichi, add_naruto_sage, add_summoning_clouds,
+};
 use config::Config;
 use image::{save_bmp, save_ppm};
 use material::{scene_materials, Material};
@@ -129,13 +131,13 @@ fn render_to_file(scene: &Scene, cfg: &Config, frame: usize, path: &str) -> std:
         .map(|a| a.to_radians())
         .unwrap_or(t * 2.0 * PI + PI * 0.5);
     let zoom_wave = (t * 2.0 * PI).sin() * 0.18;
-    let radius = (25.5 - zoom_wave * 5.5) / cfg.zoom.max(0.35);
+    let radius = (26.5 - zoom_wave * 5.5) / cfg.zoom.max(0.35);
     let camera_pos = Vec3::new(
         angle.cos() * radius,
-        11.8 + zoom_wave * 2.5,
+        14.2 + zoom_wave * 2.8,
         angle.sin() * radius,
     );
-    let camera = Camera::look_at(camera_pos, Vec3::new(0.0, 3.6, -1.0), 46.0, aspect);
+    let camera = Camera::look_at(camera_pos, Vec3::new(0.0, 5.4, -1.0), 44.0, aspect);
     let bvh = Bvh::build(&scene.cubes);
 
     let mut pixels = vec![Color::default(); cfg.width * cfg.height];
@@ -365,9 +367,10 @@ fn build_sage_arrival(scene: &mut Scene) {
 
     add_destroyed_konoha(scene);
     add_gamabunta(scene, Vec3::new(0.0, 0.0, -0.3));
-    add_gamaken(scene, Vec3::new(-7.2, 0.0, -1.3));
-    add_gamahiro(scene, Vec3::new(7.2, 0.0, -1.3));
-    add_naruto_sage(scene, Vec3::new(0.0, 7.38, 0.25));
+    add_gamaken(scene, Vec3::new(-8.6, 0.0, -1.3));
+    add_gamahiro(scene, Vec3::new(8.6, 0.0, -1.3));
+    add_gamakichi(scene, Vec3::new(0.0, 8.78, 0.12));
+    add_naruto_sage(scene, Vec3::new(0.0, 11.68, 0.30));
     add_summoning_clouds(scene);
 }
 

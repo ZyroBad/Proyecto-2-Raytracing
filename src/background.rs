@@ -111,38 +111,39 @@ fn add_crater_wall(scene: &mut Scene) {
 fn add_hokage_mountain(scene: &mut Scene) {
     add_block(
         scene,
-        Vec3::new(0.0, 2.75, -16.4),
-        Vec3::new(34.0, 6.2, 4.2),
+        Vec3::new(0.0, 3.55, -17.0),
+        Vec3::new(40.0, 7.8, 4.8),
         0,
     );
     add_block(
         scene,
-        Vec3::new(0.0, 6.25, -16.7),
-        Vec3::new(30.5, 2.5, 3.5),
+        Vec3::new(0.0, 8.10, -17.3),
+        Vec3::new(36.0, 3.0, 4.0),
         18,
     );
     for index in -7i32..=7 {
-        let x = index as f32 * 2.05;
+        let x = index as f32 * 2.40;
         let variation = noise(Vec3::new(x * 0.32, 5.0, -16.0));
-        let height = 1.6 + variation * 2.2;
+        let height = 2.0 + variation * 2.8;
         add_block(
             scene,
-            Vec3::new(x, 7.35 + height * 0.5, -16.9 - variation * 0.45),
-            Vec3::new(2.35, height, 3.0),
+            Vec3::new(x, 9.25 + height * 0.5, -17.5 - variation * 0.45),
+            Vec3::new(2.75, height, 3.4),
             if index % 3 == 0 { 18 } else { 0 },
         );
     }
 
-    for (index, x) in [-8.0, -4.0, 0.0, 4.0, 8.0].into_iter().enumerate() {
+    for (index, x) in [-10.0, -5.0, 0.0, 5.0, 10.0].into_iter().enumerate() {
         add_hokage_face(
             scene,
-            Vec3::new(x, 7.75 + (index % 2) as f32 * 0.20, -14.48),
+            Vec3::new(x, 10.15 + (index % 2) as f32 * 0.24, -14.62),
             index,
         );
     }
 }
 
 fn add_hokage_face(scene: &mut Scene, center: Vec3, style: usize) {
+    let first_cube = scene.cubes.len();
     let stone = 21;
     let shadow = 0;
     add_block(scene, center, Vec3::new(2.35, 2.45, 0.36), stone);
@@ -199,6 +200,10 @@ fn add_hokage_face(scene: &mut Scene, center: Vec3, style: usize) {
             Vec3::new(1.15, 0.46, 0.42),
             shadow,
         );
+    }
+    for cube in &mut scene.cubes[first_cube..] {
+        cube.min = center + (cube.min - center) * 1.20;
+        cube.max = center + (cube.max - center) * 1.20;
     }
 }
 

@@ -1,33 +1,47 @@
-# Valle del Fin Raytracing
+# Proyecto 2: Diorama con Raytracing
 
-Diorama voxel inspirado en el Valle del Fin de Naruto, renderizado con raytracing en Rust puro, sin librerias externas.
+Diorama voxel inspirado en la llegada de Naruto en Modo Sabio durante la invasion de Pain. El proyecto esta escrito en Rust puro, sin librerias externas, e implementa un raytracer desde cero.
 
-La escena representa dos estatuas enfrentadas sobre un valle rocoso, con rio central, cascada, puente, arboles y cielo de atardecer. Todo el diorama esta construido con cubos texturizados proceduralmente.
+La escena muestra Konoha destruida, el crater de la aldea, Monte Hokage y las invocaciones Gamabunta, Gamaken y Gamahiro. Gamakichi se encuentra sobre Gamabunta y Naruto esta sobre Gamakichi con su traje de Modo Sabio.
 
-## Requerimientos cubiertos
+## Caracteristicas
 
-- Diorama con cubos texturizados.
-- Raytracing implementado desde cero en Rust.
-- Camara orbital con acercamiento y alejamiento durante la animacion.
-- Skybox procedural con degradado, sol y nubes.
-- Reflexion en agua, cascada y roca oscura.
-- Refraccion en agua y cascada.
-- Mas de cinco materiales con textura propia y parametros de albedo, specular, transparencia y reflectividad.
+- Diorama construido con cubos texturizados proceduralmente.
+- Camara orbital de 360 grados con acercamiento y alejamiento.
+- BVH para acelerar la interseccion de miles de cubos.
+- Renderizado paralelo usando los nucleos disponibles del procesador.
+- Sombras suaves, iluminacion difusa, brillo especular y niebla atmosferica.
+- Reflexion en armas, protectores y superficies metalicas.
+- Refraccion y transparencia en chakra, humo y nubes de invocacion.
+- Skybox procedural con horizonte, sol y nubes.
+- Konoha destruida en 360 grados y Monte Hokage ampliado.
+- Personajes modelados con volumen completo y detalles visibles desde diferentes angulos.
 
-## Materiales
+## Personajes
 
-| Material | Textura | Albedo | Specular | Transparencia | Reflectividad |
-| --- | --- | --- | --- | --- | --- |
-| Piedra de estatua | Ruido y vetas | Gris claro | Media | 0.00 | 0.05 |
-| Roca oscura | Grietas procedurales | Gris oscuro | Media | 0.00 | 0.12 |
-| Pasto | Cuadricula verde | Verde | Baja | 0.00 | 0.00 |
-| Agua | Ondas procedurales | Azul | Alta | 0.55 | 0.35 |
-| Madera | Vetado procedural | Cafe | Baja | 0.00 | 0.03 |
-| Hojas | Ruido vegetal | Verde oscuro | Baja | 0.00 | 0.00 |
-| Cascada | Franjas de espuma | Celeste | Alta | 0.35 | 0.22 |
-| Espuma | Burbujas procedurales | Blanco celeste | Media | 0.18 | 0.10 |
-| Musgo | Manchas organicas | Verde musgo | Baja | 0.00 | 0.00 |
-| Sendero | Grava procedural | Cafe claro | Baja | 0.00 | 0.01 |
+- **Gamabunta:** sapo gigante rojizo con escamas, cresta, haori y vientre segmentado.
+- **Gamaken:** sapo magenta con patron moteado, haori y sasumata metalico.
+- **Gamahiro:** sapo celeste con escamas acuaticas, mascara ocular y dos espadas.
+- **Gamakichi:** sapo naranja juvenil con escamas pequenas y chaleco azul.
+- **Naruto:** Modo Sabio con capa roja, traje naranja, pergamino, ojos dorados y protector metalico.
+
+## Materiales principales
+
+Cada material posee textura procedural y parametros independientes de albedo, brillo especular, transparencia, reflectividad e indice de refraccion.
+
+| Material | Textura | Efecto destacado |
+| --- | --- | --- |
+| Piel de Gamabunta | Escamas grandes, manchas y poros | Reflexion suave |
+| Piel de Gamaken | Escamas magenta y moteado | Brillo humedo |
+| Piel de Gamahiro | Escamas, bandas y ruido acuatico | Reflexion suave |
+| Piel de Gamakichi | Escamas naranjas pequenas y pecas | Brillo humedo |
+| Vientre | Poros y pliegues horizontales | Difusion mate |
+| Tela y capa | Tejido, dobleces y variaciones de color | Reflexion minima |
+| Metal | Rayones direccionales | Reflexion alta |
+| Chakra | Pulso cromatico procedural | Transparencia y refraccion |
+| Nubes y humo | Ruido de baja frecuencia | Transparencia |
+| Roca y crater | Grietas, grava y erosion | Superficie rugosa |
+| Madera y cuerda | Vetas y patron trenzado | Reflexion baja |
 
 ## Ejecutar
 
@@ -40,98 +54,64 @@ cargo run --release -- --summary
 Render rapido de prueba:
 
 ```bash
-cargo run --release -- --width 160 --height 90 --samples 1 --depth 2 --output renders/test.ppm
+cargo run --release -- --width 320 --height 180 --samples 1 --depth 2 --output renders/preview.bmp
 ```
 
-En Windows tambien se puede usar:
+Render recomendado:
 
-```powershell
-.\scripts\render_preview.ps1
+```bash
+cargo run --release -- --width 800 --height 450 --samples 2 --depth 3 --angle 90 --zoom 0.96 --output renders/final.bmp
 ```
 
-Ejecutar las pruebas del raytracer:
+Ejecutar las pruebas:
 
 ```bash
 cargo test
 ```
 
-Las pruebas verifican reflexion, refraccion, reflexion interna total, interseccion con cubos, direccion de la camara y los materiales requeridos por la escena.
-
-Render recomendado para imagen final:
+## Camara interactiva
 
 ```bash
-cargo run --release -- --width 640 --height 360 --samples 2 --depth 3 --output renders/valle_del_fin.ppm
+cargo run --release -- --interactive --width 320 --height 180 --samples 1 --depth 2
 ```
 
-Render BMP para abrirlo facilmente en Windows:
+Controles:
 
-```bash
-cargo run --release -- --width 640 --height 360 --samples 2 --depth 3 --output renders/valle_del_fin.bmp
-```
-
-Script para render final en Windows:
-
-```powershell
-.\scripts\render_final.ps1
-```
-
-Mover la camara manualmente:
-
-```bash
-cargo run --release -- --angle 90 --zoom 1.35 --width 480 --height 270 --samples 2 --depth 3 --output renders/camara_manual.bmp
-```
-
-Modo interactivo por consola:
-
-```bash
-cargo run --release -- --interactive --width 240 --height 135
-```
-
-Controles del modo interactivo:
-
-- `a` / `d`: rotar camara.
-- `w` / `s`: ajuste fino del angulo.
-- `+` / `-`: acercar y alejar camara.
-- `r`: renderizar sin cambiar la camara.
+- `a` / `d`: rotar la camara.
+- `w` / `s`: ajuste fino del angulo orbital.
+- `+` / `-`: acercar y alejar la camara.
+- `r`: volver a renderizar.
 - `q`: salir.
 
-Generar frames para video:
+Cada vista interactiva se guarda en `renders/interactive.bmp`.
+
+## Animacion
+
+Generar 120 cuadros de una orbita completa:
 
 ```bash
 cargo run --release -- --width 480 --height 270 --samples 1 --depth 3 --frames 120 --animate
 ```
 
-Script para generar frames en Windows:
-
-```powershell
-.\scripts\render_frames.ps1
-```
+Los cuadros se guardan en `frames/` y pueden grabarse o convertirse en video para incluirlo en este README.
 
 ## Opciones
 
 ```text
---width N       ancho del render, default 480
---height N      alto del render, default 270
---frame N       frame individual para camara orbital
---frames N      cantidad de frames para animacion
---animate       renderiza todos los frames en frames/
---interactive   modo consola para ajustar camara y renderizar previews
---summary       imprime resumen de escena sin renderizar
+--width N       ancho del render
+--height N      alto del render
+--frame N       cuadro individual de la orbita
+--frames N      cantidad de cuadros de la animacion
+--animate       renderiza todos los cuadros en frames/
+--interactive   abre el control de camara por consola
+--summary       muestra el resumen de la escena
 --angle N       angulo manual de camara en grados
---zoom N        zoom manual, mayor acerca la camara
---samples N     muestras por eje, 1 rapido, 2 default, 4 fino
---depth N       rebotes maximos de raytracing, default 3
---output PATH   salida PPM para un frame
+--zoom N        acercamiento de camara
+--samples N     muestras por eje
+--depth N       rebotes maximos de raytracing
+--output PATH   archivo BMP o PPM de salida
 ```
 
 ## Video
 
-Agregar aqui el video del diorama cuando este subido al README de GitHub.
-
-Para grabar el video sin instalar herramientas extra, se pueden abrir los frames o el modo interactivo y grabar pantalla con OBS, Clipchamp o la herramienta de captura de Windows.
-
-Si se instala `ffmpeg`, los frames generados en `frames/` se pueden convertir a video con:
-
-```bash
-ffmpeg -framerate 30 -i frames/frame_%04d.ppm -pix_fmt yuv420p valle_del_fin.mp4
-```
+El video final del diorama se agregara aqui antes de la entrega.

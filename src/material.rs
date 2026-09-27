@@ -25,6 +25,7 @@ pub enum MaterialKind {
     DustSmoke,
     CarvedStone,
     GamahiroMarking,
+    GamakichiSkin,
 }
 
 #[derive(Clone, Copy)]
@@ -50,16 +51,19 @@ impl Material {
                 self.albedo * (0.88 + soft)
             }
             MaterialKind::GamabuntaSkin => {
-                let spots = stripe(p.x * 0.8 + p.y * 0.35, 1.6) * noise(p * 3.0) * 0.20;
-                self.albedo * (0.82 + noise(p * 4.0) * 0.16 - spots)
+                let pattern = scale_pattern(p, 2.2) * 0.18;
+                let spots = stripe(p.x * 0.8 + p.y * 0.35, 1.6) * noise(p * 3.0) * 0.12;
+                self.albedo * (0.84 + noise(p * 4.0) * 0.12 - spots - pattern)
             }
             MaterialKind::GamakenSkin => {
-                let mottled = noise(p * 4.8) * 0.18 + checker * 0.04;
-                self.albedo * (0.78 + mottled)
+                let scales = scale_pattern(p + Vec3::new(0.3, 0.0, 0.0), 2.8) * 0.15;
+                let mottled = noise(p * 4.8) * 0.15 + checker * 0.035;
+                self.albedo * (0.81 + mottled - scales)
             }
             MaterialKind::GamahiroSkin => {
                 let bands = stripe(p.y + p.x * 0.12, 1.8) * 0.08;
-                self.albedo * (0.84 + noise(p * 3.2) * 0.12 - bands)
+                let scales = scale_pattern(p + Vec3::new(0.6, 0.0, 0.0), 2.5) * 0.13;
+                self.albedo * (0.88 + noise(p * 3.2) * 0.10 - bands - scales)
             }
             MaterialKind::Robe => {
                 let weave = checker * 0.05 + stripe(p.y, 4.0) * 0.04;
@@ -132,6 +136,11 @@ impl Material {
             MaterialKind::GamahiroMarking => {
                 let mottled = noise(p * 6.4) * 0.12;
                 self.albedo * (0.82 + mottled)
+            }
+            MaterialKind::GamakichiSkin => {
+                let scales = scale_pattern(p + Vec3::new(0.15, 0.0, 0.0), 3.8) * 0.16;
+                let freckles = noise(p * 7.0) * 0.10;
+                self.albedo * (0.90 + freckles - scales)
             }
         }
         .clamp01()
@@ -303,6 +312,14 @@ pub fn scene_materials() -> Vec<Material> {
             0.045,
             1.0,
         ),
+        material(
+            MaterialKind::GamakichiSkin,
+            [0.92, 0.31, 0.055],
+            0.24,
+            0.0,
+            0.035,
+            1.0,
+        ),
     ]
 }
 
@@ -331,6 +348,20 @@ pub fn noise(p: Vec3) -> f32 {
 
 fn stripe(v: f32, frequency: f32) -> f32 {
     if (v * frequency).sin() > 0.72 {
+        1.0
+    } else {
+        0.0
+    }
+}
+
+fn scale_pattern(p: Vec3, frequency: f32) -> f32 {
+    let row = (p.y * frequency).floor() as i32;
+    let stagger = if row & 1 == 0 { 0.0 } else { 0.5 };
+    let x = (p.x * frequency + stagger).fract().abs();
+    let y = (p.y * frequency).fract().abs();
+    let centered_x = (x - 0.5).abs() * 2.0;
+    let arc = centered_x * centered_x + (y - 0.22).powi(2) * 2.8;
+    if (0.58..0.86).contains(&arc) {
         1.0
     } else {
         0.0
