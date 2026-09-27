@@ -118,26 +118,41 @@ fn add_crater_wall(scene: &mut Scene) {
 }
 
 fn add_hokage_mountain(scene: &mut Scene) {
-    add_block(
-        scene,
-        Vec3::new(0.0, 3.55, -17.0),
-        Vec3::new(40.0, 7.8, 4.8),
-        0,
-    );
-    add_block(
-        scene,
-        Vec3::new(0.0, 8.10, -17.3),
-        Vec3::new(36.0, 3.0, 4.0),
-        18,
-    );
-    for index in -7i32..=7 {
-        let x = index as f32 * 2.40;
-        let variation = noise(Vec3::new(x * 0.32, 5.0, -16.0));
-        let height = 2.0 + variation * 2.8;
+    // Columnas solapadas forman una pared erosionada sin una silueta rectangular.
+    for index in -12i32..=12 {
+        let x = index as f32 * 1.55;
+        let center_falloff = (1.0 - (x.abs() / 21.0).powf(1.7)).max(0.0);
+        let variation = noise(Vec3::new(x * 0.27, 5.0, -16.0));
+        let height = 5.4 + center_falloff * 4.8 + variation * 1.7;
+        let depth = 3.8 + noise(Vec3::new(x * 0.41, 8.0, -4.0)) * 2.1;
+        let z = -17.0 - noise(Vec3::new(x * 0.19, 3.0, 2.0)) * 0.8;
         add_block(
             scene,
-            Vec3::new(x, 9.25 + height * 0.5, -17.5 - variation * 0.45),
-            Vec3::new(2.75, height, 3.4),
+            Vec3::new(x, height * 0.5 - 0.18, z),
+            Vec3::new(1.85, height, depth),
+            if index % 4 == 0 { 18 } else { 0 },
+        );
+
+        if index % 2 == 0 {
+            let ledge_y = 3.1 + variation * 2.8;
+            add_block(
+                scene,
+                Vec3::new(x + 0.28, ledge_y, z + depth * 0.48),
+                Vec3::new(2.15, 0.42, 0.90),
+                18,
+            );
+        }
+    }
+
+    // Crestas traseras y hombros laterales dan profundidad desde la orbita completa.
+    for index in -9i32..=9 {
+        let x = index as f32 * 2.05;
+        let variation = noise(Vec3::new(x * 0.36, 11.0, -18.0));
+        let peak = 1.5 + variation * 3.4;
+        add_block(
+            scene,
+            Vec3::new(x, 8.0 + peak * 0.5, -19.2),
+            Vec3::new(2.45, peak, 3.0),
             if index % 3 == 0 { 18 } else { 0 },
         );
     }
@@ -145,74 +160,122 @@ fn add_hokage_mountain(scene: &mut Scene) {
     for (index, x) in [-10.0, -5.0, 0.0, 5.0, 10.0].into_iter().enumerate() {
         add_hokage_face(
             scene,
-            Vec3::new(x, 10.15 + (index % 2) as f32 * 0.24, -14.62),
+            Vec3::new(x, 7.55 + (index % 2) as f32 * 0.28, -14.42),
             index,
         );
     }
 }
 
 fn add_hokage_face(scene: &mut Scene, center: Vec3, style: usize) {
-    let first_cube = scene.cubes.len();
     let stone = 21;
     let shadow = 0;
-    add_block(scene, center, Vec3::new(2.35, 2.45, 0.36), stone);
+
+    // El relieve se construye por planos: craneo, mejillas, mandibula y rasgos salientes.
     add_block(
         scene,
-        center + Vec3::new(0.0, -1.28, 0.05),
-        Vec3::new(1.55, 0.72, 0.40),
+        center + Vec3::new(0.0, 0.30, 0.0),
+        Vec3::new(2.05, 1.72, 0.34),
         stone,
     );
     add_block(
         scene,
-        center + Vec3::new(0.0, -0.20, 0.29),
-        Vec3::new(0.34, 0.76, 0.28),
+        center + Vec3::new(0.0, -0.72, 0.04),
+        Vec3::new(1.58, 0.62, 0.38),
         stone,
     );
+    add_block(
+        scene,
+        center + Vec3::new(0.0, -1.08, 0.02),
+        Vec3::new(0.82, 0.28, 0.36),
+        stone,
+    );
+
     for side in [-1.0, 1.0] {
         add_block(
             scene,
-            center + Vec3::new(side * 0.57, 0.30, 0.28),
-            Vec3::new(0.62, 0.18, 0.25),
+            center + Vec3::new(side * 0.68, -0.28, 0.22),
+            Vec3::new(0.60, 0.58, 0.24),
+            stone,
+        );
+        add_block(
+            scene,
+            center + Vec3::new(side * 0.55, 0.33, 0.25),
+            Vec3::new(0.62, 0.16, 0.22),
             shadow,
         );
         add_block(
             scene,
-            center + Vec3::new(side * 0.55, 0.08, 0.34),
-            Vec3::new(0.22, 0.16, 0.18),
+            center + Vec3::new(side * 0.55, 0.12, 0.30),
+            Vec3::new(0.20, 0.13, 0.16),
             shadow,
         );
         add_block(
             scene,
-            center + Vec3::new(side * 1.12, 0.35, 0.0),
-            Vec3::new(0.34, 1.65, 0.42),
+            center + Vec3::new(side * 1.10, 0.12, -0.02),
+            Vec3::new(0.26, 0.72, 0.34),
             stone,
         );
     }
+
+    // Nariz en dos niveles y boca tallada.
     add_block(
         scene,
-        center + Vec3::new(0.0, -0.78, 0.29),
-        Vec3::new(0.72, 0.16, 0.22),
+        center + Vec3::new(0.0, -0.02, 0.30),
+        Vec3::new(0.26, 0.62, 0.28),
+        stone,
+    );
+    add_block(
+        scene,
+        center + Vec3::new(0.0, -0.36, 0.37),
+        Vec3::new(0.46, 0.18, 0.25),
+        stone,
+    );
+    add_block(
+        scene,
+        center + Vec3::new(0.0, -0.70, 0.27),
+        Vec3::new(0.68, 0.13, 0.20),
         shadow,
     );
 
-    let hair_width = if style == 1 { 2.75 } else { 2.35 };
+    let hair_width = if style == 1 { 2.50 } else { 2.16 };
     add_block(
         scene,
-        center + Vec3::new(0.0, 1.34, -0.02),
-        Vec3::new(hair_width, 0.48, 0.48),
+        center + Vec3::new(0.0, 1.17, -0.03),
+        Vec3::new(hair_width, 0.36, 0.40),
         shadow,
     );
-    if style == 3 {
+
+    if style == 0 || style == 3 {
+        for spike in -2i32..=2 {
+            let spike_height = 0.28 + (2 - spike.abs()) as f32 * 0.10;
+            add_block(
+                scene,
+                center + Vec3::new(spike as f32 * 0.38, 1.42 + spike_height * 0.5, -0.04),
+                Vec3::new(0.30, spike_height, 0.34),
+                shadow,
+            );
+        }
+    } else if style == 1 {
         add_block(
             scene,
-            center + Vec3::new(0.0, 1.70, -0.05),
-            Vec3::new(1.15, 0.46, 0.42),
+            center + Vec3::new(0.0, 1.48, -0.04),
+            Vec3::new(1.42, 0.34, 0.36),
             shadow,
         );
-    }
-    for cube in &mut scene.cubes[first_cube..] {
-        cube.min = center + (cube.min - center) * 1.20;
-        cube.max = center + (cube.max - center) * 1.20;
+    } else if style == 2 {
+        add_block(
+            scene,
+            center + Vec3::new(0.0, 1.42, -0.04),
+            Vec3::new(1.70, 0.25, 0.34),
+            shadow,
+        );
+    } else {
+        add_block(
+            scene,
+            center + Vec3::new(0.0, 1.48, -0.04),
+            Vec3::new(1.02, 0.42, 0.34),
+            shadow,
+        );
     }
 }
 
