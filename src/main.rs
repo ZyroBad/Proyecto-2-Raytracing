@@ -6,6 +6,7 @@ mod config;
 mod image;
 mod material;
 mod math;
+mod pain;
 mod scene;
 mod window;
 
@@ -19,6 +20,7 @@ use config::Config;
 use image::{save_bmp, save_ppm};
 use material::{scene_materials, Material};
 use math::{Color, Vec3};
+use pain::add_six_paths;
 use scene::{Cube, Scene};
 use std::f32::consts::PI;
 use std::fs::create_dir_all;
@@ -155,7 +157,7 @@ fn render_pixels_with_bvh(scene: &Scene, bvh: &Bvh, cfg: &Config, frame: usize) 
         14.2 + cfg.elevation + zoom_wave * 2.8,
         angle.sin() * radius,
     );
-    let camera = Camera::look_at(camera_pos, Vec3::new(0.0, 4.2, -1.0), 44.0, aspect);
+    let camera = Camera::look_at(camera_pos, Vec3::new(0.0, 3.6, -1.0), 44.0, aspect);
     let mut pixels = vec![Color::default(); cfg.width * cfg.height];
     let worker_count = thread::available_parallelism()
         .map(|count| count.get())
@@ -396,7 +398,7 @@ fn build_scene() -> Scene {
 }
 
 fn build_sage_arrival(scene: &mut Scene) {
-    const CRATER_DEPTH: f32 = 1.5;
+    const CRATER_DEPTH: f32 = 2.5;
     add_block(
         scene,
         Vec3::new(0.0, -0.65 - CRATER_DEPTH, 0.0),
@@ -411,12 +413,13 @@ fn build_sage_arrival(scene: &mut Scene) {
     );
 
     add_destroyed_konoha(scene);
+    add_six_paths(scene);
     let first_character_cube = scene.cubes.len();
     add_gamabunta(scene, Vec3::new(0.0, 0.0, -0.3));
     add_gamaken(scene, Vec3::new(-8.6, 0.0, -1.3));
     add_gamahiro(scene, Vec3::new(8.6, 0.0, -1.3));
-    add_gamakichi(scene, Vec3::new(0.0, 8.78, 0.12));
-    add_naruto_sage(scene, Vec3::new(0.0, 11.68, 0.30));
+    add_gamakichi(scene, Vec3::new(0.0, 9.82, 0.12));
+    add_naruto_sage(scene, Vec3::new(0.0, 12.70, 0.30));
     add_summoning_clouds(scene);
     for cube in &mut scene.cubes[first_character_cube..] {
         cube.min.y -= CRATER_DEPTH;

@@ -10,16 +10,16 @@ pub fn add_destroyed_konoha(scene: &mut Scene) {
 
     add_block(
         scene,
-        Vec3::new(0.0, -1.62, -7.2),
+        Vec3::new(0.0, -2.62, -7.2),
         Vec3::new(27.0, 0.32, 13.5),
         17,
     );
 
-    add_crater_ring(scene, 7.2, -1.48, 0.82, 36);
-    add_crater_ring(scene, 8.6, -1.20, 0.90, 40);
-    add_crater_ring(scene, 10.1, -0.86, 1.05, 44);
-    add_crater_ring(scene, 11.7, -0.46, 1.16, 48);
-    add_crater_ring(scene, 13.2, -0.08, 1.30, 52);
+    add_crater_ring(scene, 7.2, -2.48, 0.82, 36);
+    add_crater_ring(scene, 8.6, -2.08, 0.90, 40);
+    add_crater_ring(scene, 10.1, -1.56, 1.05, 44);
+    add_crater_ring(scene, 11.7, -0.92, 1.16, 48);
+    add_crater_ring(scene, 13.2, -0.25, 1.30, 52);
     add_crater_wall(scene);
     add_hokage_mountain(scene);
     add_debris_field(scene);
@@ -48,7 +48,7 @@ pub fn add_destroyed_konoha(scene: &mut Scene) {
     ] {
         add_block(
             scene,
-            Vec3::new(x, -1.42 + sy * 0.5, z),
+            Vec3::new(x, -2.42 + sy * 0.5, z),
             Vec3::new(sx, sy, sz),
             material,
         );
@@ -56,28 +56,28 @@ pub fn add_destroyed_konoha(scene: &mut Scene) {
 
     add_crack_path(
         scene,
-        Vec3::new(-0.8, -1.43, -1.8),
-        Vec3::new(-7.0, -1.43, -8.5),
+        Vec3::new(-0.8, -2.43, -1.8),
+        Vec3::new(-7.0, -2.43, -8.5),
     );
     add_crack_path(
         scene,
-        Vec3::new(1.2, -1.43, -2.2),
-        Vec3::new(7.8, -1.43, -7.4),
+        Vec3::new(1.2, -2.43, -2.2),
+        Vec3::new(7.8, -2.43, -7.4),
     );
     add_crack_path(
         scene,
-        Vec3::new(0.2, -1.43, -2.0),
-        Vec3::new(-1.3, -1.43, -10.2),
+        Vec3::new(0.2, -2.43, -2.0),
+        Vec3::new(-1.3, -2.43, -10.2),
     );
     add_crack_path(
         scene,
-        Vec3::new(-1.8, -1.43, 0.4),
-        Vec3::new(-8.4, -1.43, 6.8),
+        Vec3::new(-1.8, -2.43, 0.4),
+        Vec3::new(-8.4, -2.43, 6.8),
     );
     add_crack_path(
         scene,
-        Vec3::new(2.0, -1.43, 0.2),
-        Vec3::new(8.0, -1.43, 6.2),
+        Vec3::new(2.0, -2.43, 0.2),
+        Vec3::new(8.0, -2.43, 6.2),
     );
 
     add_dust_plume(scene, Vec3::new(-9.4, 1.2, -9.4), 1.15);
@@ -394,10 +394,10 @@ fn add_crater_wall(scene: &mut Scene) {
         let z = -12.2 + edge * 2.6;
         let variation = noise(Vec3::new(x, 2.0, z));
         let rim_height = 1.7 + edge * 1.9 + variation * 0.65;
-        let wall_height = rim_height + 1.55;
+        let wall_height = rim_height + 2.55;
         add_block(
             scene,
-            Vec3::new(x, -1.55 + wall_height * 0.5, z),
+            Vec3::new(x, -2.55 + wall_height * 0.5, z),
             Vec3::new(1.42, wall_height, 2.25),
             if index % 6 == 0 { 18 } else { 17 },
         );
@@ -722,7 +722,7 @@ fn add_debris_field(scene: &mut Scene) {
             1 | 2 => 18,
             _ => 17,
         };
-        let floor_y = -1.46 + ((radius - 7.0) / 6.2).clamp(0.0, 1.0) * 1.20;
+        let floor_y = -2.46 + ((radius - 7.0) / 6.2).clamp(0.0, 1.0) * 2.10;
         add_block(
             scene,
             Vec3::new(x, floor_y + height * 0.5, z),

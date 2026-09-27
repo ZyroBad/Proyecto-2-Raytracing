@@ -28,6 +28,9 @@ pub enum MaterialKind {
     GamakichiSkin,
     ForestCanopy,
     DistantMountain,
+    PainSkin,
+    Rinnegan,
+    PainHair,
 }
 
 #[derive(Clone, Copy)]
@@ -156,6 +159,18 @@ impl Material {
                 let strata = (p.y * 0.55 + p.x * 0.08).sin().abs() * 0.10;
                 let erosion = noise(p * 1.8) * 0.18;
                 self.albedo * (0.72 + erosion - strata)
+            }
+            MaterialKind::PainSkin => {
+                let pores = noise(p * 9.0) * 0.08;
+                self.albedo * (0.86 + pores)
+            }
+            MaterialKind::Rinnegan => {
+                let rings = ((p.x * p.x + p.y * p.y).sqrt() * 22.0).sin().abs() * 0.13;
+                self.albedo * (0.82 + rings + normal.z.max(0.0) * 0.08)
+            }
+            MaterialKind::PainHair => {
+                let strands = stripe(p.x * 0.7 - p.y, 5.2) * 0.14;
+                self.albedo * (0.78 + strands + noise(p * 7.0) * 0.08)
             }
         }
         .clamp01()
@@ -349,6 +364,30 @@ pub fn scene_materials() -> Vec<Material> {
             0.08,
             0.0,
             0.02,
+            1.0,
+        ),
+        material(
+            MaterialKind::PainSkin,
+            [0.78, 0.54, 0.40],
+            0.20,
+            0.0,
+            0.025,
+            1.0,
+        ),
+        material(
+            MaterialKind::Rinnegan,
+            [0.56, 0.42, 0.74],
+            0.72,
+            0.0,
+            0.18,
+            1.0,
+        ),
+        material(
+            MaterialKind::PainHair,
+            [0.92, 0.28, 0.035],
+            0.24,
+            0.0,
+            0.035,
             1.0,
         ),
     ]

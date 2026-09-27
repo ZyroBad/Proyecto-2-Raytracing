@@ -2,7 +2,7 @@
 
 Diorama voxel inspirado en la llegada de Naruto en Modo Sabio durante la invasion de Pain. El proyecto esta escrito en Rust puro, sin librerias externas, e implementa un raytracer desde cero.
 
-La escena muestra Konoha destruida, el crater de la aldea, Monte Hokage y las invocaciones Gamabunta, Gamaken y Gamahiro. Gamakichi se encuentra sobre Gamabunta y Naruto esta sobre Gamakichi con su traje de Modo Sabio.
+La escena muestra Konoha destruida, el crater de la aldea, Monte Hokage y las invocaciones Gamabunta, Gamaken y Gamahiro. Gamakichi se encuentra sobre Gamabunta, Naruto esta sobre Gamakichi con su traje de Modo Sabio y los Seis Caminos de Pain esperan en el borde del crater.
 
 ## Caracteristicas
 
@@ -17,6 +17,7 @@ La escena muestra Konoha destruida, el crater de la aldea, Monte Hokage y las in
 - Konoha destruida en 360 grados con terreno continuo, crater profundo escalonado, barrios derrumbados, bosque, cordillera, torres y puertas.
 - Monte Hokage integrado en una montana distante con cinco rostros tallados y rasgos individuales.
 - Personajes modelados con volumen completo, haori posterior y detalles visibles desde diferentes angulos.
+- Escala narrativa reforzada: sapos gigantes, humanos pequenos y los Seis Caminos distribuidos en un arco de confrontacion.
 - Sello de invocacion refractivo alrededor de la escena principal.
 
 ## Personajes
@@ -25,7 +26,8 @@ La escena muestra Konoha destruida, el crater de la aldea, Monte Hokage y las in
 - **Gamaken:** sapo magenta con patron moteado, haori y sasumata metalico.
 - **Gamahiro:** sapo celeste con escamas acuaticas, mascara ocular y dos espadas.
 - **Gamakichi:** sapo naranja juvenil con escamas pequenas y chaleco azul.
-- **Naruto:** Modo Sabio con capa roja, traje naranja, pergamino, ojos dorados y protector metalico.
+- **Naruto:** Modo Sabio con capa roja, ribete de llamas, traje naranja, pergamino, ojos dorados y protector metalico.
+- **Seis Caminos de Pain:** seis siluetas independientes con capas Akatsuki, Rinnegan, piercings y peinados diferenciados.
 
 ## Materiales principales
 
@@ -46,6 +48,7 @@ Cada material posee textura procedural y parametros independientes de albedo, br
 | Madera y cuerda | Vetas y patron trenzado | Reflexion baja |
 | Follaje distante | Grupos de hojas, ruido y luz superior | Reflexion suave |
 | Montana distante | Estratos y erosion procedural | Superficie mate |
+| Pain | Piel, cabello naranja y Rinnegan anillado | Brillo ocular y metal reflectante |
 
 ## Ejecutar
 

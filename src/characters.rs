@@ -206,7 +206,7 @@ pub fn add_gamabunta(scene: &mut Scene, base: Vec3) {
         ink,
         0.68,
     );
-    scale_added_cubes(scene, first_cube, base, 1.18);
+    scale_added_cubes(scene, first_cube, base, 1.32);
 }
 
 pub fn add_gamaken(scene: &mut Scene, base: Vec3) {
@@ -394,7 +394,7 @@ pub fn add_gamaken(scene: &mut Scene, base: Vec3) {
         ink,
         0.56,
     );
-    scale_added_cubes(scene, first_cube, base, 1.18);
+    scale_added_cubes(scene, first_cube, base, 1.32);
 }
 
 pub fn add_gamahiro(scene: &mut Scene, base: Vec3) {
@@ -581,7 +581,7 @@ pub fn add_gamahiro(scene: &mut Scene, base: Vec3) {
         ink,
         0.58,
     );
-    scale_added_cubes(scene, first_cube, base, 1.18);
+    scale_added_cubes(scene, first_cube, base, 1.32);
 }
 
 fn add_gamabunta_details(
@@ -1390,7 +1390,7 @@ pub fn add_naruto_sage(scene: &mut Scene, base: Vec3) {
 
     add_naruto_costume_details(scene, base, orange, cloak, ink, metal, hair, rope);
 
-    const NARUTO_SCALE: f32 = 0.50;
+    const NARUTO_SCALE: f32 = 0.44;
     for cube in &mut scene.cubes[first_cube..] {
         cube.min = base + (cube.min - base) * NARUTO_SCALE;
         cube.max = base + (cube.max - base) * NARUTO_SCALE;
@@ -1407,6 +1407,18 @@ fn add_naruto_costume_details(
     hair: usize,
     rope: usize,
 ) {
+    // Ribete de llamas de la capa de Hokage, construido con piezas pequenas.
+    for index in -5i32..=5 {
+        let x = index as f32 * 0.15;
+        let flame_height = if index.abs() % 2 == 0 { 0.25 } else { 0.15 };
+        add_block(
+            scene,
+            base + Vec3::new(x, 0.56 + flame_height * 0.5, -0.535),
+            Vec3::new(0.12, flame_height, 0.055),
+            orange,
+        );
+    }
+
     for side in [-1.0, 1.0] {
         add_voxel_segment(
             scene,
@@ -1428,6 +1440,12 @@ fn add_naruto_costume_details(
             base + Vec3::new(side * 0.82, 3.80, -0.14),
             0.13,
             hair,
+        );
+        add_block(
+            scene,
+            base + Vec3::new(side * 0.43, 0.70, 0.36),
+            Vec3::new(0.34, 0.10, 0.08),
+            ink,
         );
     }
 
@@ -1464,6 +1482,23 @@ fn add_naruto_costume_details(
             base + Vec3::new(x, 1.92, -0.91),
             Vec3::new(0.12, 0.58, 0.12),
             rope,
+        );
+    }
+
+    // Broche frontal y costuras del cuello para conservar detalle al reducirlo.
+    add_block(
+        scene,
+        base + Vec3::new(0.0, 2.34, 0.46),
+        Vec3::new(0.18, 0.18, 0.07),
+        metal,
+    );
+    for side in [-1.0, 1.0] {
+        add_voxel_segment(
+            scene,
+            base + Vec3::new(side * 0.12, 2.48, 0.43),
+            base + Vec3::new(side * 0.42, 2.22, 0.45),
+            0.045,
+            orange,
         );
     }
 }
