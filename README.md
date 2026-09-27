@@ -14,8 +14,9 @@ La escena muestra Konoha destruida, el crater de la aldea, Monte Hokage y las in
 - Reflexion en armas, protectores y superficies metalicas.
 - Refraccion y transparencia en chakra, humo y nubes de invocacion.
 - Skybox procedural con horizonte, sol y nubes.
-- Konoha destruida en 360 grados y Monte Hokage ampliado.
+- Konoha destruida en 360 grados con crater, barrios derrumbados, torres, puertas y Monte Hokage.
 - Personajes modelados con volumen completo y detalles visibles desde diferentes angulos.
+- Sello de invocacion refractivo alrededor de la escena principal.
 
 ## Personajes
 
@@ -60,8 +61,10 @@ cargo run --release -- --width 320 --height 180 --samples 1 --depth 2 --output r
 Render recomendado:
 
 ```bash
-cargo run --release -- --width 800 --height 450 --samples 2 --depth 3 --angle 90 --zoom 0.96 --output renders/final.bmp
+cargo run --release -- --width 960 --height 540 --samples 2 --depth 4 --angle 82 --zoom 0.90 --output renders/final.bmp
 ```
+
+Este ajuste conserva una relacion 16:9 y es razonable para una computadora con graficos integrados. Para una captura mas limpia se puede subir a `--samples 3`, aceptando un tiempo de render considerablemente mayor.
 
 Ejecutar las pruebas:
 
@@ -105,13 +108,27 @@ Cada vista interactiva se guarda en `renders/interactive.bmp`.
 
 ## Animacion
 
-Generar 120 cuadros de una orbita completa:
+Probar la orbita completa con pocos cuadros:
 
 ```bash
-cargo run --release -- --width 480 --height 270 --samples 1 --depth 3 --frames 120 --animate
+cargo run --release -- --width 320 --height 180 --samples 1 --depth 2 --frames 24 --animate
 ```
 
-Los cuadros se guardan en `frames/` y pueden grabarse o convertirse en video para incluirlo en este README.
+Generar los 120 cuadros para el video final:
+
+```bash
+cargo run --release -- --width 640 --height 360 --samples 2 --depth 3 --frames 120 --animate
+```
+
+Los cuadros se guardan en `frames/` con numeracion consecutiva. Primero conviene revisar la prueba de 24 cuadros; el render final puede tardar bastante en graficos integrados. Luego los cuadros pueden importarse como secuencia de imagenes en el editor de video elegido para producir el archivo que se enlazara en este README.
+
+## Evidencia de raytracing
+
+- **Reflexion:** armas, protectores metalicos y detalles pulidos reflejan el skybox mediante rayos secundarios y Fresnel.
+- **Refraccion:** el sello y las corrientes de chakra alteran los rayos que los atraviesan con un indice de refraccion propio.
+- **Transparencia:** el humo de invocacion y el polvo dejan ver parcialmente la escena posterior.
+- **Sombras:** cada punto consulta visibilidad hacia varias muestras de la luz para producir bordes suaves.
+- **Skybox:** el cielo procedural incluye horizonte, sol, resplandor, nubes altas y polvo atmosferico.
 
 ## Opciones
 

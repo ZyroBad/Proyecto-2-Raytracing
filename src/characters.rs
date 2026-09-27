@@ -1,5 +1,6 @@
 use crate::math::Vec3;
 use crate::scene::{Cube, Scene};
+use std::f32::consts::PI;
 
 pub fn add_gamabunta(scene: &mut Scene, base: Vec3) {
     let first_cube = scene.cubes.len();
@@ -1278,14 +1279,16 @@ pub fn add_naruto_sage(scene: &mut Scene, base: Vec3) {
         ink,
     );
 
-    // Sparse translucent chakra wisps preserve the raytraced refractive accent.
+    // Translucent chakra wisps keep refraction visible without hiding the silhouette.
     for (start, end) in [
         (Vec3::new(-1.06, 0.78, -0.18), Vec3::new(-1.16, 1.55, -0.14)),
         (Vec3::new(1.10, 1.48, -0.12), Vec3::new(1.18, 2.18, -0.08)),
         (Vec3::new(-0.83, 2.70, -0.10), Vec3::new(-0.92, 3.32, -0.06)),
         (Vec3::new(0.62, 3.72, -0.12), Vec3::new(0.52, 4.12, -0.10)),
+        (Vec3::new(-1.18, 1.82, -0.16), Vec3::new(-1.34, 2.48, -0.08)),
+        (Vec3::new(0.96, 2.52, -0.15), Vec3::new(1.08, 3.18, -0.06)),
     ] {
-        add_voxel_segment(scene, base + start, base + end, 0.09, chakra);
+        add_voxel_segment(scene, base + start, base + end, 0.15, chakra);
     }
 
     add_naruto_costume_details(scene, base, orange, cloak, ink, metal, hair, rope);
@@ -1369,6 +1372,8 @@ fn add_naruto_costume_details(
 }
 
 pub fn add_summoning_clouds(scene: &mut Scene) {
+    add_summoning_seal(scene);
+
     for (x, z, scale) in [
         (-10.0, 2.8, 1.2),
         (-7.0, 3.5, 1.4),
@@ -1381,6 +1386,34 @@ pub fn add_summoning_clouds(scene: &mut Scene) {
         (9.4, -2.5, 0.9),
     ] {
         add_cloud_cluster(scene, Vec3::new(x, 0.65, z), scale);
+    }
+}
+
+fn add_summoning_seal(scene: &mut Scene) {
+    let chakra = 12;
+    let center = Vec3::new(0.0, 0.30, -0.45);
+
+    for index in 0..96 {
+        let angle = 2.0 * PI * index as f32 / 96.0;
+        let radius = if index % 2 == 0 { 11.15 } else { 11.05 };
+        add_block(
+            scene,
+            center + Vec3::new(angle.cos() * radius, 0.0, angle.sin() * radius),
+            Vec3::new(0.24, 0.055, 0.24),
+            chakra,
+        );
+    }
+
+    for spoke in 0..8 {
+        let angle = 2.0 * PI * spoke as f32 / 8.0 + PI * 0.125;
+        let direction = Vec3::new(angle.cos(), 0.0, angle.sin());
+        add_voxel_segment(
+            scene,
+            center + direction * 8.8,
+            center + direction * 10.6,
+            0.18,
+            chakra,
+        );
     }
 }
 

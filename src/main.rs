@@ -232,10 +232,15 @@ fn shade(scene: &Scene, bvh: &Bvh, ray: Ray, hit: Hit, depth: u32, max_depth: u3
     let half_vec = (light_dir + view_dir).normalized();
     let spec = hit.normal.dot(half_vec).max(0.0).powf(48.0) * hit.material.specular * visibility;
     let specular = scene.light_color * spec;
-    let sky_ambient = Color::new(0.20, 0.28, 0.42);
-    let ambient = base * 0.15 + base.hadamard(sky_ambient) * (0.12 + hit.normal.y.max(0.0) * 0.08);
-    let rim = (1.0 - hit.normal.dot(view_dir).max(0.0)).powf(3.0) * 0.13;
-    let rim_light = Color::new(0.30, 0.46, 0.72) * rim;
+    let sky_ambient = Color::new(0.18, 0.27, 0.46);
+    let ground_bounce = Color::new(0.34, 0.14, 0.055);
+    let upward = hit.normal.y.max(0.0);
+    let downward = (-hit.normal.y).max(0.0);
+    let ambient = base * 0.105
+        + base.hadamard(sky_ambient) * (0.12 + upward * 0.12)
+        + base.hadamard(ground_bounce) * downward * 0.10;
+    let rim = (1.0 - hit.normal.dot(view_dir).max(0.0)).powf(3.5) * 0.16;
+    let rim_light = Color::new(0.28, 0.44, 0.78) * rim;
 
     let mut color = ambient + diffuse + specular + rim_light;
 
@@ -251,8 +256,9 @@ fn shade(scene: &Scene, bvh: &Bvh, ray: Ray, hit: Hit, depth: u32, max_depth: u3
             depth + 1,
             max_depth,
         );
-        color =
-            color * (1.0 - hit.material.reflectivity) + reflected_color * hit.material.reflectivity;
+        let facing = (-ray.direction.dot(hit.normal)).abs().clamp(0.0, 1.0);
+        let fresnel = hit.material.reflectivity * (0.52 + 0.48 * (1.0 - facing).powf(5.0));
+        color = color * (1.0 - fresnel) + reflected_color * fresnel;
     }
 
     if hit.material.transparency > 0.0 {
@@ -281,8 +287,11 @@ fn shade(scene: &Scene, bvh: &Bvh, ray: Ray, hit: Hit, depth: u32, max_depth: u3
             color * (1.0 - hit.material.transparency) + refracted_color * hit.material.transparency;
     }
 
-    let fog = ((hit.distance - 20.0) / 34.0).clamp(0.0, 1.0) * 0.30;
-    color = color * (1.0 - fog) + skybox(ray.direction) * fog;
+    let distance_fog = ((hit.distance - 16.0) / 38.0).clamp(0.0, 1.0);
+    let low_dust = (1.0 - (hit.point.y / 11.0).clamp(0.0, 1.0)) * distance_fog;
+    let fog = (distance_fog * 0.24 + low_dust * 0.13).min(0.38);
+    let fog_color = skybox(ray.direction) * 0.72 + Color::new(0.46, 0.20, 0.08) * 0.28;
+    color = color * (1.0 - fog) + fog_color * fog;
     color.clamp01()
 }
 
@@ -327,32 +336,34 @@ fn intersect_scene(scene: &Scene, bvh: &Bvh, ray: Ray) -> Option<Hit> {
 }
 
 fn skybox(dir: Vec3) -> Color {
-    let t = ((dir.y + 0.18) * 2.8).clamp(0.0, 1.0);
-    let horizon = Color::new(0.42, 0.12, 0.035);
-    let zenith = Color::new(0.018, 0.18, 0.58);
+    let t = ((dir.y + 0.16) * 2.35).clamp(0.0, 1.0);
+    let horizon = Color::new(0.52, 0.16, 0.045);
+    let zenith = Color::new(0.025, 0.14, 0.48);
     let mut color = horizon * (1.0 - t) + zenith * t;
 
-    let sun_dir = Vec3::new(-0.38, 0.36, -0.85).normalized();
-    let sun = dir.dot(sun_dir).max(0.0).powf(320.0);
-    let glow = dir.dot(sun_dir).max(0.0).powf(18.0);
-    color += Color::new(1.0, 0.86, 0.54) * sun;
-    color += Color::new(0.82, 0.35, 0.12) * glow * 0.34;
+    let sun_dir = Vec3::new(-0.42, 0.29, -0.86).normalized();
+    let sun = dir.dot(sun_dir).max(0.0).powf(420.0);
+    let inner_glow = dir.dot(sun_dir).max(0.0).powf(42.0);
+    let outer_glow = dir.dot(sun_dir).max(0.0).powf(8.0);
+    color += Color::new(1.0, 0.90, 0.62) * sun * 1.35;
+    color += Color::new(0.96, 0.48, 0.16) * inner_glow * 0.38;
+    color += Color::new(0.70, 0.20, 0.07) * outer_glow * 0.12;
 
     let cloud_band = (1.0 - (dir.y - 0.14).abs() * 6.0).max(0.0);
     let cloud_shape =
         ((dir.x * 18.0 + dir.z * 11.0).sin() + (dir.x * 31.0 - dir.z * 7.0).sin() * 0.45) * 0.5
             + 0.42;
-    color += Color::new(0.46, 0.44, 0.46) * cloud_shape.max(0.0) * cloud_band * 0.34;
+    color += Color::new(0.58, 0.54, 0.56) * cloud_shape.max(0.0) * cloud_band * 0.38;
 
     let high_band = (1.0 - (dir.y - 0.42).abs() * 8.0).max(0.0);
     let high_shape = ((dir.x * 27.0 - dir.z * 19.0).sin() * 0.55
         + (dir.x * 43.0 + dir.z * 13.0).sin() * 0.25
         + 0.38)
         .max(0.0);
-    color += Color::new(0.30, 0.34, 0.42) * high_shape * high_band * 0.22;
+    color += Color::new(0.32, 0.38, 0.52) * high_shape * high_band * 0.24;
 
     let dust_haze = (1.0 - (dir.y + 0.02).abs() * 4.2).max(0.0);
-    color += Color::new(0.34, 0.15, 0.08) * dust_haze * 0.10;
+    color += Color::new(0.44, 0.16, 0.055) * dust_haze * 0.15;
     color.clamp01()
 }
 
@@ -360,8 +371,8 @@ fn build_scene() -> Scene {
     let mut scene = Scene {
         cubes: Vec::new(),
         materials: scene_materials(),
-        light_dir: Vec3::new(0.42, -0.82, -0.30).normalized(),
-        light_color: Color::new(1.0, 0.95, 0.84),
+        light_dir: Vec3::new(0.48, -0.78, -0.34).normalized(),
+        light_color: Color::new(1.0, 0.88, 0.68),
     };
 
     build_sage_arrival(&mut scene);

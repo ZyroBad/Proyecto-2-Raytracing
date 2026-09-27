@@ -19,6 +19,7 @@ pub fn add_destroyed_konoha(scene: &mut Scene) {
     add_crater_wall(scene);
     add_hokage_mountain(scene);
     add_debris_field(scene);
+    add_destroyed_districts(scene);
 
     for (x, z, width, height) in [
         (-10.4, -4.8, 2.7, 4.6),
@@ -74,6 +75,108 @@ pub fn add_destroyed_konoha(scene: &mut Scene) {
     add_dust_plume(scene, Vec3::new(-9.4, 1.2, -9.4), 1.15);
     add_dust_plume(scene, Vec3::new(9.2, 1.0, -9.0), 1.0);
     add_dust_plume(scene, Vec3::new(4.8, 0.8, -11.5), 0.72);
+}
+
+fn add_destroyed_districts(scene: &mut Scene) {
+    // Siluetas urbanas en tres planos para que Konoha continue detras del crater.
+    for (x, z, width, height) in [
+        (-15.8, -5.8, 3.2, 5.8),
+        (-13.8, -10.2, 2.8, 4.2),
+        (-17.5, -13.5, 3.8, 6.4),
+        (-11.8, -15.0, 2.5, 3.5),
+        (15.6, -5.5, 3.1, 5.4),
+        (13.5, -10.4, 2.7, 4.0),
+        (17.2, -13.2, 3.6, 6.1),
+        (11.7, -15.2, 2.6, 3.7),
+    ] {
+        add_ruined_building(scene, Vec3::new(x, 0.0, z), width, height);
+    }
+
+    add_ruined_tower(scene, Vec3::new(-14.8, 0.0, -9.0), 1.65, 6.2, 14);
+    add_ruined_tower(scene, Vec3::new(14.7, 0.0, -8.7), 1.55, 5.5, 12);
+    add_ruined_tower(scene, Vec3::new(-9.8, 0.0, -13.8), 1.15, 3.8, 10);
+    add_ruined_tower(scene, Vec3::new(9.7, 0.0, -14.0), 1.25, 4.1, 10);
+
+    add_broken_gate(scene, Vec3::new(-6.7, 0.0, -12.4), 0.85);
+    add_broken_gate(scene, Vec3::new(6.8, 0.0, -12.6), 0.78);
+
+    // Fragmentos de las avenidas radiales de Konoha.
+    for side in [-1.0, 1.0] {
+        for step in 0..7 {
+            let z = -5.4 - step as f32 * 1.55;
+            let drift = (step as f32 * 1.7).sin() * 0.32;
+            add_block(
+                scene,
+                Vec3::new(side * (11.8 + drift), 0.16, z),
+                Vec3::new(1.85, 0.16, 1.05),
+                if step % 3 == 0 { 18 } else { 17 },
+            );
+        }
+    }
+}
+
+fn add_ruined_tower(scene: &mut Scene, base: Vec3, radius: f32, height: f32, segments: usize) {
+    let levels = (height / 0.72).ceil() as usize;
+    for level in 0..levels {
+        let y = 0.40 + level as f32 * 0.72;
+        let broken_side = (level * 3 + segments / 4) % segments;
+        for segment in 0..segments {
+            if level > levels / 2
+                && (segment == broken_side || segment == (broken_side + 1) % segments)
+            {
+                continue;
+            }
+            let angle = 2.0 * PI * segment as f32 / segments as f32;
+            let center = base + Vec3::new(angle.cos() * radius, y, angle.sin() * radius);
+            add_block(
+                scene,
+                center,
+                Vec3::new(0.58, 0.66, 0.58),
+                if (segment + level) % 7 == 0 { 0 } else { 18 },
+            );
+        }
+    }
+
+    for segment in 0..segments {
+        if segment % 4 == 1 {
+            continue;
+        }
+        let angle = 2.0 * PI * segment as f32 / segments as f32;
+        add_block(
+            scene,
+            base + Vec3::new(
+                angle.cos() * (radius + 0.18),
+                height + 0.18,
+                angle.sin() * (radius + 0.18),
+            ),
+            Vec3::new(0.72, 0.28, 0.72),
+            19,
+        );
+    }
+}
+
+fn add_broken_gate(scene: &mut Scene, base: Vec3, scale: f32) {
+    for side in [-1.0, 1.0] {
+        let pillar_height = if side < 0.0 { 3.8 } else { 2.9 };
+        add_block(
+            scene,
+            base + Vec3::new(side * 1.45 * scale, pillar_height * scale * 0.5, 0.0),
+            Vec3::new(0.55, pillar_height * scale, 0.65),
+            18,
+        );
+    }
+    add_block(
+        scene,
+        base + Vec3::new(-0.18, 2.75 * scale, 0.0),
+        Vec3::new(2.35 * scale, 0.36, 0.72),
+        19,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(0.65, 1.35 * scale, 0.20),
+        Vec3::new(0.38, 2.2 * scale, 0.34),
+        13,
+    );
 }
 
 fn add_crater_ring(scene: &mut Scene, radius: f32, height: f32, block_size: f32, segments: usize) {
