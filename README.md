@@ -17,7 +17,7 @@ La escena muestra Konoha destruida, el crater de la aldea, Monte Hokage y las in
 - Konoha destruida en 360 grados con terreno continuo, crater profundo escalonado, barrios derrumbados, bosque, cordillera, torres y puertas.
 - Monte Hokage integrado en una montana distante con cinco rostros tallados y rasgos individuales.
 - Personajes modelados con volumen completo, haori posterior y detalles visibles desde diferentes angulos.
-- Escala narrativa reforzada: sapos gigantes, humanos pequenos y los Seis Caminos distribuidos en un arco de confrontacion.
+- Escala narrativa reforzada: las tres invocaciones principales dominan el crater, Gamakichi conserva una escala juvenil y los humanos permanecen pequenos.
 - Sello de invocacion refractivo alrededor de la escena principal.
 
 ## Personajes

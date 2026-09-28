@@ -206,7 +206,7 @@ pub fn add_gamabunta(scene: &mut Scene, base: Vec3) {
         ink,
         0.68,
     );
-    scale_added_cubes(scene, first_cube, base, 1.32);
+    scale_added_cubes(scene, first_cube, base, 1.52);
 }
 
 pub fn add_gamaken(scene: &mut Scene, base: Vec3) {
@@ -394,7 +394,7 @@ pub fn add_gamaken(scene: &mut Scene, base: Vec3) {
         ink,
         0.56,
     );
-    scale_added_cubes(scene, first_cube, base, 1.32);
+    scale_added_cubes(scene, first_cube, base, 1.52);
 }
 
 pub fn add_gamahiro(scene: &mut Scene, base: Vec3) {
@@ -581,7 +581,7 @@ pub fn add_gamahiro(scene: &mut Scene, base: Vec3) {
         ink,
         0.58,
     );
-    scale_added_cubes(scene, first_cube, base, 1.32);
+    scale_added_cubes(scene, first_cube, base, 1.52);
 }
 
 fn add_gamabunta_details(
@@ -962,6 +962,7 @@ fn add_gamahiro_limbs(scene: &mut Scene, base: Vec3, skin: usize) {
 }
 
 pub fn add_gamakichi(scene: &mut Scene, base: Vec3) {
+    let first_cube = scene.cubes.len();
     let skin = 23;
     let robe = 5;
     let pale = 15;
@@ -1082,6 +1083,7 @@ pub fn add_gamakichi(scene: &mut Scene, base: Vec3) {
         ink,
         0.28,
     );
+    scale_added_cubes(scene, first_cube, base, 1.18);
 }
 
 fn add_toad_haori_back(
