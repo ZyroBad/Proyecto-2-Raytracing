@@ -22,12 +22,12 @@ La escena muestra Konoha destruida, el crater de la aldea, Monte Hokage y las in
 
 ## Personajes
 
-- **Gamabunta:** sapo gigante rojizo con escamas, cresta, haori y vientre segmentado.
+- **Gamabunta:** sapo gigante rojizo con escamas, cresta, haori, pipa y vientre segmentado.
 - **Gamaken:** sapo magenta con patron moteado, haori y sasumata metalico.
 - **Gamahiro:** sapo celeste con escamas acuaticas, mascara ocular y dos espadas.
 - **Gamakichi:** sapo naranja juvenil con escamas pequenas y chaleco azul.
 - **Naruto:** Modo Sabio con capa roja, ribete de llamas, traje naranja, pergamino, ojos dorados y protector metalico.
-- **Seis Caminos de Pain:** seis siluetas independientes con capas Akatsuki, Rinnegan, piercings y peinados diferenciados.
+- **Seis Caminos de Pain:** seis siluetas independientes orientadas hacia los sapos, con capas Akatsuki detalladas por ambos lados, Rinnegan, piercings y peinados diferenciados.
 
 ## Materiales principales
 

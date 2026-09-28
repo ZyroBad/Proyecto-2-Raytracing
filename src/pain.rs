@@ -9,20 +9,43 @@ const CLOUD_WHITE: usize = 15;
 const PAIN_SKIN: usize = 26;
 const RINNEGAN: usize = 27;
 const PAIN_HAIR: usize = 28;
+const CRATER_EARTH: usize = 17;
 
 pub fn add_six_paths(scene: &mut Scene) {
     let paths = [
-        (Vec3::new(-10.0, -0.12, 5.8), 0usize),
-        (Vec3::new(-6.0, -0.78, 7.0), 1usize),
-        (Vec3::new(-2.0, -1.20, 7.8), 2usize),
-        (Vec3::new(2.0, -1.20, 7.8), 3usize),
-        (Vec3::new(6.0, -0.78, 7.0), 4usize),
-        (Vec3::new(10.0, -0.12, 5.8), 5usize),
+        (Vec3::new(-12.0, -0.38, 6.6), 0usize),
+        (Vec3::new(-7.4, -0.38, 10.6), 1usize),
+        (Vec3::new(-2.5, -0.38, 12.6), 2usize),
+        (Vec3::new(2.5, -0.38, 12.6), 3usize),
+        (Vec3::new(7.4, -0.38, 10.6), 4usize),
+        (Vec3::new(12.0, -0.38, 6.6), 5usize),
     ];
 
+    clear_staging_areas(scene, &paths);
     for (base, style) in paths {
+        add_block(
+            scene,
+            base + Vec3::new(0.0, -0.09, 0.0),
+            Vec3::new(1.72, 0.18, 1.52),
+            CRATER_EARTH,
+        );
         add_path(scene, base, style);
     }
+}
+
+fn clear_staging_areas(scene: &mut Scene, paths: &[(Vec3, usize); 6]) {
+    scene.cubes.retain(|cube| {
+        let size = cube.max - cube.min;
+        if size.x > 12.0 || size.z > 12.0 {
+            return true;
+        }
+        let center = (cube.min + cube.max) * 0.5;
+        !paths.iter().any(|(base, _)| {
+            let dx = center.x - base.x;
+            let dz = center.z - base.z;
+            dx * dx + dz * dz < 1.35 * 1.35 && cube.max.y > base.y - 0.12
+        })
+    });
 }
 
 fn add_path(scene: &mut Scene, base: Vec3, style: usize) {
@@ -70,7 +93,16 @@ fn add_path(scene: &mut Scene, base: Vec3, style: usize) {
         );
     }
 
-    add_akatsuki_cloud(scene, base + Vec3::new(0.0, 0.92 * height_scale, 0.315));
+    add_akatsuki_cloud(
+        scene,
+        base + Vec3::new(0.0, 0.92 * height_scale, 0.315),
+        1.0,
+    );
+    add_akatsuki_cloud(
+        scene,
+        base + Vec3::new(0.0, 0.92 * height_scale, -0.315),
+        -1.0,
+    );
 
     // Collar, neck and head use progressively smaller voxels than the environment.
     add_block(
@@ -79,6 +111,14 @@ fn add_path(scene: &mut Scene, base: Vec3, style: usize) {
         Vec3::new(1.02, 0.56, 0.64),
         ROBE,
     );
+    for z in [-0.335, 0.335] {
+        add_block(
+            scene,
+            base + Vec3::new(0.0, 1.93 * height_scale, z),
+            Vec3::new(0.82, 0.055, 0.045),
+            CLOUD_RED,
+        );
+    }
     add_block(
         scene,
         base + Vec3::new(0.0, 2.14 * height_scale, 0.17),
@@ -97,15 +137,13 @@ fn add_path(scene: &mut Scene, base: Vec3, style: usize) {
     add_face(scene, head_center, style, height_scale);
     add_hair(scene, head_center, style, height_scale);
 
-    // Los seis observan el centro del crater; la camara ve sus capas desde atras.
-    for cube in &mut scene.cubes[first_cube..] {
-        let old_min_z = cube.min.z;
-        cube.min.z = 2.0 * base.z - cube.max.z;
-        cube.max.z = 2.0 * base.z - old_min_z;
-        if let Some(normal) = &mut cube.smooth_normal {
-            normal.z = -normal.z;
-        }
-    }
+    let toward_toads = Vec3::new(0.0, base.y, -1.4) - base;
+    rotate_added_cubes(
+        scene,
+        first_cube,
+        base,
+        toward_toads.x.atan2(toward_toads.z),
+    );
 }
 
 fn add_face(scene: &mut Scene, head: Vec3, style: usize, scale: f32) {
@@ -252,7 +290,7 @@ fn add_hair(scene: &mut Scene, head: Vec3, style: usize, scale: f32) {
     }
 }
 
-fn add_akatsuki_cloud(scene: &mut Scene, center: Vec3) {
+fn add_akatsuki_cloud(scene: &mut Scene, center: Vec3, facing: f32) {
     for offset in [
         Vec3::new(-0.23, 0.0, 0.0),
         Vec3::new(0.02, 0.10, 0.0),
@@ -268,10 +306,10 @@ fn add_akatsuki_cloud(scene: &mut Scene, center: Vec3) {
         );
     }
     for offset in [
-        Vec3::new(-0.21, 0.0, 0.065),
-        Vec3::new(0.02, 0.09, 0.065),
-        Vec3::new(0.23, 0.0, 0.065),
-        Vec3::new(0.10, -0.12, 0.065),
+        Vec3::new(-0.21, 0.0, 0.065 * facing),
+        Vec3::new(0.02, 0.09, 0.065 * facing),
+        Vec3::new(0.23, 0.0, 0.065 * facing),
+        Vec3::new(0.10, -0.12, 0.065 * facing),
     ] {
         add_ellipsoid(
             scene,
@@ -280,6 +318,30 @@ fn add_akatsuki_cloud(scene: &mut Scene, center: Vec3) {
             0.07,
             CLOUD_RED,
         );
+    }
+}
+
+fn rotate_added_cubes(scene: &mut Scene, first_cube: usize, origin: Vec3, yaw: f32) {
+    let cosine = yaw.cos();
+    let sine = yaw.sin();
+    for cube in &mut scene.cubes[first_cube..] {
+        let center = (cube.min + cube.max) * 0.5;
+        let half_size = (cube.max - cube.min) * 0.5;
+        let local = center - origin;
+        let rotated_center = origin
+            + Vec3::new(
+                local.x * cosine + local.z * sine,
+                local.y,
+                -local.x * sine + local.z * cosine,
+            );
+        cube.min = rotated_center - half_size;
+        cube.max = rotated_center + half_size;
+        if let Some(normal) = &mut cube.smooth_normal {
+            let old_x = normal.x;
+            let old_z = normal.z;
+            normal.x = old_x * cosine + old_z * sine;
+            normal.z = -old_x * sine + old_z * cosine;
+        }
     }
 }
 

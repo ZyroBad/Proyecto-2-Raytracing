@@ -594,6 +594,28 @@ fn add_gamabunta_details(
     eye: usize,
     orange: usize,
 ) {
+    // Pipa larga de Gamabunta, inclinada desde la comisura izquierda.
+    add_voxel_segment(
+        scene,
+        base + Vec3::new(-1.42, 4.84, 2.22),
+        base + Vec3::new(-3.22, 4.08, 2.38),
+        0.16,
+        13,
+    );
+    add_voxel_ellipsoid(
+        scene,
+        base + Vec3::new(-3.40, 4.02, 2.39),
+        Vec3::new(0.34, 0.42, 0.32),
+        0.13,
+        13,
+    );
+    add_block(
+        scene,
+        base + Vec3::new(-3.40, 4.39, 2.39),
+        Vec3::new(0.43, 0.13, 0.43),
+        ink,
+    );
+
     add_voxel_ellipsoid(
         scene,
         base + Vec3::new(0.0, 7.02, 1.28),
