@@ -10,16 +10,42 @@ pub fn add_destroyed_konoha(scene: &mut Scene) {
 
     add_block(
         scene,
-        Vec3::new(0.0, -3.12, -7.2),
+        Vec3::new(0.0, -8.30, -2.0),
+        Vec3::new(76.0, 0.52, 76.0),
+        17,
+    );
+    for x in [-37.65, 37.65] {
+        add_block(
+            scene,
+            Vec3::new(x, -4.28, -2.0),
+            Vec3::new(0.72, 7.55, 76.0),
+            17,
+        );
+    }
+    add_block(
+        scene,
+        Vec3::new(0.0, -4.28, -39.65),
+        Vec3::new(76.0, 7.55, 0.72),
+        17,
+    );
+    add_block(
+        scene,
+        Vec3::new(0.0, -6.82, 35.65),
+        Vec3::new(76.0, 2.48, 0.72),
+        17,
+    );
+    add_block(
+        scene,
+        Vec3::new(0.0, -8.12, -7.2),
         Vec3::new(27.0, 0.32, 13.5),
         17,
     );
 
-    add_crater_ring(scene, 7.2, -2.98, 0.82, 36);
-    add_crater_ring(scene, 8.6, -2.50, 0.90, 40);
-    add_crater_ring(scene, 10.1, -1.90, 1.05, 44);
-    add_crater_ring(scene, 11.7, -1.15, 1.16, 48);
-    add_crater_ring(scene, 13.2, -0.30, 1.30, 52);
+    add_crater_ring(scene, 16.0, -7.95, 2.05, 1.05, 72);
+    add_crater_ring(scene, 21.0, -6.05, 2.20, 1.15, 88);
+    add_crater_ring(scene, 26.0, -4.00, 2.20, 1.25, 104);
+    add_crater_ring(scene, 31.0, -2.00, 1.80, 1.35, 120);
+    add_crater_ring(scene, 35.0, -0.65, 1.15, 1.45, 136);
     add_crater_wall(scene);
     add_hokage_mountain(scene);
     add_debris_field(scene);
@@ -33,7 +59,12 @@ pub fn add_destroyed_konoha(scene: &mut Scene) {
         (-11.3, 2.8, 2.5, 2.6),
         (11.2, 2.5, 2.6, 2.8),
     ] {
-        add_ruined_building(scene, Vec3::new(x, 0.0, z), width, height);
+        add_ruined_building(
+            scene,
+            Vec3::new(x, crater_surface_y(x, z), z),
+            width,
+            height,
+        );
     }
 
     for (x, z, sx, sy, sz, material) in [
@@ -48,7 +79,7 @@ pub fn add_destroyed_konoha(scene: &mut Scene) {
     ] {
         add_block(
             scene,
-            Vec3::new(x, -2.92 + sy * 0.5, z),
+            Vec3::new(x, crater_surface_y(x, z) + sy * 0.5, z),
             Vec3::new(sx, sy, sz),
             material,
         );
@@ -56,56 +87,56 @@ pub fn add_destroyed_konoha(scene: &mut Scene) {
 
     add_crack_path(
         scene,
-        Vec3::new(-0.8, -2.93, -1.8),
-        Vec3::new(-7.0, -2.93, -8.5),
+        Vec3::new(-0.8, -7.93, -1.8),
+        Vec3::new(-27.0, -0.55, -18.5),
     );
     add_crack_path(
         scene,
-        Vec3::new(1.2, -2.93, -2.2),
-        Vec3::new(7.8, -2.93, -7.4),
+        Vec3::new(1.2, -7.93, -2.2),
+        Vec3::new(28.0, -0.55, -16.4),
     );
     add_crack_path(
         scene,
-        Vec3::new(0.2, -2.93, -2.0),
-        Vec3::new(-1.3, -2.93, -10.2),
+        Vec3::new(0.2, -7.93, -2.0),
+        Vec3::new(-3.3, -0.55, -34.0),
     );
     add_crack_path(
         scene,
-        Vec3::new(-1.8, -2.93, 0.4),
-        Vec3::new(-8.4, -2.93, 6.8),
+        Vec3::new(-1.8, -7.93, 0.4),
+        Vec3::new(-27.4, -0.55, 16.8),
     );
     add_crack_path(
         scene,
-        Vec3::new(2.0, -2.93, 0.2),
-        Vec3::new(8.0, -2.93, 6.2),
+        Vec3::new(2.0, -7.93, 0.2),
+        Vec3::new(27.0, -0.55, 17.2),
     );
 
-    add_dust_plume(scene, Vec3::new(-9.4, 1.2, -9.4), 1.15);
-    add_dust_plume(scene, Vec3::new(9.2, 1.0, -9.0), 1.0);
-    add_dust_plume(scene, Vec3::new(4.8, 0.8, -11.5), 0.72);
+    add_dust_plume(scene, Vec3::new(-18.4, -3.0, -16.4), 1.15);
+    add_dust_plume(scene, Vec3::new(19.2, -2.8, -15.0), 1.0);
+    add_dust_plume(scene, Vec3::new(8.8, -5.4, -18.5), 0.72);
 }
 
 fn add_konoha_basin(scene: &mut Scene) {
-    // Terreno continuo bajo toda la orbita para evitar el efecto de isla flotante.
-    add_block(
-        scene,
-        Vec3::new(0.0, -1.18, -2.0),
-        Vec3::new(150.0, 1.42, 150.0),
-        17,
-    );
+    // Cuatro losas rodean una abertura real; el terreno no atraviesa el socavon.
+    for (center, size) in [
+        (Vec3::new(-56.5, -1.18, -2.0), Vec3::new(37.0, 1.42, 150.0)),
+        (Vec3::new(56.5, -1.18, -2.0), Vec3::new(37.0, 1.42, 150.0)),
+        (Vec3::new(0.0, -1.18, 55.5), Vec3::new(76.0, 1.42, 39.0)),
+        (Vec3::new(0.0, -1.18, -58.5), Vec3::new(76.0, 1.42, 33.0)),
+    ] {
+        add_block(scene, center, size, 17);
+    }
 
     for index in 0..36 {
         let angle = index as f32 * 2.399_963;
         let variation = noise(Vec3::new(index as f32 * 0.47, 2.7, 6.2));
         let radius = 13.0 + variation * 22.0;
         let width = 2.0 + variation * 5.0;
+        let x = angle.cos() * radius;
+        let z = angle.sin() * radius - 2.0;
         add_block(
             scene,
-            Vec3::new(
-                angle.cos() * radius,
-                -0.43 + variation * 0.035,
-                angle.sin() * radius - 2.0,
-            ),
+            Vec3::new(x, crater_surface_y(x, z) + 0.05, z),
             Vec3::new(width, 0.10, width * (0.52 + variation * 0.38)),
             if index % 4 == 0 { 18 } else { 0 },
         );
@@ -134,9 +165,11 @@ fn add_konoha_basin(scene: &mut Scene) {
         let angle = 2.0 * PI * index as f32 / 18.0 + 0.17;
         let radius = 27.0 + noise(Vec3::new(index as f32, 4.2, 8.7)) * 5.0;
         let height = 1.5 + (index % 5) as f32 * 0.62;
+        let x = angle.cos() * radius;
+        let z = angle.sin() * radius - 2.0;
         add_ruined_building(
             scene,
-            Vec3::new(angle.cos() * radius, -0.38, angle.sin() * radius - 2.0),
+            Vec3::new(x, crater_surface_y(x, z), z),
             1.8 + (index % 3) as f32 * 0.48,
             height,
         );
@@ -153,7 +186,7 @@ fn add_konoha_basin(scene: &mut Scene) {
         let depth = 0.30 + noise(Vec3::new(x * 0.4, z * 0.7, 5.0)) * 1.30;
         add_block(
             scene,
-            Vec3::new(x, -0.34 + height * 0.5, z),
+            Vec3::new(x, crater_surface_y(x, z) + height * 0.5, z),
             Vec3::new(width, height, depth),
             match index % 6 {
                 0 => 13,
@@ -170,18 +203,38 @@ fn add_konoha_basin(scene: &mut Scene) {
         let x = angle.cos() * radius;
         let z = angle.sin() * radius - 2.0;
         let trunk_height = 1.4 + (index % 3) as f32 * 0.55;
+        let ground_y = crater_surface_y(x, z);
         add_block(
             scene,
-            Vec3::new(x, -0.38 + trunk_height * 0.5, z),
+            Vec3::new(x, ground_y + trunk_height * 0.5, z),
             Vec3::new(0.24, trunk_height, 0.28),
             13,
         );
         add_block(
             scene,
-            Vec3::new(x + 0.32, -0.38 + trunk_height * 0.72, z),
+            Vec3::new(x + 0.32, ground_y + trunk_height * 0.72, z),
             Vec3::new(0.78, 0.18, 0.20),
             13,
         );
+    }
+}
+
+fn crater_surface_y(x: f32, z: f32) -> f32 {
+    let dx = x;
+    let dz = z + 2.2;
+    let radius = (dx * dx + dz * dz).sqrt();
+    if radius <= 16.0 {
+        -7.92
+    } else if radius <= 21.0 {
+        -7.92 + (radius - 16.0) / 5.0 * 1.87
+    } else if radius <= 26.0 {
+        -6.05 + (radius - 21.0) / 5.0 * 2.05
+    } else if radius <= 31.0 {
+        -4.00 + (radius - 26.0) / 5.0 * 2.00
+    } else if radius <= 35.0 {
+        -2.00 + (radius - 31.0) / 4.0 * 1.45
+    } else {
+        -0.55
     }
 }
 
@@ -279,25 +332,49 @@ fn add_destroyed_districts(scene: &mut Scene) {
         (17.2, -13.2, 3.6, 6.1),
         (11.7, -15.2, 2.6, 3.7),
     ] {
-        add_ruined_building(scene, Vec3::new(x, 0.0, z), width, height);
+        add_ruined_building(
+            scene,
+            Vec3::new(x, crater_surface_y(x, z), z),
+            width,
+            height,
+        );
     }
 
-    add_ruined_tower(scene, Vec3::new(-14.8, 0.0, -9.0), 1.65, 6.2, 14);
-    add_ruined_tower(scene, Vec3::new(14.7, 0.0, -8.7), 1.55, 5.5, 12);
-    add_ruined_tower(scene, Vec3::new(-9.8, 0.0, -13.8), 1.15, 3.8, 10);
-    add_ruined_tower(scene, Vec3::new(9.7, 0.0, -14.0), 1.25, 4.1, 10);
+    for (x, z, radius, height, segments) in [
+        (-14.8, -9.0, 1.65, 6.2, 14),
+        (14.7, -8.7, 1.55, 5.5, 12),
+        (-9.8, -13.8, 1.15, 3.8, 10),
+        (9.7, -14.0, 1.25, 4.1, 10),
+    ] {
+        add_ruined_tower(
+            scene,
+            Vec3::new(x, crater_surface_y(x, z), z),
+            radius,
+            height,
+            segments,
+        );
+    }
 
-    add_broken_gate(scene, Vec3::new(-6.7, 0.0, -12.4), 0.85);
-    add_broken_gate(scene, Vec3::new(6.8, 0.0, -12.6), 0.78);
+    add_broken_gate(
+        scene,
+        Vec3::new(-6.7, crater_surface_y(-6.7, -12.4), -12.4),
+        0.85,
+    );
+    add_broken_gate(
+        scene,
+        Vec3::new(6.8, crater_surface_y(6.8, -12.6), -12.6),
+        0.78,
+    );
 
     // Fragmentos de las avenidas radiales de Konoha.
     for side in [-1.0, 1.0] {
         for step in 0..7 {
             let z = -5.4 - step as f32 * 1.55;
             let drift = (step as f32 * 1.7).sin() * 0.32;
+            let x = side * (11.8 + drift);
             add_block(
                 scene,
-                Vec3::new(side * (11.8 + drift), 0.16, z),
+                Vec3::new(x, crater_surface_y(x, z) + 0.16, z),
                 Vec3::new(1.85, 0.16, 1.05),
                 if step % 3 == 0 { 18 } else { 17 },
             );
@@ -369,18 +446,25 @@ fn add_broken_gate(scene: &mut Scene, base: Vec3, scale: f32) {
     );
 }
 
-fn add_crater_ring(scene: &mut Scene, radius: f32, floor_y: f32, block_size: f32, segments: usize) {
+fn add_crater_ring(
+    scene: &mut Scene,
+    radius: f32,
+    floor_y: f32,
+    wall_height: f32,
+    block_size: f32,
+    segments: usize,
+) {
     for index in 0..=segments {
         let angle = 2.0 * PI * index as f32 / segments as f32;
         let x = angle.cos() * radius;
         let z = angle.sin() * radius - 2.2;
         let uneven = noise(Vec3::new(x, floor_y, z));
         let backness = (-angle.sin() + 1.0) * 0.5;
-        let vertical_scale = 0.35 + backness * 0.55 + uneven * 0.25;
-        let block_height = block_size * vertical_scale;
+        let front_cutaway = 1.0 - angle.sin().max(0.0) * 0.58;
+        let block_height = wall_height * (0.82 + backness * 0.10 + uneven * 0.10) * front_cutaway;
         add_block(
             scene,
-            Vec3::new(x, floor_y + block_height * 0.5 + uneven * 0.08, z),
+            Vec3::new(x, floor_y + block_height * 0.5, z),
             Vec3::new(block_size, block_height, block_size),
             if index % 5 == 0 { 18 } else { 17 },
         );
@@ -389,23 +473,23 @@ fn add_crater_ring(scene: &mut Scene, radius: f32, floor_y: f32, block_size: f32
 
 fn add_crater_wall(scene: &mut Scene) {
     for index in -10i32..=10 {
-        let x = index as f32 * 1.28;
+        let x = index as f32 * 3.18;
         let edge = (index.abs() as f32 / 10.0).powf(1.5);
-        let z = -12.2 + edge * 2.6;
+        let z = -34.0 + edge * 4.8;
         let variation = noise(Vec3::new(x, 2.0, z));
         let rim_height = 1.7 + edge * 1.9 + variation * 0.65;
-        let wall_height = rim_height + 3.05;
+        let wall_height = rim_height + 8.05;
         add_block(
             scene,
-            Vec3::new(x, -3.05 + wall_height * 0.5, z),
-            Vec3::new(1.42, wall_height, 2.25),
+            Vec3::new(x, -8.05 + wall_height * 0.5, z),
+            Vec3::new(3.38, wall_height, 2.80),
             if index % 6 == 0 { 18 } else { 17 },
         );
         if index % 4 == 0 {
             add_block(
                 scene,
                 Vec3::new(x + 0.28, rim_height + 0.22, z - 0.15),
-                Vec3::new(0.72, 0.42, 1.35),
+                Vec3::new(1.42, 0.42, 1.75),
                 18,
             );
         }
@@ -699,10 +783,11 @@ fn add_ruined_building(scene: &mut Scene, base: Vec3, width: f32, height: f32) {
 }
 
 fn add_crack_path(scene: &mut Scene, start: Vec3, end: Vec3) {
-    for step in 0..8 {
-        let t = step as f32 / 7.0;
+    for step in 0..18 {
+        let t = step as f32 / 17.0;
         let bend = (step as f32 * 2.1).sin() * 0.35;
-        let point = start * (1.0 - t) + end * t + Vec3::new(bend, 0.0, 0.0);
+        let mut point = start * (1.0 - t) + end * t + Vec3::new(bend, 0.0, 0.0);
+        point.y = crater_surface_y(point.x, point.z) + 0.03;
         add_block(scene, point, Vec3::new(0.20, 0.06, 1.15), 0);
     }
 }
@@ -711,7 +796,7 @@ fn add_debris_field(scene: &mut Scene) {
     for index in 0..52 {
         let angle = index as f32 * 2.399_963;
         let radial_noise = noise(Vec3::new(index as f32 * 0.73, 1.7, 4.2));
-        let radius = 8.0 + radial_noise * 5.2;
+        let radius = 12.0 + radial_noise * 20.0;
         let x = angle.cos() * radius;
         let z = angle.sin() * radius - 2.2;
         let width = 0.28 + noise(Vec3::new(x, 2.1, z)) * 0.82;
@@ -722,10 +807,10 @@ fn add_debris_field(scene: &mut Scene) {
             1 | 2 => 18,
             _ => 17,
         };
-        if z > 4.8 && z < 9.2 && x.abs() < 11.5 {
+        if z > 4.8 && z < 14.5 && x.abs() < 13.5 {
             continue;
         }
-        let floor_y = -2.96 + ((radius - 7.0) / 6.2).clamp(0.0, 1.0) * 2.55;
+        let floor_y = crater_surface_y(x, z);
         add_block(
             scene,
             Vec3::new(x, floor_y + height * 0.5, z),
@@ -740,15 +825,16 @@ fn add_debris_field(scene: &mut Scene) {
         (12.7, -2.4, 3.5),
         (11.4, 4.2, 2.2),
     ] {
+        let ground_y = crater_surface_y(x, z);
         add_block(
             scene,
-            Vec3::new(x, height * 0.5, z),
+            Vec3::new(x, ground_y + height * 0.5, z),
             Vec3::new(0.62, height, 0.72),
             18,
         );
         add_block(
             scene,
-            Vec3::new(x + 0.34, height + 0.16, z - 0.15),
+            Vec3::new(x + 0.34, ground_y + height + 0.16, z - 0.15),
             Vec3::new(1.25, 0.30, 0.82),
             19,
         );

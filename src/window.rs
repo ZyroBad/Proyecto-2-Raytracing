@@ -339,10 +339,10 @@ mod windows {
                     cfg.angle_deg = Some(cfg.angle_deg.unwrap_or(90.0) + 3.0);
                 }
                 if current_keys[2] || current_keys[6] {
-                    cfg.elevation = (cfg.elevation + 0.24).min(8.0);
+                    cfg.elevation = (cfg.elevation + 0.24).min(16.0);
                 }
                 if current_keys[3] || current_keys[7] {
-                    cfg.elevation = (cfg.elevation - 0.24).max(-6.0);
+                    cfg.elevation = (cfg.elevation - 0.24).max(-10.0);
                 }
                 if current_keys[8] {
                     cfg.zoom = (cfg.zoom + 0.035).min(2.5);

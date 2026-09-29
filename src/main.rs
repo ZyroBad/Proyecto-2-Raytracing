@@ -21,7 +21,7 @@ use image::{save_bmp, save_ppm};
 use material::{scene_materials, Material};
 use math::{Color, Vec3};
 use pain::add_six_paths;
-use scene::{Cube, Scene};
+use scene::{Cube, Ellipsoid, Scene};
 use std::f32::consts::PI;
 use std::fs::create_dir_all;
 use std::io::{self, Write};
@@ -65,6 +65,7 @@ fn main() -> std::io::Result<()> {
 fn print_scene_summary(scene: &Scene) {
     println!("Resumen de escena");
     println!("Cubos: {}", scene.cubes.len());
+    println!("Elipsoides: {}", scene.ellipsoids.len());
     println!("Materiales: {}", scene.materials.len());
     println!("Efectos: sombras, specular, reflexion, refraccion y skybox procedural");
 }
@@ -151,14 +152,14 @@ fn render_pixels_with_bvh(scene: &Scene, bvh: &Bvh, cfg: &Config, frame: usize) 
         .map(|a| a.to_radians())
         .unwrap_or(t * 2.0 * PI + PI * 0.5);
     let zoom_wave = (t * 2.0 * PI).sin() * 0.18;
-    let radius = (30.0 - zoom_wave * 5.5) / cfg.zoom.max(0.35);
+    let radius = (33.0 - zoom_wave * 5.5) / cfg.zoom.max(0.35);
     let camera_pos = Vec3::new(
         angle.cos() * radius,
-        15.4 + cfg.elevation + zoom_wave * 2.8,
+        20.0 + cfg.elevation + zoom_wave * 2.8,
         angle.sin() * radius,
     );
     let camera_right = Vec3::new(angle.sin(), 0.0, -angle.cos());
-    let camera_target = Vec3::new(0.0, 4.5 + cfg.look_y, -1.0) + camera_right * cfg.look_x;
+    let camera_target = Vec3::new(0.0, 1.2 + cfg.look_y, -1.0) + camera_right * cfg.look_x;
     let camera = Camera::look_at(camera_pos, camera_target, 44.0, aspect);
     let mut pixels = vec![Color::default(); cfg.width * cfg.height];
     let worker_count = thread::available_parallelism()
@@ -321,7 +322,12 @@ fn soft_shadow(
             origin: point + normal * EPSILON,
             direction,
         };
-        if !bvh.any_hit(&scene.cubes, shadow_ray) {
+        if !bvh.any_hit(&scene.cubes, shadow_ray)
+            && !scene
+                .ellipsoids
+                .iter()
+                .any(|&ellipsoid| intersect_ellipsoid(shadow_ray, ellipsoid).is_some())
+        {
             visible += 1.0;
         }
     }
@@ -340,7 +346,8 @@ fn tone_map(color: Color) -> Color {
 }
 
 fn intersect_scene(scene: &Scene, bvh: &Bvh, ray: Ray) -> Option<Hit> {
-    bvh.nearest(&scene.cubes, ray)
+    let cube_hit = bvh
+        .nearest(&scene.cubes, ray)
         .map(|(index, distance, geometric_normal)| {
             let mut normal = scene.cubes[index].smooth_normal.unwrap_or(geometric_normal);
             if normal.dot(ray.direction) > 0.0 {
@@ -352,7 +359,67 @@ fn intersect_scene(scene: &Scene, bvh: &Bvh, ray: Ray) -> Option<Hit> {
                 material: scene.materials[scene.cubes[index].material],
                 distance,
             }
-        })
+        });
+    let mut closest = cube_hit;
+    for &ellipsoid in &scene.ellipsoids {
+        if let Some((distance, mut normal)) = intersect_ellipsoid(ray, ellipsoid) {
+            if normal.dot(ray.direction) > 0.0 {
+                normal = -normal;
+            }
+            if closest
+                .as_ref()
+                .map(|hit| distance < hit.distance)
+                .unwrap_or(true)
+            {
+                closest = Some(Hit {
+                    point: ray.at(distance),
+                    normal,
+                    material: scene.materials[ellipsoid.material],
+                    distance,
+                });
+            }
+        }
+    }
+    closest
+}
+
+fn intersect_ellipsoid(ray: Ray, ellipsoid: Ellipsoid) -> Option<(f32, Vec3)> {
+    let offset = ray.origin - ellipsoid.center;
+    let origin = Vec3::new(
+        offset.x / ellipsoid.radii.x,
+        offset.y / ellipsoid.radii.y,
+        offset.z / ellipsoid.radii.z,
+    );
+    let direction = Vec3::new(
+        ray.direction.x / ellipsoid.radii.x,
+        ray.direction.y / ellipsoid.radii.y,
+        ray.direction.z / ellipsoid.radii.z,
+    );
+    let a = direction.dot(direction);
+    let half_b = origin.dot(direction);
+    let c = origin.dot(origin) - 1.0;
+    let discriminant = half_b * half_b - a * c;
+    if discriminant < 0.0 {
+        return None;
+    }
+    let root = discriminant.sqrt();
+    let near = (-half_b - root) / a;
+    let far = (-half_b + root) / a;
+    let distance = if near > EPSILON {
+        near
+    } else if far > EPSILON {
+        far
+    } else {
+        return None;
+    };
+    let point = ray.at(distance) - ellipsoid.center;
+    let normal = Vec3::new(
+        point.x / (ellipsoid.radii.x * ellipsoid.radii.x),
+        point.y / (ellipsoid.radii.y * ellipsoid.radii.y),
+        point.z / (ellipsoid.radii.z * ellipsoid.radii.z),
+    )
+    .normalized();
+    Some((distance, normal))
 }
 
 fn skybox(dir: Vec3) -> Color {
@@ -390,6 +457,7 @@ fn skybox(dir: Vec3) -> Color {
 fn build_scene() -> Scene {
     let mut scene = Scene {
         cubes: Vec::new(),
+        ellipsoids: Vec::new(),
         materials: scene_materials(),
         light_dir: Vec3::new(0.48, -0.78, -0.34).normalized(),
         light_color: Color::new(1.0, 0.88, 0.68),
@@ -400,7 +468,7 @@ fn build_scene() -> Scene {
 }
 
 fn build_sage_arrival(scene: &mut Scene) {
-    const CRATER_DEPTH: f32 = 3.0;
+    const CRATER_DEPTH: f32 = 8.0;
     add_block(
         scene,
         Vec3::new(0.0, -0.65 - CRATER_DEPTH, 0.0),
@@ -417,6 +485,7 @@ fn build_sage_arrival(scene: &mut Scene) {
     add_destroyed_konoha(scene);
     add_six_paths(scene);
     let first_character_cube = scene.cubes.len();
+    let first_character_ellipsoid = scene.ellipsoids.len();
     add_gamabunta(scene, Vec3::new(0.0, 0.0, -0.3));
     add_gamaken(scene, Vec3::new(-10.3, 0.0, -1.3));
     add_gamahiro(scene, Vec3::new(10.3, 0.0, -1.3));
@@ -426,6 +495,9 @@ fn build_sage_arrival(scene: &mut Scene) {
     for cube in &mut scene.cubes[first_character_cube..] {
         cube.min.y -= CRATER_DEPTH;
         cube.max.y -= CRATER_DEPTH;
+    }
+    for ellipsoid in &mut scene.ellipsoids[first_character_ellipsoid..] {
+        ellipsoid.center.y -= CRATER_DEPTH;
     }
 }
 
@@ -512,6 +584,24 @@ mod tests {
     }
 
     #[test]
+    fn ellipsoid_intersection_returns_smooth_normal() {
+        let ellipsoid = Ellipsoid {
+            center: Vec3::default(),
+            radii: Vec3::new(1.0, 1.5, 1.0),
+            material: 0,
+        };
+        let ray = Ray {
+            origin: Vec3::new(0.0, 0.0, -3.0),
+            direction: Vec3::new(0.0, 0.0, 1.0),
+        };
+        let (distance, normal) =
+            intersect_ellipsoid(ray, ellipsoid).expect("ray should hit ellipsoid");
+
+        assert_close(distance, 2.0);
+        assert_close(normal.z, -1.0);
+    }
+
+    #[test]
     fn center_camera_ray_points_at_target() {
         let origin = Vec3::new(0.0, 2.0, -5.0);
         let target = Vec3::new(0.0, 1.0, 0.0);
@@ -533,6 +623,7 @@ mod tests {
         assert!(scene.materials.iter().any(|m| m.transparency > 0.0));
         assert!(scene.materials.iter().any(|m| m.refractive_index > 1.0));
         assert!(!scene.cubes.is_empty());
+        assert!(!scene.ellipsoids.is_empty());
     }
 
     #[test]

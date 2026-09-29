@@ -1,9 +1,10 @@
 use crate::math::Vec3;
-use crate::scene::{Cube, Scene};
+use crate::scene::{Cube, Ellipsoid, Scene};
 use std::f32::consts::PI;
 
 pub fn add_gamabunta(scene: &mut Scene, base: Vec3) {
     let first_cube = scene.cubes.len();
+    let first_ellipsoid = scene.ellipsoids.len();
     let skin = 2;
     let robe = 5;
     let pale = 15;
@@ -206,11 +207,12 @@ pub fn add_gamabunta(scene: &mut Scene, base: Vec3) {
         ink,
         0.68,
     );
-    scale_added_cubes(scene, first_cube, base, 1.52);
+    scale_added_geometry(scene, first_cube, first_ellipsoid, base, 1.52);
 }
 
 pub fn add_gamaken(scene: &mut Scene, base: Vec3) {
     let first_cube = scene.cubes.len();
+    let first_ellipsoid = scene.ellipsoids.len();
     let skin = 3;
     let robe = 5;
     let pale = 15;
@@ -394,11 +396,12 @@ pub fn add_gamaken(scene: &mut Scene, base: Vec3) {
         ink,
         0.56,
     );
-    scale_added_cubes(scene, first_cube, base, 1.52);
+    scale_added_geometry(scene, first_cube, first_ellipsoid, base, 1.52);
 }
 
 pub fn add_gamahiro(scene: &mut Scene, base: Vec3) {
     let first_cube = scene.cubes.len();
+    let first_ellipsoid = scene.ellipsoids.len();
     let skin = 4;
     let robe = 5;
     let orange = 6;
@@ -581,7 +584,7 @@ pub fn add_gamahiro(scene: &mut Scene, base: Vec3) {
         ink,
         0.58,
     );
-    scale_added_cubes(scene, first_cube, base, 1.52);
+    scale_added_geometry(scene, first_cube, first_ellipsoid, base, 1.52);
 }
 
 fn add_gamabunta_details(
@@ -963,6 +966,7 @@ fn add_gamahiro_limbs(scene: &mut Scene, base: Vec3, skin: usize) {
 
 pub fn add_gamakichi(scene: &mut Scene, base: Vec3) {
     let first_cube = scene.cubes.len();
+    let first_ellipsoid = scene.ellipsoids.len();
     let skin = 23;
     let robe = 5;
     let pale = 15;
@@ -1083,7 +1087,7 @@ pub fn add_gamakichi(scene: &mut Scene, base: Vec3) {
         ink,
         0.28,
     );
-    scale_added_cubes(scene, first_cube, base, 1.18);
+    scale_added_geometry(scene, first_cube, first_ellipsoid, base, 1.18);
 }
 
 fn add_toad_haori_back(
@@ -1149,6 +1153,7 @@ fn add_toad_haori_back(
 
 pub fn add_naruto_sage(scene: &mut Scene, base: Vec3) {
     let first_cube = scene.cubes.len();
+    let first_ellipsoid = scene.ellipsoids.len();
     let orange = 6;
     let cloak = 7;
     let skin = 8;
@@ -1414,10 +1419,14 @@ pub fn add_naruto_sage(scene: &mut Scene, base: Vec3) {
 
     add_naruto_costume_details(scene, base, orange, cloak, ink, metal, hair, rope);
 
-    const NARUTO_SCALE: f32 = 0.44;
+    const NARUTO_SCALE: f32 = 0.50;
     for cube in &mut scene.cubes[first_cube..] {
         cube.min = base + (cube.min - base) * NARUTO_SCALE;
         cube.max = base + (cube.max - base) * NARUTO_SCALE;
+    }
+    for ellipsoid in &mut scene.ellipsoids[first_ellipsoid..] {
+        ellipsoid.center = base + (ellipsoid.center - base) * NARUTO_SCALE;
+        ellipsoid.radii = ellipsoid.radii * NARUTO_SCALE;
     }
 }
 
@@ -1431,6 +1440,25 @@ fn add_naruto_costume_details(
     hair: usize,
     rope: usize,
 ) {
+    // Emblema espiral de Konoha sobre la placa metalica del protector.
+    let leaf_center = base + Vec3::new(0.0, 3.40, 0.655);
+    for index in 0..10 {
+        let angle = 2.0 * PI * index as f32 / 10.0;
+        add_block(
+            scene,
+            leaf_center + Vec3::new(angle.cos() * 0.105, angle.sin() * 0.075, 0.0),
+            Vec3::new(0.055, 0.055, 0.025),
+            ink,
+        );
+    }
+    add_voxel_segment(
+        scene,
+        leaf_center + Vec3::new(0.08, -0.02, 0.0),
+        leaf_center + Vec3::new(0.22, 0.08, 0.0),
+        0.045,
+        ink,
+    );
+
     // Ribete de llamas de la capa de Hokage, construido con piezas pequenas.
     for index in -5i32..=5 {
         let x = index as f32 * 0.15;
@@ -1549,13 +1577,13 @@ fn add_summoning_seal(scene: &mut Scene) {
     let chakra = 12;
     let center = Vec3::new(0.0, 0.30, -0.45);
 
-    for index in 0..96 {
-        let angle = 2.0 * PI * index as f32 / 96.0;
+    for index in 0..160 {
+        let angle = 2.0 * PI * index as f32 / 160.0;
         let radius = if index % 2 == 0 { 11.15 } else { 11.05 };
         add_block(
             scene,
             center + Vec3::new(angle.cos() * radius, 0.0, angle.sin() * radius),
-            Vec3::new(0.24, 0.055, 0.24),
+            Vec3::new(0.13, 0.040, 0.13),
             chakra,
         );
     }
@@ -1567,7 +1595,7 @@ fn add_summoning_seal(scene: &mut Scene) {
             scene,
             center + direction * 8.8,
             center + direction * 10.6,
-            0.18,
+            0.10,
             chakra,
         );
     }
@@ -1587,57 +1615,12 @@ fn add_cloud_cluster(scene: &mut Scene, base: Vec3, scale: f32) {
 }
 
 fn add_voxel_ellipsoid(scene: &mut Scene, center: Vec3, radii: Vec3, cell: f32, material: usize) {
-    let is_cloud = material == 1;
-    let cell = if is_cloud {
-        (cell * 0.50).max(0.07)
-    } else {
-        (cell * 0.38).max(0.04)
-    };
-    let cells_x = (radii.x / cell).ceil() as i32;
-    let cells_y = (radii.y / cell).ceil() as i32;
-    let cells_z = (radii.z / cell).ceil() as i32;
-    let inner = Vec3::new(
-        (radii.x - cell * 1.35).max(0.0),
-        (radii.y - cell * 1.35).max(0.0),
-        (radii.z - cell * 1.35).max(0.0),
-    );
-    for y in -cells_y..=cells_y {
-        for z in -cells_z..=cells_z {
-            for x in -cells_x..=cells_x {
-                let offset = Vec3::new(x as f32 * cell, y as f32 * cell, z as f32 * cell);
-                let normalized = (offset.x / radii.x).powi(2)
-                    + (offset.y / radii.y).powi(2)
-                    + (offset.z / radii.z).powi(2);
-                let inside_inner = inner.x > 0.0
-                    && inner.y > 0.0
-                    && inner.z > 0.0
-                    && (offset.x / inner.x).powi(2)
-                        + (offset.y / inner.y).powi(2)
-                        + (offset.z / inner.z).powi(2)
-                        < 1.0;
-                if normalized <= 1.0 && !inside_inner {
-                    let normal = Vec3::new(
-                        offset.x / (radii.x * radii.x),
-                        offset.y / (radii.y * radii.y),
-                        offset.z / (radii.z * radii.z),
-                    );
-                    let smooth_normal = if normal.length() > 0.0001 {
-                        Some(normal.normalized())
-                    } else {
-                        None
-                    };
-                    let voxel_center = center + offset;
-                    let size = Vec3::new(cell, cell, cell);
-                    scene.cubes.push(Cube {
-                        min: voxel_center - size * 0.5,
-                        max: voxel_center + size * 0.5,
-                        material,
-                        smooth_normal,
-                    });
-                }
-            }
-        }
-    }
+    let _detail_hint = cell;
+    scene.ellipsoids.push(Ellipsoid {
+        center,
+        radii,
+        material,
+    });
 }
 
 fn add_voxel_segment(scene: &mut Scene, start: Vec3, end: Vec3, thickness: f32, material: usize) {
@@ -1686,9 +1669,19 @@ fn add_block(scene: &mut Scene, center: Vec3, size: Vec3, material: usize) {
     });
 }
 
-fn scale_added_cubes(scene: &mut Scene, first_cube: usize, origin: Vec3, scale: f32) {
+fn scale_added_geometry(
+    scene: &mut Scene,
+    first_cube: usize,
+    first_ellipsoid: usize,
+    origin: Vec3,
+    scale: f32,
+) {
     for cube in &mut scene.cubes[first_cube..] {
         cube.min = origin + (cube.min - origin) * scale;
         cube.max = origin + (cube.max - origin) * scale;
+    }
+    for ellipsoid in &mut scene.ellipsoids[first_ellipsoid..] {
+        ellipsoid.center = origin + (ellipsoid.center - origin) * scale;
+        ellipsoid.radii = ellipsoid.radii * scale;
     }
 }

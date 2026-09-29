@@ -1,5 +1,5 @@
 use crate::math::Vec3;
-use crate::scene::{Cube, Scene};
+use crate::scene::{Cube, Ellipsoid, Scene};
 
 const ROBE: usize = 5;
 const CLOUD_RED: usize = 7;
@@ -13,12 +13,12 @@ const CRATER_EARTH: usize = 17;
 
 pub fn add_six_paths(scene: &mut Scene) {
     let paths = [
-        (Vec3::new(-12.0, -0.38, 6.6), 0usize),
-        (Vec3::new(-7.4, -0.38, 10.6), 1usize),
-        (Vec3::new(-2.5, -0.38, 12.6), 2usize),
-        (Vec3::new(2.5, -0.38, 12.6), 3usize),
-        (Vec3::new(7.4, -0.38, 10.6), 4usize),
-        (Vec3::new(12.0, -0.38, 6.6), 5usize),
+        (Vec3::new(-12.0, -7.72, 6.6), 0usize),
+        (Vec3::new(-7.4, -7.72, 10.6), 1usize),
+        (Vec3::new(-2.5, -7.72, 12.6), 2usize),
+        (Vec3::new(2.5, -7.72, 12.6), 3usize),
+        (Vec3::new(7.4, -7.72, 10.6), 4usize),
+        (Vec3::new(12.0, -7.72, 6.6), 5usize),
     ];
 
     clear_staging_areas(scene, &paths);
@@ -50,6 +50,7 @@ fn clear_staging_areas(scene: &mut Scene, paths: &[(Vec3, usize); 6]) {
 
 fn add_path(scene: &mut Scene, base: Vec3, style: usize) {
     let first_cube = scene.cubes.len();
+    let first_ellipsoid = scene.ellipsoids.len();
     let height_scale = match style {
         1 => 0.91,
         4 => 1.05,
@@ -69,11 +70,22 @@ fn add_path(scene: &mut Scene, base: Vec3, style: usize) {
     for row in 0..8 {
         let y = 0.30 + row as f32 * 0.25 * height_scale;
         let width = 1.26 - row as f32 * 0.045;
+        for column in -2i32..=2 {
+            add_block(
+                scene,
+                base + Vec3::new(column as f32 * width / 5.0, y, 0.0),
+                Vec3::new(width / 5.0 + 0.035, 0.27 * height_scale, 0.56),
+                ROBE,
+            );
+        }
+    }
+
+    for z in [-0.30, 0.30] {
         add_block(
             scene,
-            base + Vec3::new(0.0, y, 0.0),
-            Vec3::new(width, 0.27 * height_scale, 0.56),
-            ROBE,
+            base + Vec3::new(0.0, 1.12 * height_scale, z),
+            Vec3::new(0.055, 1.62 * height_scale, 0.035),
+            CLOUD_RED,
         );
     }
 
@@ -130,7 +142,7 @@ fn add_path(scene: &mut Scene, base: Vec3, style: usize) {
         scene,
         head_center,
         Vec3::new(0.43, 0.50 * height_scale, 0.37),
-        0.11,
+        0.08,
         PAIN_SKIN,
     );
 
@@ -138,9 +150,10 @@ fn add_path(scene: &mut Scene, base: Vec3, style: usize) {
     add_hair(scene, head_center, style, height_scale);
 
     let toward_toads = Vec3::new(0.0, base.y, -1.4) - base;
-    rotate_added_cubes(
+    rotate_added_geometry(
         scene,
         first_cube,
+        first_ellipsoid,
         base,
         toward_toads.x.atan2(toward_toads.z),
     );
@@ -148,6 +161,15 @@ fn add_path(scene: &mut Scene, base: Vec3, style: usize) {
 
 fn add_face(scene: &mut Scene, head: Vec3, style: usize, scale: f32) {
     let front = head.z + 0.36;
+    for side in [-1.0, 1.0] {
+        add_ellipsoid(
+            scene,
+            head + Vec3::new(side * 0.43, -0.02 * scale, 0.0),
+            Vec3::new(0.10, 0.18, 0.11),
+            0.055,
+            PAIN_SKIN,
+        );
+    }
     add_block(
         scene,
         Vec3::new(head.x, head.y + 0.25 * scale, front + 0.02),
@@ -180,6 +202,12 @@ fn add_face(scene: &mut Scene, head: Vec3, style: usize, scale: f32) {
         Vec3::new(head.x, head.y - 0.23 * scale, front + 0.06),
         Vec3::new(0.23, 0.045, 0.04),
         INK,
+    );
+    add_block(
+        scene,
+        Vec3::new(head.x, head.y - 0.03 * scale, front + 0.085),
+        Vec3::new(0.075, 0.22, 0.055),
+        PAIN_SKIN,
     );
 
     // Piercings vary per body so the six Paths are not simple duplicates.
@@ -222,14 +250,14 @@ fn add_hair(scene: &mut Scene, head: Vec3, style: usize, scale: f32) {
                 scene,
                 head + Vec3::new(0.0, 0.38 * scale, -0.04),
                 Vec3::new(0.42, 0.22, 0.34),
-                0.12,
+                0.09,
                 PAIN_HAIR,
             );
             add_ellipsoid(
                 scene,
                 head + Vec3::new(0.0, 0.66 * scale, -0.05),
                 Vec3::new(0.23, 0.25, 0.23),
-                0.10,
+                0.075,
                 PAIN_HAIR,
             );
         }
@@ -254,7 +282,7 @@ fn add_hair(scene: &mut Scene, head: Vec3, style: usize, scale: f32) {
                 scene,
                 head + Vec3::new(0.0, 0.34 * scale, -0.10),
                 Vec3::new(0.43, 0.23, 0.35),
-                0.12,
+                0.09,
                 PAIN_HAIR,
             );
             for side in [-1.0, 1.0] {
@@ -272,7 +300,7 @@ fn add_hair(scene: &mut Scene, head: Vec3, style: usize, scale: f32) {
                 scene,
                 head + Vec3::new(0.0, 0.34 * scale, -0.08),
                 Vec3::new(0.44, 0.25, 0.36),
-                0.12,
+                0.09,
                 PAIN_HAIR,
             );
             for index in -3i32..=3 {
@@ -321,7 +349,13 @@ fn add_akatsuki_cloud(scene: &mut Scene, center: Vec3, facing: f32) {
     }
 }
 
-fn rotate_added_cubes(scene: &mut Scene, first_cube: usize, origin: Vec3, yaw: f32) {
+fn rotate_added_geometry(
+    scene: &mut Scene,
+    first_cube: usize,
+    first_ellipsoid: usize,
+    origin: Vec3,
+    yaw: f32,
+) {
     let cosine = yaw.cos();
     let sine = yaw.sin();
     for cube in &mut scene.cubes[first_cube..] {
@@ -343,37 +377,24 @@ fn rotate_added_cubes(scene: &mut Scene, first_cube: usize, origin: Vec3, yaw: f
             normal.z = -old_x * sine + old_z * cosine;
         }
     }
+    for ellipsoid in &mut scene.ellipsoids[first_ellipsoid..] {
+        let local = ellipsoid.center - origin;
+        ellipsoid.center = origin
+            + Vec3::new(
+                local.x * cosine + local.z * sine,
+                local.y,
+                -local.x * sine + local.z * cosine,
+            );
+    }
 }
 
 fn add_ellipsoid(scene: &mut Scene, center: Vec3, radii: Vec3, cell: f32, material: usize) {
-    let nx = (radii.x / cell).ceil() as i32;
-    let ny = (radii.y / cell).ceil() as i32;
-    let nz = (radii.z / cell).ceil() as i32;
-    let shell = (cell / radii.x.min(radii.y).min(radii.z)).clamp(0.12, 0.48) * 2.2;
-
-    for ix in -nx..=nx {
-        for iy in -ny..=ny {
-            for iz in -nz..=nz {
-                let offset = Vec3::new(ix as f32 * cell, iy as f32 * cell, iz as f32 * cell);
-                let q = Vec3::new(offset.x / radii.x, offset.y / radii.y, offset.z / radii.z);
-                let distance = q.dot(q);
-                if distance <= 1.0 && distance >= 1.0 - shell {
-                    let normal = Vec3::new(
-                        offset.x / (radii.x * radii.x),
-                        offset.y / (radii.y * radii.y),
-                        offset.z / (radii.z * radii.z),
-                    )
-                    .normalized();
-                    scene.cubes.push(Cube {
-                        min: center + offset - Vec3::new(cell, cell, cell) * 0.52,
-                        max: center + offset + Vec3::new(cell, cell, cell) * 0.52,
-                        material,
-                        smooth_normal: Some(normal),
-                    });
-                }
-            }
-        }
-    }
+    let _detail_hint = cell;
+    scene.ellipsoids.push(Ellipsoid {
+        center,
+        radii,
+        material,
+    });
 }
 
 fn add_segment(scene: &mut Scene, start: Vec3, end: Vec3, thickness: f32, material: usize) {

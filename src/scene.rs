@@ -9,8 +9,16 @@ pub struct Cube {
     pub smooth_normal: Option<Vec3>,
 }
 
+#[derive(Clone, Copy)]
+pub struct Ellipsoid {
+    pub center: Vec3,
+    pub radii: Vec3,
+    pub material: usize,
+}
+
 pub struct Scene {
     pub cubes: Vec<Cube>,
+    pub ellipsoids: Vec<Ellipsoid>,
     pub materials: Vec<Material>,
     pub light_dir: Vec3,
     pub light_color: Color,

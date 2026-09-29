@@ -1,22 +1,23 @@
 # Proyecto 2: Diorama con Raytracing
 
-Diorama voxel inspirado en la llegada de Naruto en Modo Sabio durante la invasion de Pain. El proyecto esta escrito en Rust puro, sin librerias externas, e implementa un raytracer desde cero.
+Diorama hibrido inspirado en la llegada de Naruto en Modo Sabio durante la invasion de Pain. El proyecto esta escrito en Rust puro, sin librerias externas, e implementa un raytracer desde cero con cubos texturizados y elipsoides analiticos.
 
 La escena muestra Konoha destruida, el crater de la aldea, Monte Hokage y las invocaciones Gamabunta, Gamaken y Gamahiro. Gamakichi se encuentra sobre Gamabunta, Naruto esta sobre Gamakichi con su traje de Modo Sabio y los Seis Caminos de Pain esperan en el borde del crater.
 
 ## Caracteristicas
 
 - Diorama construido con cubos texturizados proceduralmente.
-- Camara tipo dron con orbita de 360 grados, acercamiento, altura y direccion de mirada mediante el mouse.
+- Elipsoides matematicos para superficies organicas continuas en sapos, humanos, ojos, cabello y humo.
+- Camara tipo dron elevada con orbita de 360 grados, amplio rango vertical, acercamiento y direccion de mirada mediante el mouse.
 - BVH para acelerar la interseccion de miles de cubos.
 - Renderizado paralelo usando los nucleos disponibles del procesador.
 - Sombras suaves, iluminacion difusa, brillo especular y niebla atmosferica.
 - Reflexion en armas, protectores y superficies metalicas.
 - Refraccion y transparencia en chakra, humo y nubes de invocacion.
 - Skybox procedural con horizonte, sol y nubes.
-- Konoha destruida en 360 grados con terreno continuo, crater profundo escalonado, barrios derrumbados, bosque, cordillera, torres y puertas.
+- Konoha destruida en 360 grados dentro de un socavon de cinco terrazas que abarca toda la aldea, rodeado por bosque, cordillera y Monte Hokage.
 - Monte Hokage integrado en una montana distante con cinco rostros tallados y rasgos individuales.
-- Personajes modelados con volumen completo, haori posterior y detalles visibles desde diferentes angulos.
+- Personajes modelados con formas suaves, cubos de detalle, volumen completo, rasgos faciales, ropa segmentada y accesorios visibles desde diferentes angulos.
 - Escala narrativa reforzada: las tres invocaciones principales dominan el crater, Gamakichi conserva una escala juvenil y los humanos permanecen pequenos.
 - Sello de invocacion refractivo alrededor de la escena principal.
 
@@ -138,6 +139,7 @@ Los cuadros se guardan en `frames/` con numeracion consecutiva. Primero conviene
 - **Transparencia:** el humo de invocacion y el polvo dejan ver parcialmente la escena posterior.
 - **Sombras:** cada punto consulta visibilidad hacia varias muestras de la luz para producir bordes suaves.
 - **Skybox:** el cielo procedural incluye horizonte, sol, resplandor, nubes altas y polvo atmosferico.
+- **Formas mixtas:** cubos y elipsoides comparten texturas, iluminacion, sombras y rayos secundarios dentro del mismo trazador.
 
 ## Opciones
 
