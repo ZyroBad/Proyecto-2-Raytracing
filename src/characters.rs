@@ -1,11 +1,12 @@
 use crate::math::Vec3;
-use crate::scene::{Capsule, Cube, Ellipsoid, Scene};
+use crate::scene::{Capsule, Cube, Ellipsoid, Scene, Triangle};
 use std::f32::consts::PI;
 
 pub fn add_gamabunta(scene: &mut Scene, base: Vec3) {
     let first_cube = scene.cubes.len();
     let first_ellipsoid = scene.ellipsoids.len();
     let first_capsule = scene.capsules.len();
+    let first_triangle = scene.triangles.len();
     let skin = 2;
     let robe = 5;
     let pale = 15;
@@ -22,12 +23,12 @@ pub fn add_gamabunta(scene: &mut Scene, base: Vec3) {
             skin,
         );
     }
-    add_voxel_ellipsoid(
+    add_sculpted_toad_volume(
         scene,
         base + Vec3::new(0.0, 2.75, -0.05),
-        Vec3::new(3.05, 2.05, 1.72),
-        0.34,
+        Vec3::new(3.34, 1.92, 1.78),
         skin,
+        SculptProfile::body(0.16, 0.045),
     );
     add_voxel_ellipsoid(
         scene,
@@ -45,41 +46,25 @@ pub fn add_gamabunta(scene: &mut Scene, base: Vec3) {
             robe,
         );
     }
-    add_voxel_ellipsoid(
+    add_sculpted_toad_volume(
         scene,
-        base + Vec3::new(0.0, 5.78, 0.48),
-        Vec3::new(3.05, 1.38, 1.52),
-        0.30,
+        base + Vec3::new(0.0, 5.66, 0.48),
+        Vec3::new(3.36, 1.32, 1.56),
         skin,
+        SculptProfile::head(0.56, 0.28, 0.065),
     );
-    add_voxel_ellipsoid(
-        scene,
-        base + Vec3::new(0.0, 6.86, 0.30),
-        Vec3::new(2.28, 0.48, 1.08),
-        0.28,
-        skin,
-    );
-    for side in [-1.0, 1.0] {
-        add_voxel_ellipsoid(
-            scene,
-            base + Vec3::new(side * 2.78, 5.62, 0.58),
-            Vec3::new(0.48, 0.82, 1.08),
-            0.26,
-            skin,
-        );
-    }
     add_voxel_ellipsoid(
         scene,
         base + Vec3::new(0.0, 5.25, 1.84),
-        Vec3::new(2.22, 0.62, 0.52),
+        Vec3::new(2.52, 0.68, 0.56),
         0.25,
         skin,
     );
     for side in [-1.0, 1.0] {
         add_voxel_ellipsoid(
             scene,
-            base + Vec3::new(side * 1.48, 6.30, 1.87),
-            Vec3::new(0.58, 0.38, 0.20),
+            base + Vec3::new(side * 1.56, 6.20, 1.89),
+            Vec3::new(0.43, 0.25, 0.17),
             0.16,
             eye,
         );
@@ -88,7 +73,7 @@ pub fn add_gamabunta(scene: &mut Scene, base: Vec3) {
             base + Vec3::new(side * 0.92, 6.58, 2.02),
             base + Vec3::new(side * 2.00, 6.72, 1.92),
             0.18,
-            ink,
+            skin,
         );
     }
     add_block(
@@ -198,6 +183,16 @@ pub fn add_gamabunta(scene: &mut Scene, base: Vec3) {
         rope,
     );
     add_gamabunta_details(scene, base, skin, robe, pale, ink, eye, 6);
+    add_mature_toad_face(
+        scene,
+        base,
+        skin,
+        ink,
+        6.20,
+        1.56,
+        2.08,
+        ToadFaceStyle::Scarred,
+    );
     add_gamabunta_limbs(scene, base, skin);
     add_toad_haori_back(
         scene,
@@ -213,6 +208,7 @@ pub fn add_gamabunta(scene: &mut Scene, base: Vec3) {
         first_cube,
         first_ellipsoid,
         first_capsule,
+        first_triangle,
         base,
         Vec3::new(1.78, 1.92, 1.78),
     );
@@ -222,6 +218,7 @@ pub fn add_gamaken(scene: &mut Scene, base: Vec3) {
     let first_cube = scene.cubes.len();
     let first_ellipsoid = scene.ellipsoids.len();
     let first_capsule = scene.capsules.len();
+    let first_triangle = scene.triangles.len();
     let skin = 3;
     let robe = 5;
     let pale = 15;
@@ -238,12 +235,12 @@ pub fn add_gamaken(scene: &mut Scene, base: Vec3) {
             skin,
         );
     }
-    add_voxel_ellipsoid(
+    add_sculpted_toad_volume(
         scene,
         base + Vec3::new(0.0, 2.65, -0.05),
-        Vec3::new(2.35, 1.90, 1.42),
-        0.30,
+        Vec3::new(2.62, 1.78, 1.52),
         skin,
+        SculptProfile::body(0.22, 0.070),
     );
     add_voxel_ellipsoid(
         scene,
@@ -261,41 +258,25 @@ pub fn add_gamaken(scene: &mut Scene, base: Vec3) {
             robe,
         );
     }
-    add_voxel_ellipsoid(
+    add_sculpted_toad_volume(
         scene,
-        base + Vec3::new(0.0, 5.40, 0.48),
-        Vec3::new(2.26, 1.23, 1.34),
-        0.27,
+        base + Vec3::new(0.0, 5.28, 0.48),
+        Vec3::new(2.58, 1.20, 1.40),
         skin,
+        SculptProfile::head(0.62, 0.24, 0.095),
     );
-    add_voxel_ellipsoid(
-        scene,
-        base + Vec3::new(0.0, 6.42, 0.28),
-        Vec3::new(1.68, 0.43, 0.94),
-        0.25,
-        skin,
-    );
-    for side in [-1.0, 1.0] {
-        add_voxel_ellipsoid(
-            scene,
-            base + Vec3::new(side * 2.08, 5.30, 0.55),
-            Vec3::new(0.42, 0.72, 0.92),
-            0.23,
-            skin,
-        );
-    }
     add_voxel_ellipsoid(
         scene,
         base + Vec3::new(0.0, 4.95, 1.63),
-        Vec3::new(1.65, 0.56, 0.48),
+        Vec3::new(1.92, 0.62, 0.51),
         0.23,
         skin,
     );
     for side in [-1.0, 1.0] {
         add_voxel_ellipsoid(
             scene,
-            base + Vec3::new(side * 1.08, 5.86, 1.69),
-            Vec3::new(0.44, 0.31, 0.18),
+            base + Vec3::new(side * 1.16, 5.78, 1.72),
+            Vec3::new(0.34, 0.22, 0.15),
             0.14,
             eye,
         );
@@ -304,7 +285,7 @@ pub fn add_gamaken(scene: &mut Scene, base: Vec3) {
             base + Vec3::new(side * 0.70, 6.10, 1.78),
             base + Vec3::new(side * 1.50, 6.25, 1.65),
             0.16,
-            ink,
+            skin,
         );
     }
     add_block(
@@ -395,6 +376,16 @@ pub fn add_gamaken(scene: &mut Scene, base: Vec3) {
         skin,
     );
     add_gamaken_details(scene, base, skin, robe, pale, ink, eye);
+    add_mature_toad_face(
+        scene,
+        base,
+        skin,
+        ink,
+        5.78,
+        1.16,
+        1.98,
+        ToadFaceStyle::Warty,
+    );
     add_gamaken_limbs(scene, base, skin, metal);
     add_toad_haori_back(
         scene,
@@ -410,8 +401,18 @@ pub fn add_gamaken(scene: &mut Scene, base: Vec3) {
         first_cube,
         first_ellipsoid,
         first_capsule,
+        first_triangle,
         base,
         Vec3::new(1.78, 1.92, 1.78),
+    );
+    rotate_added_geometry(
+        scene,
+        first_cube,
+        first_ellipsoid,
+        first_capsule,
+        first_triangle,
+        base,
+        0.10,
     );
 }
 
@@ -419,6 +420,7 @@ pub fn add_gamahiro(scene: &mut Scene, base: Vec3) {
     let first_cube = scene.cubes.len();
     let first_ellipsoid = scene.ellipsoids.len();
     let first_capsule = scene.capsules.len();
+    let first_triangle = scene.triangles.len();
     let skin = 4;
     let robe = 5;
     let orange = 6;
@@ -437,12 +439,12 @@ pub fn add_gamahiro(scene: &mut Scene, base: Vec3) {
             skin,
         );
     }
-    add_voxel_ellipsoid(
+    add_sculpted_toad_volume(
         scene,
         base + Vec3::new(0.0, 2.72, -0.04),
-        Vec3::new(2.50, 1.98, 1.48),
-        0.30,
+        Vec3::new(2.78, 1.86, 1.56),
         skin,
+        SculptProfile::body(0.12, 0.030),
     );
     add_voxel_ellipsoid(
         scene,
@@ -467,41 +469,25 @@ pub fn add_gamahiro(scene: &mut Scene, base: Vec3) {
             robe,
         );
     }
-    add_voxel_ellipsoid(
+    add_sculpted_toad_volume(
         scene,
-        base + Vec3::new(0.0, 5.60, 0.46),
-        Vec3::new(2.38, 1.27, 1.39),
-        0.27,
+        base + Vec3::new(0.0, 5.52, 0.46),
+        Vec3::new(2.70, 1.24, 1.45),
         skin,
+        SculptProfile::head(0.46, 0.20, 0.045),
     );
-    add_voxel_ellipsoid(
-        scene,
-        base + Vec3::new(0.0, 6.66, 0.27),
-        Vec3::new(1.76, 0.44, 0.98),
-        0.25,
-        skin,
-    );
-    for side in [-1.0, 1.0] {
-        add_voxel_ellipsoid(
-            scene,
-            base + Vec3::new(side * 2.18, 5.48, 0.52),
-            Vec3::new(0.44, 0.74, 0.96),
-            0.23,
-            skin,
-        );
-    }
     add_voxel_ellipsoid(
         scene,
         base + Vec3::new(0.0, 5.08, 1.68),
-        Vec3::new(1.72, 0.58, 0.50),
+        Vec3::new(2.02, 0.64, 0.53),
         0.23,
         skin,
     );
     for side in [-1.0, 1.0] {
         add_voxel_ellipsoid(
             scene,
-            base + Vec3::new(side * 1.13, 6.03, 1.74),
-            Vec3::new(0.46, 0.32, 0.18),
+            base + Vec3::new(side * 1.22, 5.98, 1.77),
+            Vec3::new(0.35, 0.22, 0.15),
             0.14,
             eye,
         );
@@ -510,7 +496,7 @@ pub fn add_gamahiro(scene: &mut Scene, base: Vec3) {
             base + Vec3::new(side * 0.74, 6.28, 1.82),
             base + Vec3::new(side * 1.56, 6.40, 1.68),
             0.16,
-            robe,
+            skin,
         );
     }
     add_block(
@@ -591,6 +577,16 @@ pub fn add_gamahiro(scene: &mut Scene, base: Vec3) {
         robe,
     );
     add_gamahiro_details(scene, base, skin, pale, ink, eye, orange, 22);
+    add_mature_toad_face(
+        scene,
+        base,
+        skin,
+        ink,
+        5.98,
+        1.22,
+        2.03,
+        ToadFaceStyle::Stern,
+    );
     add_gamahiro_limbs(scene, base, skin);
     add_toad_haori_back(
         scene,
@@ -606,8 +602,18 @@ pub fn add_gamahiro(scene: &mut Scene, base: Vec3) {
         first_cube,
         first_ellipsoid,
         first_capsule,
+        first_triangle,
         base,
         Vec3::new(1.78, 1.92, 1.78),
+    );
+    rotate_added_geometry(
+        scene,
+        first_cube,
+        first_ellipsoid,
+        first_capsule,
+        first_triangle,
+        base,
+        -0.10,
     );
 }
 
@@ -861,34 +867,181 @@ fn add_gamahiro_details(
     }
 }
 
+#[derive(Clone, Copy)]
+enum ToadFaceStyle {
+    Scarred,
+    Warty,
+    Stern,
+}
+
+fn add_mature_toad_face(
+    scene: &mut Scene,
+    base: Vec3,
+    skin: usize,
+    ink: usize,
+    eye_y: f32,
+    eye_x: f32,
+    front_z: f32,
+    style: ToadFaceStyle,
+) {
+    // Heavy asymmetric eyelids reduce the round mascot-like eyes and create a stern gaze.
+    for side in [-1.0, 1.0] {
+        add_voxel_segment(
+            scene,
+            base + Vec3::new(side * 0.48, eye_y + 0.08, front_z + 0.01),
+            base + Vec3::new(side * (eye_x + 0.62), eye_y + 0.42, front_z - 0.03),
+            0.25,
+            skin,
+        );
+        add_voxel_segment(
+            scene,
+            base + Vec3::new(side * 0.72, eye_y - 0.24, front_z + 0.02),
+            base + Vec3::new(side * (eye_x + 0.42), eye_y - 0.18, front_z - 0.02),
+            0.14,
+            skin,
+        );
+        add_voxel_ellipsoid(
+            scene,
+            base + Vec3::new(side * (eye_x + 0.88), eye_y - 0.88, front_z - 0.28),
+            Vec3::new(0.74, 0.76, 0.34),
+            0.14,
+            skin,
+        );
+    }
+
+    // Nostrils, double mouth fold and hanging jaw give the face weight at close range.
+    for side in [-1.0, 1.0] {
+        add_voxel_ellipsoid(
+            scene,
+            base + Vec3::new(side * 0.62, eye_y - 0.75, front_z + 0.20),
+            Vec3::new(0.16, 0.10, 0.055),
+            0.06,
+            ink,
+        );
+    }
+    add_voxel_curve(
+        scene,
+        base + Vec3::new(-2.02, eye_y - 1.34, front_z + 0.08),
+        base + Vec3::new(0.0, eye_y - 1.62, front_z + 0.15),
+        base + Vec3::new(2.02, eye_y - 1.34, front_z + 0.08),
+        0.12,
+        ink,
+    );
+    add_voxel_curve(
+        scene,
+        base + Vec3::new(-1.55, eye_y - 1.55, front_z),
+        base + Vec3::new(0.0, eye_y - 1.76, front_z + 0.06),
+        base + Vec3::new(1.55, eye_y - 1.55, front_z),
+        0.065,
+        ink,
+    );
+
+    let warts = match style {
+        ToadFaceStyle::Scarred => [
+            (-2.34, 0.34, 0.22),
+            (-1.82, 0.78, 0.16),
+            (0.12, 0.88, 0.18),
+            (2.18, 0.52, 0.20),
+            (2.55, -0.18, 0.15),
+            (-2.62, -0.26, 0.17),
+        ],
+        ToadFaceStyle::Warty => [
+            (-1.98, 0.48, 0.24),
+            (-1.46, 0.96, 0.18),
+            (-0.18, 0.78, 0.20),
+            (1.14, 0.92, 0.17),
+            (1.94, 0.38, 0.22),
+            (2.18, -0.38, 0.16),
+        ],
+        ToadFaceStyle::Stern => [
+            (-2.18, 0.16, 0.17),
+            (-1.70, 0.72, 0.14),
+            (-0.30, 0.92, 0.15),
+            (0.72, 0.82, 0.13),
+            (1.84, 0.56, 0.16),
+            (2.28, -0.22, 0.14),
+        ],
+    };
+    for (x, y, radius) in warts {
+        add_voxel_ellipsoid(
+            scene,
+            base + Vec3::new(x, eye_y + y, front_z - 0.02),
+            Vec3::new(radius, radius * 0.78, radius * 0.55),
+            0.07,
+            skin,
+        );
+    }
+
+    match style {
+        ToadFaceStyle::Scarred => {
+            add_voxel_segment(
+                scene,
+                base + Vec3::new(0.70, eye_y + 0.58, front_z + 0.10),
+                base + Vec3::new(0.42, eye_y - 0.08, front_z + 0.16),
+                0.075,
+                ink,
+            );
+            add_voxel_segment(
+                scene,
+                base + Vec3::new(0.42, eye_y - 0.08, front_z + 0.16),
+                base + Vec3::new(0.86, eye_y - 0.62, front_z + 0.12),
+                0.065,
+                ink,
+            );
+        }
+        ToadFaceStyle::Warty => {
+            for side in [-1.0, 1.0] {
+                add_voxel_ellipsoid(
+                    scene,
+                    base + Vec3::new(side * 1.78, eye_y + 0.68, front_z - 0.20),
+                    Vec3::new(0.30, 0.46, 0.26),
+                    0.10,
+                    skin,
+                );
+            }
+        }
+        ToadFaceStyle::Stern => {
+            for side in [-1.0, 1.0] {
+                add_voxel_segment(
+                    scene,
+                    base + Vec3::new(side * 1.70, eye_y - 0.64, front_z + 0.03),
+                    base + Vec3::new(side * 2.18, eye_y - 1.18, front_z - 0.08),
+                    0.10,
+                    skin,
+                );
+            }
+        }
+    }
+}
+
 fn add_gamabunta_limbs(scene: &mut Scene, base: Vec3, skin: usize) {
     for side in [-1.0, 1.0] {
         add_voxel_ellipsoid(
             scene,
-            base + Vec3::new(side * 2.92, 3.42, 0.46),
-            Vec3::new(0.72, 1.22, 0.78),
+            base + Vec3::new(side * 3.00, 3.42, 0.72),
+            Vec3::new(0.84, 1.28, 0.88),
             0.28,
             skin,
         );
         add_voxel_ellipsoid(
             scene,
-            base + Vec3::new(side * 3.10, 2.18, 1.08),
-            Vec3::new(0.62, 0.86, 0.76),
+            base + Vec3::new(side * 3.18, 2.12, 1.36),
+            Vec3::new(0.70, 0.92, 0.84),
             0.26,
             skin,
         );
         add_voxel_ellipsoid(
             scene,
-            base + Vec3::new(side * 3.00, 1.34, 1.82),
-            Vec3::new(0.90, 0.42, 0.72),
+            base + Vec3::new(side * 3.06, 1.24, 2.02),
+            Vec3::new(1.02, 0.46, 0.80),
             0.24,
             skin,
         );
         for finger in [-0.48, 0.0, 0.48] {
             add_voxel_segment(
                 scene,
-                base + Vec3::new(side * 3.00 + finger, 1.20, 2.10),
-                base + Vec3::new(side * 3.00 + finger, 0.92, 2.82),
+                base + Vec3::new(side * 3.06 + finger, 1.10, 2.28),
+                base + Vec3::new(side * 3.06 + finger, 0.82, 3.10),
                 0.24,
                 skin,
             );
@@ -992,6 +1145,7 @@ pub fn add_gamakichi(scene: &mut Scene, base: Vec3) {
     let first_cube = scene.cubes.len();
     let first_ellipsoid = scene.ellipsoids.len();
     let first_capsule = scene.capsules.len();
+    let first_triangle = scene.triangles.len();
     let skin = 23;
     let robe = 5;
     let pale = 15;
@@ -1117,6 +1271,7 @@ pub fn add_gamakichi(scene: &mut Scene, base: Vec3) {
         first_cube,
         first_ellipsoid,
         first_capsule,
+        first_triangle,
         base,
         Vec3::new(1.32, 1.45, 1.32),
     );
@@ -1187,6 +1342,7 @@ pub fn add_naruto_sage(scene: &mut Scene, base: Vec3) {
     let first_cube = scene.cubes.len();
     let first_ellipsoid = scene.ellipsoids.len();
     let first_capsule = scene.capsules.len();
+    let first_triangle = scene.triangles.len();
     let orange = 6;
     let cloak = 7;
     let skin = 8;
@@ -1466,6 +1622,11 @@ pub fn add_naruto_sage(scene: &mut Scene, base: Vec3) {
         capsule.end = base + (capsule.end - base) * NARUTO_SCALE;
         capsule.radius *= NARUTO_SCALE;
     }
+    for triangle in &mut scene.triangles[first_triangle..] {
+        for vertex in &mut triangle.vertices {
+            *vertex = base + (*vertex - base) * NARUTO_SCALE;
+        }
+    }
 }
 
 fn add_naruto_costume_details(
@@ -1596,18 +1757,26 @@ fn add_naruto_costume_details(
 pub fn add_summoning_clouds(scene: &mut Scene) {
     add_summoning_seal(scene);
 
-    for (x, z, scale) in [
-        (-10.0, 2.8, 1.2),
-        (-7.0, 3.5, 1.4),
-        (-3.8, 3.8, 1.15),
-        (0.0, 4.0, 1.45),
-        (3.7, 3.7, 1.2),
-        (7.0, 3.4, 1.4),
-        (10.0, 2.7, 1.2),
-        (-9.4, -2.5, 0.9),
-        (9.4, -2.5, 0.9),
+    for (x, y, z, scale) in [
+        (-10.0, 0.65, 2.8, 1.2),
+        (-7.0, 0.65, 3.5, 1.4),
+        (-3.8, 0.65, 3.8, 1.15),
+        (0.0, 0.65, 4.0, 1.45),
+        (3.7, 0.65, 3.7, 1.2),
+        (7.0, 0.65, 3.4, 1.4),
+        (10.0, 0.65, 2.7, 1.2),
+        (-9.4, 0.65, -2.5, 0.9),
+        (9.4, 0.65, -2.5, 0.9),
+        (-12.2, 1.00, 4.1, 1.20),
+        (-8.8, 1.10, 5.1, 1.35),
+        (-5.1, 1.20, 5.5, 1.42),
+        (-1.8, 1.05, 5.8, 1.28),
+        (1.7, 1.12, 5.7, 1.34),
+        (5.2, 1.18, 5.4, 1.40),
+        (8.9, 1.08, 4.9, 1.34),
+        (12.1, 0.98, 4.0, 1.18),
     ] {
-        add_cloud_cluster(scene, Vec3::new(x, 0.65, z), scale);
+        add_cloud_cluster(scene, Vec3::new(x, y, z), scale);
     }
 }
 
@@ -1650,6 +1819,125 @@ fn add_cloud_cluster(scene: &mut Scene, base: Vec3, scale: f32) {
     ] {
         add_voxel_ellipsoid(scene, base + offset * scale, radii * scale, 0.28 * scale, 1);
     }
+}
+
+#[derive(Clone, Copy)]
+struct SculptProfile {
+    jaw: f32,
+    muzzle: f32,
+    asymmetry: f32,
+    lower_weight: f32,
+}
+
+impl SculptProfile {
+    fn body(lower_weight: f32, asymmetry: f32) -> Self {
+        Self {
+            jaw: 0.08,
+            muzzle: 0.04,
+            asymmetry,
+            lower_weight,
+        }
+    }
+
+    fn head(jaw: f32, muzzle: f32, asymmetry: f32) -> Self {
+        Self {
+            jaw,
+            muzzle,
+            asymmetry,
+            lower_weight: 0.10,
+        }
+    }
+}
+
+fn add_sculpted_toad_volume(
+    scene: &mut Scene,
+    center: Vec3,
+    radii: Vec3,
+    material: usize,
+    profile: SculptProfile,
+) {
+    const LATITUDE_STEPS: usize = 16;
+    const LONGITUDE_STEPS: usize = 30;
+    let row = LONGITUDE_STEPS + 1;
+    let mut vertices = Vec::with_capacity((LATITUDE_STEPS + 1) * row);
+
+    for latitude in 0..=LATITUDE_STEPS {
+        let v = -PI * 0.5 + PI * latitude as f32 / LATITUDE_STEPS as f32;
+        let vertical = v.sin();
+        let ring = v.cos();
+        for longitude in 0..=LONGITUDE_STEPS {
+            let u = 2.0 * PI * longitude as f32 / LONGITUDE_STEPS as f32;
+            let unit = Vec3::new(ring * u.cos(), vertical, ring * u.sin());
+            let front = unit.z.max(0.0).powf(1.35);
+            let lower = (-unit.y).max(0.0).powf(1.25);
+            let upper = unit.y.max(0.0);
+            let jaw_width = 1.0 + profile.jaw * front * lower;
+            let weighted_base = 1.0 + profile.lower_weight * lower * (1.0 - front * 0.25);
+            let uneven = 1.0
+                + profile.asymmetry
+                    * (unit.x * 4.7 + unit.y * 3.1 + unit.z * 2.3).sin()
+                    * (0.35 + front * 0.65);
+            let flattened_y = unit.y.signum() * unit.y.abs().powf(0.88);
+            let local = Vec3::new(
+                unit.x * radii.x * jaw_width * weighted_base * uneven,
+                flattened_y * radii.y * (1.0 - upper * 0.05 + lower * 0.04),
+                unit.z * radii.z * (1.0 + profile.muzzle * front * (0.70 + lower * 0.30)),
+            );
+            vertices.push(center + local);
+        }
+    }
+
+    let mut faces = Vec::with_capacity(LATITUDE_STEPS * LONGITUDE_STEPS * 2);
+    let mut normals = vec![Vec3::default(); vertices.len()];
+    for latitude in 0..LATITUDE_STEPS {
+        for longitude in 0..LONGITUDE_STEPS {
+            let a = latitude * row + longitude;
+            let b = a + 1;
+            let c = a + row;
+            let d = c + 1;
+            add_sculpted_face(&vertices, &mut normals, &mut faces, center, [a, c, b]);
+            add_sculpted_face(&vertices, &mut normals, &mut faces, center, [b, c, d]);
+        }
+    }
+
+    for (index, normal) in normals.iter_mut().enumerate() {
+        if normal.length() < 0.0001 {
+            *normal = (vertices[index] - center).normalized();
+        } else {
+            *normal = normal.normalized();
+        }
+    }
+    for face in faces {
+        scene.triangles.push(Triangle {
+            vertices: [vertices[face[0]], vertices[face[1]], vertices[face[2]]],
+            normals: [normals[face[0]], normals[face[1]], normals[face[2]]],
+            material,
+        });
+    }
+}
+
+fn add_sculpted_face(
+    vertices: &[Vec3],
+    normals: &mut [Vec3],
+    faces: &mut Vec<[usize; 3]>,
+    center: Vec3,
+    mut face: [usize; 3],
+) {
+    let mut normal =
+        (vertices[face[1]] - vertices[face[0]]).cross(vertices[face[2]] - vertices[face[0]]);
+    let face_center = (vertices[face[0]] + vertices[face[1]] + vertices[face[2]]) / 3.0;
+    if normal.dot(face_center - center) < 0.0 {
+        face.swap(1, 2);
+        normal = -normal;
+    }
+    if normal.length() < 0.000_001 {
+        return;
+    }
+    let normal = normal.normalized();
+    for index in face {
+        normals[index] += normal;
+    }
+    faces.push(face);
 }
 
 fn add_voxel_ellipsoid(scene: &mut Scene, center: Vec3, radii: Vec3, cell: f32, material: usize) {
@@ -1709,6 +1997,7 @@ fn scale_added_geometry(
     first_cube: usize,
     first_ellipsoid: usize,
     first_capsule: usize,
+    first_triangle: usize,
     origin: Vec3,
     scale: Vec3,
 ) {
@@ -1725,5 +2014,69 @@ fn scale_added_geometry(
         capsule.start = origin + (capsule.start - origin).hadamard(scale);
         capsule.end = origin + (capsule.end - origin).hadamard(scale);
         capsule.radius *= radius_scale;
+    }
+    for triangle in &mut scene.triangles[first_triangle..] {
+        for vertex in &mut triangle.vertices {
+            *vertex = origin + (*vertex - origin).hadamard(scale);
+        }
+        for normal in &mut triangle.normals {
+            *normal =
+                Vec3::new(normal.x / scale.x, normal.y / scale.y, normal.z / scale.z).normalized();
+        }
+    }
+}
+
+fn rotate_added_geometry(
+    scene: &mut Scene,
+    first_cube: usize,
+    first_ellipsoid: usize,
+    first_capsule: usize,
+    first_triangle: usize,
+    origin: Vec3,
+    yaw: f32,
+) {
+    let cosine = yaw.cos();
+    let sine = yaw.sin();
+    let rotate_point = |point: Vec3| {
+        let local = point - origin;
+        origin
+            + Vec3::new(
+                local.x * cosine + local.z * sine,
+                local.y,
+                -local.x * sine + local.z * cosine,
+            )
+    };
+    let rotate_normal = |normal: Vec3| {
+        Vec3::new(
+            normal.x * cosine + normal.z * sine,
+            normal.y,
+            -normal.x * sine + normal.z * cosine,
+        )
+        .normalized()
+    };
+
+    for cube in &mut scene.cubes[first_cube..] {
+        let center = rotate_point((cube.min + cube.max) * 0.5);
+        let half_size = (cube.max - cube.min) * 0.5;
+        cube.min = center - half_size;
+        cube.max = center + half_size;
+        if let Some(normal) = &mut cube.smooth_normal {
+            *normal = rotate_normal(*normal);
+        }
+    }
+    for ellipsoid in &mut scene.ellipsoids[first_ellipsoid..] {
+        ellipsoid.center = rotate_point(ellipsoid.center);
+    }
+    for capsule in &mut scene.capsules[first_capsule..] {
+        capsule.start = rotate_point(capsule.start);
+        capsule.end = rotate_point(capsule.end);
+    }
+    for triangle in &mut scene.triangles[first_triangle..] {
+        for vertex in &mut triangle.vertices {
+            *vertex = rotate_point(*vertex);
+        }
+        for normal in &mut triangle.normals {
+            *normal = rotate_normal(*normal);
+        }
     }
 }

@@ -67,6 +67,7 @@ fn print_scene_summary(scene: &Scene) {
     println!("Cubos: {}", scene.cubes.len());
     println!("Elipsoides: {}", scene.ellipsoids.len());
     println!("Capsulas: {}", scene.capsules.len());
+    println!("Triangulos: {}", scene.triangles.len());
     println!("Materiales: {}", scene.materials.len());
     println!("Efectos: sombras, specular, reflexion, refraccion y skybox procedural");
 }
@@ -141,7 +142,7 @@ fn render_to_file(scene: &Scene, cfg: &Config, frame: usize, path: &str) -> std:
 }
 
 fn render_pixels(scene: &Scene, cfg: &Config, frame: usize) -> Vec<Color> {
-    let bvh = Bvh::build(&scene.cubes);
+    let bvh = Bvh::build(&scene.cubes, &scene.triangles);
     render_pixels_with_bvh(scene, &bvh, cfg, frame)
 }
 
@@ -153,15 +154,20 @@ fn render_pixels_with_bvh(scene: &Scene, bvh: &Bvh, cfg: &Config, frame: usize) 
         .map(|a| a.to_radians())
         .unwrap_or(t * 2.0 * PI + PI * 0.5);
     let zoom_wave = (t * 2.0 * PI).sin() * 0.18;
-    let radius = (33.0 - zoom_wave * 5.5) / cfg.zoom.max(0.35);
+    let base_radius = if cfg.cinematic { 25.5 } else { 33.0 };
+    let base_height = if cfg.cinematic { 5.2 } else { 20.0 };
+    let radius = (base_radius - zoom_wave * 5.5) / cfg.zoom.max(0.35);
     let camera_pos = Vec3::new(
         angle.cos() * radius,
-        20.0 + cfg.elevation + zoom_wave * 2.8,
+        base_height + cfg.elevation + zoom_wave * 2.8,
         angle.sin() * radius,
     );
     let camera_right = Vec3::new(angle.sin(), 0.0, -angle.cos());
-    let camera_target = Vec3::new(0.0, 1.2 + cfg.look_y, -1.0) + camera_right * cfg.look_x;
-    let camera = Camera::look_at(camera_pos, camera_target, 44.0, aspect);
+    let target_height = if cfg.cinematic { 2.0 } else { 1.2 };
+    let camera_target =
+        Vec3::new(0.0, target_height + cfg.look_y, -1.0) + camera_right * cfg.look_x;
+    let field_of_view = if cfg.cinematic { 50.0 } else { 44.0 };
+    let camera = Camera::look_at(camera_pos, camera_target, field_of_view, aspect);
     let mut pixels = vec![Color::default(); cfg.width * cfg.height];
     let worker_count = thread::available_parallelism()
         .map(|count| count.get())
@@ -359,6 +365,9 @@ fn ambient_visibility(scene: &Scene, bvh: &Bvh, point: Vec3, normal: Vec3) -> f3
             .nearest(&scene.cubes, ray)
             .map(|hit| hit.1)
             .unwrap_or(f32::INFINITY);
+        if let Some((_, distance, _)) = bvh.nearest_triangle(&scene.triangles, ray) {
+            nearest = nearest.min(distance);
+        }
         for &ellipsoid in &scene.ellipsoids {
             if let Some((distance, _)) = intersect_ellipsoid(ray, ellipsoid) {
                 nearest = nearest.min(distance);
@@ -397,6 +406,7 @@ fn soft_shadow(
             direction,
         };
         if !bvh.any_hit(&scene.cubes, shadow_ray)
+            && !bvh.any_triangle_hit(&scene.triangles, shadow_ray)
             && !scene
                 .ellipsoids
                 .iter()
@@ -479,6 +489,23 @@ fn intersect_scene(scene: &Scene, bvh: &Bvh, ray: Ray) -> Option<Hit> {
                     distance,
                 });
             }
+        }
+    }
+    if let Some((index, distance, mut normal)) = bvh.nearest_triangle(&scene.triangles, ray) {
+        if normal.dot(ray.direction) > 0.0 {
+            normal = -normal;
+        }
+        if closest
+            .as_ref()
+            .map(|hit| distance < hit.distance)
+            .unwrap_or(true)
+        {
+            closest = Some(Hit {
+                point: ray.at(distance),
+                normal,
+                material: scene.materials[scene.triangles[index].material],
+                distance,
+            });
         }
     }
     closest
@@ -633,6 +660,7 @@ fn build_scene() -> Scene {
         cubes: Vec::new(),
         ellipsoids: Vec::new(),
         capsules: Vec::new(),
+        triangles: Vec::new(),
         materials: scene_materials(),
         light_dir: Vec3::new(0.48, -0.78, -0.34).normalized(),
         light_color: Color::new(1.0, 0.88, 0.68),
@@ -662,11 +690,12 @@ fn build_sage_arrival(scene: &mut Scene) {
     let first_character_cube = scene.cubes.len();
     let first_character_ellipsoid = scene.ellipsoids.len();
     let first_character_capsule = scene.capsules.len();
+    let first_character_triangle = scene.triangles.len();
     add_gamabunta(scene, Vec3::new(0.0, 0.0, -0.3));
     add_gamaken(scene, Vec3::new(-12.4, 0.0, -1.3));
     add_gamahiro(scene, Vec3::new(12.4, 0.0, -1.3));
-    add_gamakichi(scene, Vec3::new(0.0, 14.75, 0.12));
-    add_naruto_sage(scene, Vec3::new(0.0, 19.35, 0.30));
+    add_gamakichi(scene, Vec3::new(0.0, 14.00, 0.12));
+    add_naruto_sage(scene, Vec3::new(0.0, 18.60, 0.30));
     add_summoning_clouds(scene);
     for cube in &mut scene.cubes[first_character_cube..] {
         cube.min.y -= CRATER_DEPTH;
@@ -678,6 +707,11 @@ fn build_sage_arrival(scene: &mut Scene) {
     for capsule in &mut scene.capsules[first_character_capsule..] {
         capsule.start.y -= CRATER_DEPTH;
         capsule.end.y -= CRATER_DEPTH;
+    }
+    for triangle in &mut scene.triangles[first_character_triangle..] {
+        for vertex in &mut triangle.vertices {
+            vertex.y -= CRATER_DEPTH;
+        }
     }
 }
 
@@ -800,6 +834,28 @@ mod tests {
     }
 
     #[test]
+    fn triangle_intersection_interpolates_a_smooth_normal() {
+        let triangle = scene::Triangle {
+            vertices: [
+                Vec3::new(-1.0, -1.0, 0.0),
+                Vec3::new(1.0, -1.0, 0.0),
+                Vec3::new(0.0, 1.0, 0.0),
+            ],
+            normals: [Vec3::new(0.0, 0.0, -1.0); 3],
+            material: 0,
+        };
+        let ray = Ray {
+            origin: Vec3::new(0.0, 0.0, -2.0),
+            direction: Vec3::new(0.0, 0.0, 1.0),
+        };
+        let (distance, normal) =
+            bvh::intersect_triangle(ray, triangle).expect("ray should hit triangle");
+
+        assert_close(distance, 2.0);
+        assert_close(normal.z, -1.0);
+    }
+
+    #[test]
     fn procedural_relief_keeps_a_unit_surface_normal() {
         let material = scene_materials()[17];
         let normal = material.detailed_normal(Vec3::new(1.7, -0.4, 2.2), Vec3::new(0.0, 1.0, 0.0));
@@ -842,12 +898,13 @@ mod tests {
         assert!(!scene.cubes.is_empty());
         assert!(!scene.ellipsoids.is_empty());
         assert!(!scene.capsules.is_empty());
+        assert!(!scene.triangles.is_empty());
     }
 
     #[test]
     fn bvh_matches_brute_force_for_camera_rays() {
         let scene = build_scene();
-        let bvh = Bvh::build(&scene.cubes);
+        let bvh = Bvh::build(&scene.cubes, &scene.triangles);
         let angle = 90.0_f32.to_radians();
         let radius = 25.5 / 0.96;
         let camera = Camera::look_at(

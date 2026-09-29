@@ -24,10 +24,18 @@ pub struct Capsule {
     pub material: usize,
 }
 
+#[derive(Clone, Copy)]
+pub struct Triangle {
+    pub vertices: [Vec3; 3],
+    pub normals: [Vec3; 3],
+    pub material: usize,
+}
+
 pub struct Scene {
     pub cubes: Vec<Cube>,
     pub ellipsoids: Vec<Ellipsoid>,
     pub capsules: Vec<Capsule>,
+    pub triangles: Vec<Triangle>,
     pub materials: Vec<Material>,
     pub light_dir: Vec3,
     pub light_color: Color,

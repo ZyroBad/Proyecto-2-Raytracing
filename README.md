@@ -9,6 +9,7 @@ La escena muestra Konoha destruida, el crater de la aldea, Monte Hokage y las in
 - Diorama construido con cubos texturizados proceduralmente.
 - Elipsoides matematicos para superficies organicas continuas en sapos, humanos, ojos, cabello y humo.
 - Capsulas matematicas para extremidades, dedos, armas, cuerdas y lineas curvas sin escalones de voxeles.
+- Mallas organicas de 5,400 triangulos con normales interpoladas y BVH propio para las cabezas y torsos esculpidos de los sapos.
 - Camara tipo dron elevada con orbita de 360 grados, amplio rango vertical, acercamiento y direccion de mirada mediante el mouse.
 - BVH para acelerar la interseccion de miles de cubos.
 - Renderizado paralelo usando los nucleos disponibles del procesador.
@@ -20,14 +21,16 @@ La escena muestra Konoha destruida, el crater de la aldea, Monte Hokage y las in
 - Konoha destruida en 360 grados dentro de un socavon de cinco terrazas que abarca toda la aldea, rodeado por bosque, cordillera y Monte Hokage.
 - Monte Hokage integrado en una montana distante con cinco rostros tallados y rasgos individuales.
 - Personajes modelados con formas suaves, cubos de detalle, volumen completo, rasgos faciales, ropa segmentada y accesorios visibles desde diferentes angulos.
+- Sapos redisenados con anatomia pesada y asimetrica: mandibulas anchas, ojos hundidos, parpados inclinados, papadas, verrugas, cicatrices, pliegues y extremidades apoyadas hacia el frente.
+- Humo de invocacion distribuido en varias profundidades para integrar las patas con el terreno y reforzar la escala desde camaras bajas.
 - Escala narrativa reforzada: las tres invocaciones principales son mas anchas y especialmente mas altas para dominar el crater, Gamakichi conserva una escala juvenil y los humanos permanecen pequenos.
 - Sello de invocacion refractivo alrededor de la escena principal.
 
 ## Personajes
 
-- **Gamabunta:** sapo gigante rojizo con escamas, cresta, haori, pipa y vientre segmentado.
-- **Gamaken:** sapo magenta con patron moteado, haori y sasumata metalico.
-- **Gamahiro:** sapo celeste con escamas acuaticas, mascara ocular y dos espadas.
+- **Gamabunta:** sapo gigante rojizo de mandibula pesada, rostro cicatrizado, escamas, haori, pipa y vientre segmentado.
+- **Gamaken:** sapo magenta robusto con protuberancias faciales, patron moteado, haori y sasumata metalico.
+- **Gamahiro:** sapo celeste alto de expresion severa, escamas acuaticas, mascara ocular y dos espadas.
 - **Gamakichi:** sapo naranja juvenil con escamas pequenas y chaleco azul.
 - **Naruto:** Modo Sabio con capa roja, ribete de llamas, traje naranja, pergamino, ojos dorados y protector metalico.
 - **Seis Caminos de Pain:** seis siluetas independientes orientadas hacia los sapos, con capas Akatsuki detalladas por ambos lados, Rinnegan, piercings y peinados diferenciados.
@@ -77,6 +80,12 @@ Render HD final (1280x720, dos muestras por eje y cuatro rebotes):
 
 ```bash
 cargo run --release -- --hd --angle 90 --zoom 0.98 --elevation 2
+```
+
+Encuadre cinematografico desde el interior del crater:
+
+```bash
+cargo run --release -- --hd --cinematic
 ```
 
 El modo `--hd` activa relieve que modifica las normales de iluminacion, sombras de contacto mediante oclusion ambiental, reflejos con dureza propia por material y tone mapping ACES. Es un render de entrega y puede tardar varios minutos; la ventana interactiva desactiva automaticamente estos calculos pesados.
@@ -151,7 +160,7 @@ Los cuadros se guardan en `frames/` con numeracion consecutiva. Primero conviene
 - **Transparencia:** el humo de invocacion y el polvo dejan ver parcialmente la escena posterior.
 - **Sombras:** cada punto consulta visibilidad hacia varias muestras de la luz para producir bordes suaves.
 - **Skybox:** el cielo procedural incluye horizonte, sol, resplandor, nubes altas y polvo atmosferico.
-- **Formas mixtas:** cubos, elipsoides y capsulas comparten texturas, iluminacion, sombras y rayos secundarios dentro del mismo trazador.
+- **Formas mixtas:** cubos, elipsoides, capsulas y mallas triangulares comparten texturas, iluminacion, sombras y rayos secundarios dentro del mismo trazador.
 
 ## Opciones
 
@@ -165,6 +174,7 @@ Los cuadros se guardan en `frames/` con numeracion consecutiva. Primero conviene
 --interactive   abre el control de camara por consola
 --summary       muestra el resumen de la escena
 --hd            activa el render final 1280x720 con efectos avanzados
+--cinematic     usa una camara baja dentro del crater
 --angle N       angulo manual de camara en grados
 --elevation N   desplazamiento vertical de la camara
 --zoom N        acercamiento de camara

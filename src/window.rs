@@ -225,7 +225,7 @@ mod windows {
     pub fn run(scene: &Scene, cfg: &mut Config, render: RenderFunction) -> io::Result<()> {
         configure_preview(cfg);
         cfg.angle_deg = cfg.angle_deg.or(Some(90.0));
-        let bvh = Bvh::build(&scene.cubes);
+        let bvh = Bvh::build(&scene.cubes, &scene.triangles);
 
         unsafe {
             let instance = GetModuleHandleW(null());

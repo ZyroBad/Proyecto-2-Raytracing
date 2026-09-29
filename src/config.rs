@@ -13,6 +13,7 @@ pub struct Config {
     pub window: bool,
     pub summary: bool,
     pub hd: bool,
+    pub cinematic: bool,
     pub angle_deg: Option<f32>,
     pub zoom: f32,
     pub elevation: f32,
@@ -35,6 +36,7 @@ impl Config {
             window: false,
             summary: false,
             hd: false,
+            cinematic: false,
             angle_deg: None,
             zoom: 1.0,
             elevation: 0.0,
@@ -76,6 +78,11 @@ impl Config {
                     cfg.samples_per_axis = 2;
                     cfg.max_depth = 4;
                     cfg.output = "renders/konoha_hd.bmp".to_string();
+                }
+                "--cinematic" => {
+                    cfg.cinematic = true;
+                    cfg.angle_deg = Some(90.0);
+                    cfg.output = "renders/konoha_cinematica.bmp".to_string();
                 }
                 "--angle" => {
                     i += 1;
@@ -133,6 +140,7 @@ fn print_help() {
     println!("  --window        abre la vista interactiva en una ventana nativa");
     println!("  --summary       imprime resumen de escena sin renderizar");
     println!("  --hd            render final 1280x720 con relieve y oclusion ambiental");
+    println!("  --cinematic     camara baja dentro del crater enfocada en los personajes");
     println!("  --angle N       angulo manual de camara en grados");
     println!("  --zoom N        zoom manual, mayor acerca la camara");
     println!("  --elevation N   desplazamiento vertical de la camara");
