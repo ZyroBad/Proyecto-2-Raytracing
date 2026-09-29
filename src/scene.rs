@@ -16,9 +16,18 @@ pub struct Ellipsoid {
     pub material: usize,
 }
 
+#[derive(Clone, Copy)]
+pub struct Capsule {
+    pub start: Vec3,
+    pub end: Vec3,
+    pub radius: f32,
+    pub material: usize,
+}
+
 pub struct Scene {
     pub cubes: Vec<Cube>,
     pub ellipsoids: Vec<Ellipsoid>,
+    pub capsules: Vec<Capsule>,
     pub materials: Vec<Material>,
     pub light_dir: Vec3,
     pub light_color: Color,

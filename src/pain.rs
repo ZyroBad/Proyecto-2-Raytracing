@@ -1,5 +1,5 @@
 use crate::math::Vec3;
-use crate::scene::{Cube, Ellipsoid, Scene};
+use crate::scene::{Capsule, Cube, Ellipsoid, Scene};
 
 const ROBE: usize = 5;
 const CLOUD_RED: usize = 7;
@@ -51,6 +51,7 @@ fn clear_staging_areas(scene: &mut Scene, paths: &[(Vec3, usize); 6]) {
 fn add_path(scene: &mut Scene, base: Vec3, style: usize) {
     let first_cube = scene.cubes.len();
     let first_ellipsoid = scene.ellipsoids.len();
+    let first_capsule = scene.capsules.len();
     let height_scale = match style {
         1 => 0.91,
         4 => 1.05,
@@ -154,6 +155,7 @@ fn add_path(scene: &mut Scene, base: Vec3, style: usize) {
         scene,
         first_cube,
         first_ellipsoid,
+        first_capsule,
         base,
         toward_toads.x.atan2(toward_toads.z),
     );
@@ -353,6 +355,7 @@ fn rotate_added_geometry(
     scene: &mut Scene,
     first_cube: usize,
     first_ellipsoid: usize,
+    first_capsule: usize,
     origin: Vec3,
     yaw: f32,
 ) {
@@ -386,6 +389,17 @@ fn rotate_added_geometry(
                 -local.x * sine + local.z * cosine,
             );
     }
+    for capsule in &mut scene.capsules[first_capsule..] {
+        for point in [&mut capsule.start, &mut capsule.end] {
+            let local = *point - origin;
+            *point = origin
+                + Vec3::new(
+                    local.x * cosine + local.z * sine,
+                    local.y,
+                    -local.x * sine + local.z * cosine,
+                );
+        }
+    }
 }
 
 fn add_ellipsoid(scene: &mut Scene, center: Vec3, radii: Vec3, cell: f32, material: usize) {
@@ -398,17 +412,12 @@ fn add_ellipsoid(scene: &mut Scene, center: Vec3, radii: Vec3, cell: f32, materi
 }
 
 fn add_segment(scene: &mut Scene, start: Vec3, end: Vec3, thickness: f32, material: usize) {
-    let delta = end - start;
-    let steps = (delta.length() / (thickness * 0.72)).ceil().max(1.0) as usize;
-    for index in 0..=steps {
-        let t = index as f32 / steps as f32;
-        add_block(
-            scene,
-            start + delta * t,
-            Vec3::new(thickness, thickness, thickness),
-            material,
-        );
-    }
+    scene.capsules.push(Capsule {
+        start,
+        end,
+        radius: thickness * 0.5,
+        material,
+    });
 }
 
 fn add_block(scene: &mut Scene, center: Vec3, size: Vec3, material: usize) {

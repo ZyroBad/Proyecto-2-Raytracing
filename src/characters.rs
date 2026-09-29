@@ -1,10 +1,11 @@
 use crate::math::Vec3;
-use crate::scene::{Cube, Ellipsoid, Scene};
+use crate::scene::{Capsule, Cube, Ellipsoid, Scene};
 use std::f32::consts::PI;
 
 pub fn add_gamabunta(scene: &mut Scene, base: Vec3) {
     let first_cube = scene.cubes.len();
     let first_ellipsoid = scene.ellipsoids.len();
+    let first_capsule = scene.capsules.len();
     let skin = 2;
     let robe = 5;
     let pale = 15;
@@ -207,12 +208,20 @@ pub fn add_gamabunta(scene: &mut Scene, base: Vec3) {
         ink,
         0.68,
     );
-    scale_added_geometry(scene, first_cube, first_ellipsoid, base, 1.52);
+    scale_added_geometry(
+        scene,
+        first_cube,
+        first_ellipsoid,
+        first_capsule,
+        base,
+        Vec3::new(1.78, 1.92, 1.78),
+    );
 }
 
 pub fn add_gamaken(scene: &mut Scene, base: Vec3) {
     let first_cube = scene.cubes.len();
     let first_ellipsoid = scene.ellipsoids.len();
+    let first_capsule = scene.capsules.len();
     let skin = 3;
     let robe = 5;
     let pale = 15;
@@ -396,12 +405,20 @@ pub fn add_gamaken(scene: &mut Scene, base: Vec3) {
         ink,
         0.56,
     );
-    scale_added_geometry(scene, first_cube, first_ellipsoid, base, 1.52);
+    scale_added_geometry(
+        scene,
+        first_cube,
+        first_ellipsoid,
+        first_capsule,
+        base,
+        Vec3::new(1.78, 1.92, 1.78),
+    );
 }
 
 pub fn add_gamahiro(scene: &mut Scene, base: Vec3) {
     let first_cube = scene.cubes.len();
     let first_ellipsoid = scene.ellipsoids.len();
+    let first_capsule = scene.capsules.len();
     let skin = 4;
     let robe = 5;
     let orange = 6;
@@ -584,7 +601,14 @@ pub fn add_gamahiro(scene: &mut Scene, base: Vec3) {
         ink,
         0.58,
     );
-    scale_added_geometry(scene, first_cube, first_ellipsoid, base, 1.52);
+    scale_added_geometry(
+        scene,
+        first_cube,
+        first_ellipsoid,
+        first_capsule,
+        base,
+        Vec3::new(1.78, 1.92, 1.78),
+    );
 }
 
 fn add_gamabunta_details(
@@ -967,6 +991,7 @@ fn add_gamahiro_limbs(scene: &mut Scene, base: Vec3, skin: usize) {
 pub fn add_gamakichi(scene: &mut Scene, base: Vec3) {
     let first_cube = scene.cubes.len();
     let first_ellipsoid = scene.ellipsoids.len();
+    let first_capsule = scene.capsules.len();
     let skin = 23;
     let robe = 5;
     let pale = 15;
@@ -1087,7 +1112,14 @@ pub fn add_gamakichi(scene: &mut Scene, base: Vec3) {
         ink,
         0.28,
     );
-    scale_added_geometry(scene, first_cube, first_ellipsoid, base, 1.18);
+    scale_added_geometry(
+        scene,
+        first_cube,
+        first_ellipsoid,
+        first_capsule,
+        base,
+        Vec3::new(1.32, 1.45, 1.32),
+    );
 }
 
 fn add_toad_haori_back(
@@ -1154,6 +1186,7 @@ fn add_toad_haori_back(
 pub fn add_naruto_sage(scene: &mut Scene, base: Vec3) {
     let first_cube = scene.cubes.len();
     let first_ellipsoid = scene.ellipsoids.len();
+    let first_capsule = scene.capsules.len();
     let orange = 6;
     let cloak = 7;
     let skin = 8;
@@ -1428,6 +1461,11 @@ pub fn add_naruto_sage(scene: &mut Scene, base: Vec3) {
         ellipsoid.center = base + (ellipsoid.center - base) * NARUTO_SCALE;
         ellipsoid.radii = ellipsoid.radii * NARUTO_SCALE;
     }
+    for capsule in &mut scene.capsules[first_capsule..] {
+        capsule.start = base + (capsule.start - base) * NARUTO_SCALE;
+        capsule.end = base + (capsule.end - base) * NARUTO_SCALE;
+        capsule.radius *= NARUTO_SCALE;
+    }
 }
 
 fn add_naruto_costume_details(
@@ -1624,17 +1662,12 @@ fn add_voxel_ellipsoid(scene: &mut Scene, center: Vec3, radii: Vec3, cell: f32, 
 }
 
 fn add_voxel_segment(scene: &mut Scene, start: Vec3, end: Vec3, thickness: f32, material: usize) {
-    let delta = end - start;
-    let steps = (delta.length() / (thickness * 0.72)).ceil().max(1.0) as usize;
-    for step in 0..=steps {
-        let t = step as f32 / steps as f32;
-        add_block(
-            scene,
-            start + delta * t,
-            Vec3::new(thickness, thickness, thickness),
-            material,
-        );
-    }
+    scene.capsules.push(Capsule {
+        start,
+        end,
+        radius: thickness * 0.5,
+        material,
+    });
 }
 
 fn add_voxel_curve(
@@ -1647,16 +1680,18 @@ fn add_voxel_curve(
 ) {
     let estimated_length = (control - start).length() + (end - control).length();
     let steps = (estimated_length / (thickness * 0.62)).ceil().max(2.0) as usize;
-    for step in 0..=steps {
+    let mut previous = start;
+    for step in 1..=steps {
         let t = step as f32 / steps as f32;
         let inverse = 1.0 - t;
         let point = start * (inverse * inverse) + control * (2.0 * inverse * t) + end * (t * t);
-        add_block(
-            scene,
-            point,
-            Vec3::new(thickness, thickness, thickness),
+        scene.capsules.push(Capsule {
+            start: previous,
+            end: point,
+            radius: thickness * 0.5,
             material,
-        );
+        });
+        previous = point;
     }
 }
 
@@ -1673,15 +1708,22 @@ fn scale_added_geometry(
     scene: &mut Scene,
     first_cube: usize,
     first_ellipsoid: usize,
+    first_capsule: usize,
     origin: Vec3,
-    scale: f32,
+    scale: Vec3,
 ) {
     for cube in &mut scene.cubes[first_cube..] {
-        cube.min = origin + (cube.min - origin) * scale;
-        cube.max = origin + (cube.max - origin) * scale;
+        cube.min = origin + (cube.min - origin).hadamard(scale);
+        cube.max = origin + (cube.max - origin).hadamard(scale);
     }
     for ellipsoid in &mut scene.ellipsoids[first_ellipsoid..] {
-        ellipsoid.center = origin + (ellipsoid.center - origin) * scale;
-        ellipsoid.radii = ellipsoid.radii * scale;
+        ellipsoid.center = origin + (ellipsoid.center - origin).hadamard(scale);
+        ellipsoid.radii = ellipsoid.radii.hadamard(scale);
+    }
+    let radius_scale = (scale.x + scale.y + scale.z) / 3.0;
+    for capsule in &mut scene.capsules[first_capsule..] {
+        capsule.start = origin + (capsule.start - origin).hadamard(scale);
+        capsule.end = origin + (capsule.end - origin).hadamard(scale);
+        capsule.radius *= radius_scale;
     }
 }

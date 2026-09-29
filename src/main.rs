@@ -21,7 +21,7 @@ use image::{save_bmp, save_ppm};
 use material::{scene_materials, Material};
 use math::{Color, Vec3};
 use pain::add_six_paths;
-use scene::{Cube, Ellipsoid, Scene};
+use scene::{Capsule, Cube, Ellipsoid, Scene};
 use std::f32::consts::PI;
 use std::fs::create_dir_all;
 use std::io::{self, Write};
@@ -66,6 +66,7 @@ fn print_scene_summary(scene: &Scene) {
     println!("Resumen de escena");
     println!("Cubos: {}", scene.cubes.len());
     println!("Elipsoides: {}", scene.ellipsoids.len());
+    println!("Capsulas: {}", scene.capsules.len());
     println!("Materiales: {}", scene.materials.len());
     println!("Efectos: sombras, specular, reflexion, refraccion y skybox procedural");
 }
@@ -327,6 +328,10 @@ fn soft_shadow(
                 .ellipsoids
                 .iter()
                 .any(|&ellipsoid| intersect_ellipsoid(shadow_ray, ellipsoid).is_some())
+            && !scene
+                .capsules
+                .iter()
+                .any(|&capsule| intersect_capsule(shadow_ray, capsule).is_some())
         {
             visible += 1.0;
         }
@@ -380,6 +385,25 @@ fn intersect_scene(scene: &Scene, bvh: &Bvh, ray: Ray) -> Option<Hit> {
             }
         }
     }
+    for &capsule in &scene.capsules {
+        if let Some((distance, mut normal)) = intersect_capsule(ray, capsule) {
+            if normal.dot(ray.direction) > 0.0 {
+                normal = -normal;
+            }
+            if closest
+                .as_ref()
+                .map(|hit| distance < hit.distance)
+                .unwrap_or(true)
+            {
+                closest = Some(Hit {
+                    point: ray.at(distance),
+                    normal,
+                    material: scene.materials[capsule.material],
+                    distance,
+                });
+            }
+        }
+    }
     closest
 }
 
@@ -422,6 +446,79 @@ fn intersect_ellipsoid(ray: Ray, ellipsoid: Ellipsoid) -> Option<(f32, Vec3)> {
     Some((distance, normal))
 }
 
+fn intersect_capsule(ray: Ray, capsule: Capsule) -> Option<(f32, Vec3)> {
+    let axis = capsule.end - capsule.start;
+    let axis_length_squared = axis.dot(axis);
+    if axis_length_squared <= EPSILON * EPSILON {
+        return intersect_sphere(ray, capsule.start, capsule.radius);
+    }
+
+    let offset = ray.origin - capsule.start;
+    let axis_ray = axis.dot(ray.direction);
+    let axis_offset = axis.dot(offset);
+    let ray_offset = ray.direction.dot(offset);
+    let offset_squared = offset.dot(offset);
+    let a = axis_length_squared - axis_ray * axis_ray;
+    let b = axis_length_squared * ray_offset - axis_offset * axis_ray;
+    let c = axis_length_squared * offset_squared
+        - axis_offset * axis_offset
+        - capsule.radius * capsule.radius * axis_length_squared;
+    let mut closest: Option<(f32, Vec3)> = None;
+
+    if a.abs() > EPSILON {
+        let discriminant = b * b - a * c;
+        if discriminant >= 0.0 {
+            let root = discriminant.sqrt();
+            for distance in [(-b - root) / a, (-b + root) / a] {
+                let height = axis_offset + distance * axis_ray;
+                if distance > EPSILON && height >= 0.0 && height <= axis_length_squared {
+                    let point = ray.at(distance);
+                    let center = capsule.start + axis * (height / axis_length_squared);
+                    if closest.as_ref().map(|hit| distance < hit.0).unwrap_or(true) {
+                        closest = Some((distance, (point - center).normalized()));
+                    }
+                }
+            }
+        }
+    }
+
+    for (center, is_start) in [(capsule.start, true), (capsule.end, false)] {
+        if let Some((distance, normal)) = intersect_sphere(ray, center, capsule.radius) {
+            let point = ray.at(distance);
+            let on_outer_hemisphere = if is_start {
+                (point - capsule.start).dot(axis) <= 0.0
+            } else {
+                (point - capsule.end).dot(axis) >= 0.0
+            };
+            if on_outer_hemisphere && closest.as_ref().map(|hit| distance < hit.0).unwrap_or(true) {
+                closest = Some((distance, normal));
+            }
+        }
+    }
+    closest
+}
+
+fn intersect_sphere(ray: Ray, center: Vec3, radius: f32) -> Option<(f32, Vec3)> {
+    let offset = ray.origin - center;
+    let half_b = offset.dot(ray.direction);
+    let c = offset.dot(offset) - radius * radius;
+    let discriminant = half_b * half_b - c;
+    if discriminant < 0.0 {
+        return None;
+    }
+    let root = discriminant.sqrt();
+    let near = -half_b - root;
+    let far = -half_b + root;
+    let distance = if near > EPSILON {
+        near
+    } else if far > EPSILON {
+        far
+    } else {
+        return None;
+    };
+    Some((distance, (ray.at(distance) - center).normalized()))
+}
+
 fn skybox(dir: Vec3) -> Color {
     let t = ((dir.y + 0.12) * 2.05).clamp(0.0, 1.0);
     let horizon = Color::new(0.20, 0.43, 0.68);
@@ -458,6 +555,7 @@ fn build_scene() -> Scene {
     let mut scene = Scene {
         cubes: Vec::new(),
         ellipsoids: Vec::new(),
+        capsules: Vec::new(),
         materials: scene_materials(),
         light_dir: Vec3::new(0.48, -0.78, -0.34).normalized(),
         light_color: Color::new(1.0, 0.88, 0.68),
@@ -486,11 +584,12 @@ fn build_sage_arrival(scene: &mut Scene) {
     add_six_paths(scene);
     let first_character_cube = scene.cubes.len();
     let first_character_ellipsoid = scene.ellipsoids.len();
+    let first_character_capsule = scene.capsules.len();
     add_gamabunta(scene, Vec3::new(0.0, 0.0, -0.3));
-    add_gamaken(scene, Vec3::new(-10.3, 0.0, -1.3));
-    add_gamahiro(scene, Vec3::new(10.3, 0.0, -1.3));
-    add_gamakichi(scene, Vec3::new(0.0, 11.70, 0.12));
-    add_naruto_sage(scene, Vec3::new(0.0, 15.48, 0.30));
+    add_gamaken(scene, Vec3::new(-12.4, 0.0, -1.3));
+    add_gamahiro(scene, Vec3::new(12.4, 0.0, -1.3));
+    add_gamakichi(scene, Vec3::new(0.0, 14.75, 0.12));
+    add_naruto_sage(scene, Vec3::new(0.0, 19.35, 0.30));
     add_summoning_clouds(scene);
     for cube in &mut scene.cubes[first_character_cube..] {
         cube.min.y -= CRATER_DEPTH;
@@ -498,6 +597,10 @@ fn build_sage_arrival(scene: &mut Scene) {
     }
     for ellipsoid in &mut scene.ellipsoids[first_character_ellipsoid..] {
         ellipsoid.center.y -= CRATER_DEPTH;
+    }
+    for capsule in &mut scene.capsules[first_character_capsule..] {
+        capsule.start.y -= CRATER_DEPTH;
+        capsule.end.y -= CRATER_DEPTH;
     }
 }
 
@@ -602,6 +705,24 @@ mod tests {
     }
 
     #[test]
+    fn capsule_intersection_returns_rounded_surface_normal() {
+        let capsule = Capsule {
+            start: Vec3::new(0.0, -1.0, 0.0),
+            end: Vec3::new(0.0, 1.0, 0.0),
+            radius: 0.5,
+            material: 0,
+        };
+        let ray = Ray {
+            origin: Vec3::new(0.0, 0.0, -3.0),
+            direction: Vec3::new(0.0, 0.0, 1.0),
+        };
+        let (distance, normal) = intersect_capsule(ray, capsule).expect("ray should hit capsule");
+
+        assert_close(distance, 2.5);
+        assert_close(normal.z, -1.0);
+    }
+
+    #[test]
     fn center_camera_ray_points_at_target() {
         let origin = Vec3::new(0.0, 2.0, -5.0);
         let target = Vec3::new(0.0, 1.0, 0.0);
@@ -624,6 +745,7 @@ mod tests {
         assert!(scene.materials.iter().any(|m| m.refractive_index > 1.0));
         assert!(!scene.cubes.is_empty());
         assert!(!scene.ellipsoids.is_empty());
+        assert!(!scene.capsules.is_empty());
     }
 
     #[test]
