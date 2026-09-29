@@ -13,6 +13,7 @@ La escena muestra Konoha destruida, el crater de la aldea, Monte Hokage y las in
 - BVH para acelerar la interseccion de miles de cubos.
 - Renderizado paralelo usando los nucleos disponibles del procesador.
 - Sombras suaves, iluminacion difusa, brillo especular y niebla atmosferica.
+- Modo HD con microrelieve procedural, oclusion ambiental de contacto y revelado cinematografico ACES.
 - Reflexion en armas, protectores y superficies metalicas.
 - Refraccion y transparencia en chakra, humo y nubes de invocacion.
 - Skybox procedural con horizonte, sol y nubes.
@@ -71,6 +72,16 @@ Render recomendado:
 ```bash
 cargo run --release -- --width 960 --height 540 --samples 2 --depth 4 --angle 82 --zoom 0.90 --output renders/final.bmp
 ```
+
+Render HD final (1280x720, dos muestras por eje y cuatro rebotes):
+
+```bash
+cargo run --release -- --hd --angle 90 --zoom 0.98 --elevation 2
+```
+
+El modo `--hd` activa relieve que modifica las normales de iluminacion, sombras de contacto mediante oclusion ambiental, reflejos con dureza propia por material y tone mapping ACES. Es un render de entrega y puede tardar varios minutos; la ventana interactiva desactiva automaticamente estos calculos pesados.
+
+Para una captura mas fina se puede agregar `--samples 3` despues de `--hd`. Esa variante tarda bastante mas, por lo que conviene reservarla para la imagen o el video definitivo.
 
 Este ajuste conserva una relacion 16:9 y es razonable para una computadora con graficos integrados. Para una captura mas limpia se puede subir a `--samples 3`, aceptando un tiempo de render considerablemente mayor.
 
@@ -153,6 +164,7 @@ Los cuadros se guardan en `frames/` con numeracion consecutiva. Primero conviene
 --window        abre una ventana nativa interactiva
 --interactive   abre el control de camara por consola
 --summary       muestra el resumen de la escena
+--hd            activa el render final 1280x720 con efectos avanzados
 --angle N       angulo manual de camara en grados
 --elevation N   desplazamiento vertical de la camara
 --zoom N        acercamiento de camara

@@ -12,6 +12,7 @@ pub struct Config {
     pub interactive: bool,
     pub window: bool,
     pub summary: bool,
+    pub hd: bool,
     pub angle_deg: Option<f32>,
     pub zoom: f32,
     pub elevation: f32,
@@ -33,6 +34,7 @@ impl Config {
             interactive: false,
             window: false,
             summary: false,
+            hd: false,
             angle_deg: None,
             zoom: 1.0,
             elevation: 0.0,
@@ -67,6 +69,14 @@ impl Config {
                 "--interactive" => cfg.interactive = true,
                 "--window" => cfg.window = true,
                 "--summary" => cfg.summary = true,
+                "--hd" => {
+                    cfg.hd = true;
+                    cfg.width = 1280;
+                    cfg.height = 720;
+                    cfg.samples_per_axis = 2;
+                    cfg.max_depth = 4;
+                    cfg.output = "renders/konoha_hd.bmp".to_string();
+                }
                 "--angle" => {
                     i += 1;
                     cfg.angle_deg = Some(parse_or(&args, i, 90.0));
@@ -122,6 +132,7 @@ fn print_help() {
     println!("  --interactive   ajusta camara y genera previews");
     println!("  --window        abre la vista interactiva en una ventana nativa");
     println!("  --summary       imprime resumen de escena sin renderizar");
+    println!("  --hd            render final 1280x720 con relieve y oclusion ambiental");
     println!("  --angle N       angulo manual de camara en grados");
     println!("  --zoom N        zoom manual, mayor acerca la camara");
     println!("  --elevation N   desplazamiento vertical de la camara");

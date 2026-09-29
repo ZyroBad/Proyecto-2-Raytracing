@@ -368,6 +368,7 @@ mod windows {
     }
 
     fn configure_preview(cfg: &mut Config) {
+        cfg.hd = false;
         let aspect = cfg.width as f32 / cfg.height.max(1) as f32;
         if cfg.width > 480 {
             cfg.width = 480;

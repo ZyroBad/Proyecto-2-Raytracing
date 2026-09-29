@@ -202,7 +202,7 @@ fn render_rows(
                     let u = (x as f32 + (sx as f32 + 0.5) * inv_samples) / (cfg.width - 1) as f32;
                     let v = 1.0
                         - (y as f32 + (sy as f32 + 0.5) * inv_samples) / (cfg.height - 1) as f32;
-                    color += trace(scene, &bvh, camera.ray(u, v), 0, cfg.max_depth);
+                    color += trace(scene, &bvh, camera.ray(u, v), 0, cfg.max_depth, cfg.hd);
                 }
             }
             color = color / (samples * samples) as f32;
@@ -215,55 +215,84 @@ fn render_rows(
     }
 }
 
-fn trace(scene: &Scene, bvh: &Bvh, ray: Ray, depth: u32, max_depth: u32) -> Color {
+fn trace(scene: &Scene, bvh: &Bvh, ray: Ray, depth: u32, max_depth: u32, hd: bool) -> Color {
     if depth >= max_depth {
         return skybox(ray.direction);
     }
 
     if let Some(hit) = intersect_scene(scene, bvh, ray) {
-        shade(scene, bvh, ray, hit, depth, max_depth)
+        shade(scene, bvh, ray, hit, depth, max_depth, hd)
     } else {
         skybox(ray.direction)
     }
 }
 
-fn shade(scene: &Scene, bvh: &Bvh, ray: Ray, hit: Hit, depth: u32, max_depth: u32) -> Color {
+fn shade(
+    scene: &Scene,
+    bvh: &Bvh,
+    ray: Ray,
+    hit: Hit,
+    depth: u32,
+    max_depth: u32,
+    hd: bool,
+) -> Color {
     let view_dir = -ray.direction;
     let light_dir = -scene.light_dir.normalized();
-    let base = hit.material.texture(hit.point, hit.normal);
+    let geometric_normal = hit.normal;
+    let normal = if hd {
+        hit.material.detailed_normal(hit.point, geometric_normal)
+    } else {
+        geometric_normal
+    };
+    let base = hit.material.texture(hit.point, normal);
 
     let shadow_samples = if max_depth <= 1 { 1 } else { 3 };
-    let visibility = soft_shadow(scene, bvh, hit.point, hit.normal, light_dir, shadow_samples);
-    let ndotl = hit.normal.dot(light_dir).max(0.0);
+    let visibility = soft_shadow(
+        scene,
+        bvh,
+        hit.point,
+        geometric_normal,
+        light_dir,
+        shadow_samples,
+    );
+    let contact = if hd && depth == 0 {
+        ambient_visibility(scene, bvh, hit.point, geometric_normal)
+    } else {
+        1.0
+    };
+    let ndotl = normal.dot(light_dir).max(0.0);
     let diffuse_strength = ndotl * (0.16 + visibility * 0.84);
-    let diffuse = base.hadamard(scene.light_color) * diffuse_strength;
+    let diffuse = base.hadamard(scene.light_color) * diffuse_strength * (0.78 + contact * 0.22);
 
     let half_vec = (light_dir + view_dir).normalized();
-    let spec = hit.normal.dot(half_vec).max(0.0).powf(48.0) * hit.material.specular * visibility;
+    let spec = normal.dot(half_vec).max(0.0).powf(hit.material.shininess())
+        * hit.material.specular
+        * visibility;
     let specular = scene.light_color * spec;
     let sky_ambient = Color::new(0.18, 0.27, 0.46);
     let ground_bounce = Color::new(0.34, 0.14, 0.055);
-    let upward = hit.normal.y.max(0.0);
-    let downward = (-hit.normal.y).max(0.0);
+    let upward = normal.y.max(0.0);
+    let downward = (-normal.y).max(0.0);
     let ambient = base * 0.105
         + base.hadamard(sky_ambient) * (0.12 + upward * 0.12)
         + base.hadamard(ground_bounce) * downward * 0.10;
-    let rim = (1.0 - hit.normal.dot(view_dir).max(0.0)).powf(3.5) * 0.16;
+    let rim = (1.0 - normal.dot(view_dir).max(0.0)).powf(3.5) * 0.16;
     let rim_light = Color::new(0.28, 0.44, 0.78) * rim;
 
-    let mut color = ambient + diffuse + specular + rim_light;
+    let mut color = ambient * contact + diffuse + specular + rim_light * (0.72 + contact * 0.28);
 
     if hit.material.reflectivity > 0.0 {
-        let reflected = ray.direction.reflect(hit.normal).normalized();
+        let reflected = ray.direction.reflect(normal).normalized();
         let reflected_color = trace(
             scene,
             bvh,
             Ray {
-                origin: hit.point + hit.normal * EPSILON,
+                origin: hit.point + geometric_normal * EPSILON,
                 direction: reflected,
             },
             depth + 1,
             max_depth,
+            hd,
         );
         let facing = (-ray.direction.dot(hit.normal)).abs().clamp(0.0, 1.0);
         let fresnel = hit.material.reflectivity * (0.52 + 0.48 * (1.0 - facing).powf(5.0));
@@ -291,6 +320,7 @@ fn shade(scene: &Scene, bvh: &Bvh, ray: Ray, hit: Hit, depth: u32, max_depth: u3
             },
             depth + 1,
             max_depth,
+            hd,
         );
         color =
             color * (1.0 - hit.material.transparency) + refracted_color * hit.material.transparency;
@@ -301,7 +331,50 @@ fn shade(scene: &Scene, bvh: &Bvh, ray: Ray, hit: Hit, depth: u32, max_depth: u3
     let fog = (distance_fog * 0.24 + low_dust * 0.13).min(0.38);
     let fog_color = skybox(ray.direction) * 0.80 + Color::new(0.46, 0.34, 0.20) * 0.20;
     color = color * (1.0 - fog) + fog_color * fog;
-    color.clamp01()
+    Color::new(color.x.max(0.0), color.y.max(0.0), color.z.max(0.0))
+}
+
+fn ambient_visibility(scene: &Scene, bvh: &Bvh, point: Vec3, normal: Vec3) -> f32 {
+    let reference = if normal.y.abs() < 0.92 {
+        Vec3::new(0.0, 1.0, 0.0)
+    } else {
+        Vec3::new(1.0, 0.0, 0.0)
+    };
+    let tangent = reference.cross(normal).normalized();
+    let bitangent = normal.cross(tangent).normalized();
+    let phase = (point.x * 1.73 + point.y * 2.31 + point.z * 2.93).sin() * PI;
+    let max_distance = 2.2;
+    let mut occlusion = 0.0;
+
+    for sample in 0..3 {
+        let angle = phase + 2.0 * PI * sample as f32 / 3.0;
+        let direction =
+            (normal * 0.72 + tangent * angle.cos() * 0.52 + bitangent * angle.sin() * 0.52)
+                .normalized();
+        let ray = Ray {
+            origin: point + normal * EPSILON * 3.0,
+            direction,
+        };
+        let mut nearest = bvh
+            .nearest(&scene.cubes, ray)
+            .map(|hit| hit.1)
+            .unwrap_or(f32::INFINITY);
+        for &ellipsoid in &scene.ellipsoids {
+            if let Some((distance, _)) = intersect_ellipsoid(ray, ellipsoid) {
+                nearest = nearest.min(distance);
+            }
+        }
+        for &capsule in &scene.capsules {
+            if let Some((distance, _)) = intersect_capsule(ray, capsule) {
+                nearest = nearest.min(distance);
+            }
+        }
+        if nearest < max_distance {
+            occlusion += 1.0 - nearest / max_distance;
+        }
+    }
+
+    (1.0 - occlusion / 3.0 * 0.78).clamp(0.28, 1.0)
 }
 
 fn soft_shadow(
@@ -341,13 +414,17 @@ fn soft_shadow(
 }
 
 fn tone_map(color: Color) -> Color {
-    let exposure = 1.55;
-    Color::new(
-        (1.0 - (-color.x * exposure).exp()).powf(1.0 / 2.2),
-        (1.0 - (-color.y * exposure).exp()).powf(1.0 / 2.2),
-        (1.0 - (-color.z * exposure).exp()).powf(1.0 / 2.2),
-    )
-    .clamp01()
+    fn aces(value: f32) -> f32 {
+        let value = value * 1.28;
+        ((value * (2.51 * value + 0.03)) / (value * (2.43 * value + 0.59) + 0.14))
+            .clamp(0.0, 1.0)
+            .powf(1.0 / 2.2)
+    }
+
+    let mapped = Color::new(aces(color.x), aces(color.y), aces(color.z));
+    let luminance = mapped.x * 0.2126 + mapped.y * 0.7152 + mapped.z * 0.0722;
+    let gray = Color::new(luminance, luminance, luminance);
+    (gray + (mapped - gray) * 1.08).clamp01()
 }
 
 fn intersect_scene(scene: &Scene, bvh: &Bvh, ray: Ray) -> Option<Hit> {
@@ -720,6 +797,25 @@ mod tests {
 
         assert_close(distance, 2.5);
         assert_close(normal.z, -1.0);
+    }
+
+    #[test]
+    fn procedural_relief_keeps_a_unit_surface_normal() {
+        let material = scene_materials()[17];
+        let normal = material.detailed_normal(Vec3::new(1.7, -0.4, 2.2), Vec3::new(0.0, 1.0, 0.0));
+
+        assert_close(normal.length(), 1.0);
+        assert!(normal.y > 0.9);
+    }
+
+    #[test]
+    fn cinematic_tone_mapping_stays_in_display_range() {
+        let mapped = tone_map(Color::new(4.0, 1.5, 0.2));
+
+        assert!((0.0..=1.0).contains(&mapped.x));
+        assert!((0.0..=1.0).contains(&mapped.y));
+        assert!((0.0..=1.0).contains(&mapped.z));
+        assert!(mapped.x > mapped.y && mapped.y > mapped.z);
     }
 
     #[test]

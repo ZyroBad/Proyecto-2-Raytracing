@@ -175,6 +175,80 @@ impl Material {
         }
         .clamp01()
     }
+
+    pub fn detailed_normal(self, p: Vec3, normal: Vec3) -> Vec3 {
+        let (frequency, strength) = match self.kind {
+            MaterialKind::Rock => (4.0, 0.045),
+            MaterialKind::CraterEarth => (5.5, 0.060),
+            MaterialKind::RuinStone => (4.8, 0.050),
+            MaterialKind::RoofTile => (6.0, 0.035),
+            MaterialKind::CarvedStone => (4.5, 0.042),
+            MaterialKind::DistantMountain => (1.8, 0.032),
+            MaterialKind::ForestCanopy => (6.5, 0.045),
+            MaterialKind::GamabuntaSkin
+            | MaterialKind::GamakenSkin
+            | MaterialKind::GamahiroSkin
+            | MaterialKind::GamakichiSkin => (6.0, 0.028),
+            MaterialKind::Belly => (4.5, 0.020),
+            MaterialKind::NarutoSkin | MaterialKind::PainSkin => (8.0, 0.008),
+            MaterialKind::Robe | MaterialKind::OrangeCloth | MaterialKind::RedCloak => (9.0, 0.012),
+            MaterialKind::Wood | MaterialKind::Rope => (7.0, 0.026),
+            MaterialKind::NarutoHair | MaterialKind::PainHair => (8.0, 0.018),
+            MaterialKind::Cloud | MaterialKind::DustSmoke => (2.2, 0.012),
+            MaterialKind::Metal | MaterialKind::GamahiroMarking => (10.0, 0.006),
+            MaterialKind::Chakra
+            | MaterialKind::EyeGold
+            | MaterialKind::Ink
+            | MaterialKind::Rinnegan => (1.0, 0.0),
+        };
+        if strength == 0.0 {
+            return normal;
+        }
+
+        let reference = if normal.y.abs() < 0.92 {
+            Vec3::new(0.0, 1.0, 0.0)
+        } else {
+            Vec3::new(1.0, 0.0, 0.0)
+        };
+        let tangent = reference.cross(normal).normalized();
+        let bitangent = normal.cross(tangent).normalized();
+        let epsilon = 0.018;
+        let du = (detail_height(p + tangent * epsilon, frequency)
+            - detail_height(p - tangent * epsilon, frequency))
+            / (epsilon * 2.0);
+        let dv = (detail_height(p + bitangent * epsilon, frequency)
+            - detail_height(p - bitangent * epsilon, frequency))
+            / (epsilon * 2.0);
+        (normal - tangent * du * strength - bitangent * dv * strength).normalized()
+    }
+
+    pub fn shininess(self) -> f32 {
+        match self.kind {
+            MaterialKind::Metal => 180.0,
+            MaterialKind::EyeGold | MaterialKind::Rinnegan | MaterialKind::Chakra => 96.0,
+            MaterialKind::GamabuntaSkin
+            | MaterialKind::GamakenSkin
+            | MaterialKind::GamahiroSkin
+            | MaterialKind::GamakichiSkin => 42.0,
+            MaterialKind::NarutoSkin | MaterialKind::PainSkin => 54.0,
+            MaterialKind::Cloud | MaterialKind::DustSmoke => 22.0,
+            MaterialKind::Rock
+            | MaterialKind::CraterEarth
+            | MaterialKind::RuinStone
+            | MaterialKind::CarvedStone
+            | MaterialKind::DistantMountain => 16.0,
+            MaterialKind::Wood | MaterialKind::Rope | MaterialKind::ForestCanopy => 24.0,
+            _ => 34.0,
+        }
+    }
+}
+
+fn detail_height(p: Vec3, frequency: f32) -> f32 {
+    let q = p * frequency;
+    let broad = (q.x * 0.73).sin() * (q.y * 0.41).cos() * (q.z * 0.59).sin();
+    let crossed = (q.x * 1.31 + (q.z * 0.37).sin()).cos() * (q.y * 0.87 + (q.x * 0.29).sin()).sin();
+    let fine = (q.x * 1.67).sin() * (q.y * 1.43).sin() * (q.z * 1.91).cos();
+    broad * 0.52 + crossed * 0.31 + fine * 0.17
 }
 
 pub fn scene_materials() -> Vec<Material> {
