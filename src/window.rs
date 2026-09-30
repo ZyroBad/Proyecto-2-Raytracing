@@ -25,13 +25,33 @@ mod windows {
     use std::ffi::c_void;
     use std::mem::zeroed;
     use std::ptr::{null, null_mut};
+    use std::sync::mpsc;
     use std::thread;
     use std::time::{Duration, Instant};
 
     struct PreviewFrame {
+        generation: u64,
         pixels: Vec<u8>,
         width: usize,
         height: usize,
+        quality: PreviewQuality,
+        camera: CameraState,
+        elapsed: f32,
+    }
+
+    struct RenderRequest {
+        generation: u64,
+        config: Config,
+        quality: PreviewQuality,
+    }
+
+    #[derive(Clone, Copy)]
+    struct CameraState {
+        angle: f32,
+        zoom: f32,
+        elevation: f32,
+        look_x: f32,
+        look_y: f32,
     }
 
     #[derive(Clone, Copy, PartialEq, Eq)]
@@ -245,162 +265,216 @@ mod windows {
             &scene.capsules,
         );
 
-        unsafe {
-            let instance = GetModuleHandleW(null());
-            let class_name = wide("RaytracingDioramaWindow");
-            let initial_title = wide("Diorama Raytracing - preparando render...");
-            let window_class = WindowClass {
-                style: CS_HREDRAW | CS_VREDRAW,
-                window_procedure: Some(window_procedure),
-                class_extra: 0,
-                window_extra: 0,
-                instance,
-                icon: null_mut(),
-                cursor: LoadCursorW(null_mut(), IDC_ARROW as *const u16),
-                background: null_mut(),
-                menu_name: null(),
-                class_name: class_name.as_ptr(),
-            };
-            if RegisterClassW(&window_class) == 0 {
-                return Err(io::Error::last_os_error());
-            }
+        thread::scope(|scope| {
+            let (request_tx, request_rx) = mpsc::channel::<RenderRequest>();
+            let (frame_tx, frame_rx) = mpsc::channel::<PreviewFrame>();
+            scope.spawn(move || {
+                while let Ok(request) = request_rx.recv() {
+                    let frame = render_preview(scene, &bvh, &request, render);
+                    if frame_tx.send(frame).is_err() {
+                        break;
+                    }
+                }
+            });
 
-            let hwnd = CreateWindowExW(
-                0,
-                class_name.as_ptr(),
-                initial_title.as_ptr(),
-                WS_OVERLAPPEDWINDOW,
-                CW_USEDEFAULT,
-                CW_USEDEFAULT,
-                1_000,
-                620,
-                null_mut(),
-                null_mut(),
-                instance,
-                null_mut(),
-            );
-            if hwnd.is_null() {
-                return Err(io::Error::last_os_error());
-            }
+            let result = unsafe {
+                let instance = GetModuleHandleW(null());
+                let class_name = wide("RaytracingDioramaWindow");
+                let initial_title = wide("Diorama Raytracing - preparando render...");
+                let window_class = WindowClass {
+                    style: CS_HREDRAW | CS_VREDRAW,
+                    window_procedure: Some(window_procedure),
+                    class_extra: 0,
+                    window_extra: 0,
+                    instance,
+                    icon: null_mut(),
+                    cursor: LoadCursorW(null_mut(), IDC_ARROW as *const u16),
+                    background: null_mut(),
+                    menu_name: null(),
+                    class_name: class_name.as_ptr(),
+                };
+                if RegisterClassW(&window_class) == 0 {
+                    return Err(io::Error::last_os_error());
+                }
 
-            ShowWindow(hwnd, SW_SHOW);
-            UpdateWindow(hwnd);
-            println!("Ventana interactiva abierta");
-            println!(
+                let hwnd = CreateWindowExW(
+                    0,
+                    class_name.as_ptr(),
+                    initial_title.as_ptr(),
+                    WS_OVERLAPPEDWINDOW,
+                    CW_USEDEFAULT,
+                    CW_USEDEFAULT,
+                    1_000,
+                    620,
+                    null_mut(),
+                    null_mut(),
+                    instance,
+                    null_mut(),
+                );
+                if hwnd.is_null() {
+                    return Err(io::Error::last_os_error());
+                }
+
+                ShowWindow(hwnd, SW_SHOW);
+                UpdateWindow(hwnd);
+                println!("Ventana interactiva abierta");
+                println!(
                 "Mouse: dirigir mirada | A/D: orbitar | W/S: elevar | +/-: zoom | R: render | Esc: salir"
             );
 
-            let mut frame = render_preview(scene, &bvh, cfg, render, hwnd, PreviewQuality::Settled);
-            let mut previous_keys = [false; 11];
-            let keys = [
-                VK_A,
-                VK_D,
-                VK_W,
-                VK_S,
-                VK_LEFT,
-                VK_RIGHT,
-                VK_UP,
-                VK_DOWN,
-                VK_OEM_PLUS,
-                VK_OEM_MINUS,
-                VK_R,
-            ];
-            let mut message: Message = zeroed();
-            let mut running = true;
-            let mut previous_mouse = client_cursor(hwnd);
-            let mut mouse_was_moving = false;
-            let mut last_tick = Instant::now();
-            let mut last_draw = Instant::now();
-            let mut frame_changed = true;
+                let mut frame = PreviewFrame {
+                    generation: 0,
+                    pixels: vec![28, 31, 28, 0],
+                    width: 1,
+                    height: 1,
+                    quality: PreviewQuality::Settled,
+                    camera: camera_state(cfg),
+                    elapsed: 0.0,
+                };
+                let mut next_generation = 1_u64;
+                let mut render_busy = false;
+                let mut pending_request = Some(render_request(
+                    next_generation,
+                    cfg,
+                    PreviewQuality::Settled,
+                ));
+                let mut previous_keys = [false; 11];
+                let keys = [
+                    VK_A,
+                    VK_D,
+                    VK_W,
+                    VK_S,
+                    VK_LEFT,
+                    VK_RIGHT,
+                    VK_UP,
+                    VK_DOWN,
+                    VK_OEM_PLUS,
+                    VK_OEM_MINUS,
+                    VK_R,
+                ];
+                let mut message: Message = zeroed();
+                let mut running = true;
+                let mut previous_mouse = client_cursor(hwnd);
+                let mut mouse_was_moving = false;
+                let mut last_tick = Instant::now();
+                let mut last_draw = Instant::now();
+                let mut frame_changed = true;
 
-            while running {
-                while PeekMessageW(&mut message, null_mut(), 0, 0, PM_REMOVE) != 0 {
-                    if message.message == WM_QUIT {
-                        running = false;
+                while running {
+                    while PeekMessageW(&mut message, null_mut(), 0, 0, PM_REMOVE) != 0 {
+                        if message.message == WM_QUIT {
+                            running = false;
+                            break;
+                        }
+                        TranslateMessage(&message);
+                        DispatchMessageW(&message);
+                    }
+                    if !running {
                         break;
                     }
-                    TranslateMessage(&message);
-                    DispatchMessageW(&message);
-                }
-                if !running {
-                    break;
-                }
-                if key_down(VK_ESCAPE) {
-                    DestroyWindow(hwnd);
-                    continue;
-                }
-
-                let current_keys = keys.map(|key| key_down(key));
-                let pressed = |index: usize| current_keys[index] && !previous_keys[index];
-                let now = Instant::now();
-                let delta_seconds = now.duration_since(last_tick).as_secs_f32().min(0.10);
-                last_tick = now;
-                let current_mouse = client_cursor(hwnd);
-                let mouse_moving = match (current_mouse, previous_mouse) {
-                    (Some(current), Some(previous)) => {
-                        (current.x - previous.x).abs() > 1 || (current.y - previous.y).abs() > 1
+                    if key_down(VK_ESCAPE) {
+                        DestroyWindow(hwnd);
+                        continue;
                     }
-                    _ => false,
-                };
-                if mouse_moving {
-                    let mut rect: Rect = zeroed();
-                    if GetClientRect(hwnd, &mut rect) != 0 && rect.right > 1 && rect.bottom > 1 {
-                        if let Some(cursor) = current_mouse {
-                            let nx =
-                                (cursor.x as f32 / rect.right as f32 * 2.0 - 1.0).clamp(-1.0, 1.0);
-                            let ny =
-                                (cursor.y as f32 / rect.bottom as f32 * 2.0 - 1.0).clamp(-1.0, 1.0);
-                            cfg.look_x = nx * 8.0;
-                            cfg.look_y = -3.0 - ny * 3.4;
+
+                    while let Ok(completed) = frame_rx.try_recv() {
+                        render_busy = false;
+                        if completed.generation > frame.generation {
+                            frame = completed;
+                            update_window_title(hwnd, &frame);
+                            frame_changed = true;
                         }
                     }
-                }
-                let moving = current_keys[..10].iter().any(|&down| down) || mouse_moving;
-                let angle_step = 28.0 * delta_seconds;
-                let elevation_step = 3.2 * delta_seconds;
-                let zoom_step = 0.48 * delta_seconds;
-                if current_keys[0] || current_keys[4] {
-                    cfg.angle_deg = Some(cfg.angle_deg.unwrap_or(90.0) - angle_step);
-                }
-                if current_keys[1] || current_keys[5] {
-                    cfg.angle_deg = Some(cfg.angle_deg.unwrap_or(90.0) + angle_step);
-                }
-                if current_keys[2] || current_keys[6] {
-                    cfg.elevation = (cfg.elevation + elevation_step).min(16.0);
-                }
-                if current_keys[3] || current_keys[7] {
-                    cfg.elevation = (cfg.elevation - elevation_step).max(-10.0);
-                }
-                if current_keys[8] {
-                    cfg.zoom = (cfg.zoom + zoom_step).min(2.5);
-                }
-                if current_keys[9] {
-                    cfg.zoom = (cfg.zoom - zoom_step).max(0.45);
-                }
 
-                let was_moving = previous_keys[..10].iter().any(|&down| down) || mouse_was_moving;
-                if moving {
-                    frame = render_preview(scene, &bvh, cfg, render, hwnd, PreviewQuality::Moving);
-                    frame_changed = true;
-                } else if pressed(10) {
-                    frame = render_preview(scene, &bvh, cfg, render, hwnd, PreviewQuality::Detail);
-                    frame_changed = true;
-                } else if was_moving {
-                    frame = render_preview(scene, &bvh, cfg, render, hwnd, PreviewQuality::Settled);
-                    frame_changed = true;
+                    let current_keys = keys.map(|key| key_down(key));
+                    let pressed = |index: usize| current_keys[index] && !previous_keys[index];
+                    let now = Instant::now();
+                    let delta_seconds = now.duration_since(last_tick).as_secs_f32().min(0.10);
+                    last_tick = now;
+                    let current_mouse = client_cursor(hwnd);
+                    let mouse_moving = match (current_mouse, previous_mouse) {
+                        (Some(current), Some(previous)) => {
+                            (current.x - previous.x).abs() > 1 || (current.y - previous.y).abs() > 1
+                        }
+                        _ => false,
+                    };
+                    if mouse_moving {
+                        let mut rect: Rect = zeroed();
+                        if GetClientRect(hwnd, &mut rect) != 0 && rect.right > 1 && rect.bottom > 1
+                        {
+                            if let Some(cursor) = current_mouse {
+                                let nx = (cursor.x as f32 / rect.right as f32 * 2.0 - 1.0)
+                                    .clamp(-1.0, 1.0);
+                                let ny = (cursor.y as f32 / rect.bottom as f32 * 2.0 - 1.0)
+                                    .clamp(-1.0, 1.0);
+                                cfg.look_x = nx * 8.0;
+                                cfg.look_y = -3.0 - ny * 3.4;
+                            }
+                        }
+                    }
+                    let moving = current_keys[..10].iter().any(|&down| down) || mouse_moving;
+                    let angle_step = 28.0 * delta_seconds;
+                    let elevation_step = 3.2 * delta_seconds;
+                    let zoom_step = 0.48 * delta_seconds;
+                    if current_keys[0] || current_keys[4] {
+                        cfg.angle_deg = Some(cfg.angle_deg.unwrap_or(90.0) - angle_step);
+                    }
+                    if current_keys[1] || current_keys[5] {
+                        cfg.angle_deg = Some(cfg.angle_deg.unwrap_or(90.0) + angle_step);
+                    }
+                    if current_keys[2] || current_keys[6] {
+                        cfg.elevation = (cfg.elevation + elevation_step).min(16.0);
+                    }
+                    if current_keys[3] || current_keys[7] {
+                        cfg.elevation = (cfg.elevation - elevation_step).max(-10.0);
+                    }
+                    if current_keys[8] {
+                        cfg.zoom = (cfg.zoom + zoom_step).min(2.5);
+                    }
+                    if current_keys[9] {
+                        cfg.zoom = (cfg.zoom - zoom_step).max(0.45);
+                    }
+
+                    let was_moving =
+                        previous_keys[..10].iter().any(|&down| down) || mouse_was_moving;
+                    if moving {
+                        next_generation += 1;
+                        pending_request =
+                            Some(render_request(next_generation, cfg, PreviewQuality::Moving));
+                    } else if pressed(10) {
+                        next_generation += 1;
+                        pending_request =
+                            Some(render_request(next_generation, cfg, PreviewQuality::Detail));
+                    } else if was_moving {
+                        next_generation += 1;
+                        pending_request = Some(render_request(
+                            next_generation,
+                            cfg,
+                            PreviewQuality::Settled,
+                        ));
+                    }
+                    if !render_busy {
+                        if let Some(request) = pending_request.take() {
+                            if request_tx.send(request).is_ok() {
+                                render_busy = true;
+                            }
+                        }
+                    }
+                    previous_keys = current_keys;
+                    previous_mouse = current_mouse;
+                    mouse_was_moving = mouse_moving;
+                    if frame_changed || last_draw.elapsed() >= Duration::from_millis(250) {
+                        draw_frame(hwnd, frame.width, frame.height, &frame.pixels);
+                        last_draw = Instant::now();
+                        frame_changed = false;
+                    }
+                    thread::sleep(Duration::from_millis(16));
                 }
-                previous_keys = current_keys;
-                previous_mouse = current_mouse;
-                mouse_was_moving = mouse_moving;
-                if frame_changed || last_draw.elapsed() >= Duration::from_millis(250) {
-                    draw_frame(hwnd, frame.width, frame.height, &frame.pixels);
-                    last_draw = Instant::now();
-                    frame_changed = false;
-                }
-                thread::sleep(Duration::from_millis(16));
-            }
-        }
-        Ok(())
+                Ok(())
+            };
+            drop(request_tx);
+            result
+        })
     }
 
     fn configure_preview(cfg: &mut Config) {
@@ -414,24 +488,40 @@ mod windows {
         cfg.max_depth = cfg.max_depth.min(2);
     }
 
-    unsafe fn render_preview(
+    fn render_request(generation: u64, cfg: &Config, quality: PreviewQuality) -> RenderRequest {
+        RenderRequest {
+            generation,
+            config: cfg.clone(),
+            quality,
+        }
+    }
+
+    fn camera_state(cfg: &Config) -> CameraState {
+        CameraState {
+            angle: cfg.angle_deg.unwrap_or(90.0),
+            zoom: cfg.zoom,
+            elevation: cfg.elevation,
+            look_x: cfg.look_x,
+            look_y: cfg.look_y,
+        }
+    }
+
+    fn render_preview(
         scene: &Scene,
         bvh: &Bvh,
-        cfg: &Config,
+        request: &RenderRequest,
         render: RenderFunction,
-        hwnd: Hwnd,
-        quality: PreviewQuality,
     ) -> PreviewFrame {
-        let mut render_cfg = cfg.clone();
-        if quality == PreviewQuality::Moving && render_cfg.width > 224 {
+        let mut render_cfg = request.config.clone();
+        if request.quality == PreviewQuality::Moving && render_cfg.width > 224 {
             let aspect = render_cfg.width as f32 / render_cfg.height.max(1) as f32;
             render_cfg.width = 224;
             render_cfg.height = (render_cfg.width as f32 / aspect).round().max(1.0) as usize;
         }
-        render_cfg.realtime_preview = quality != PreviewQuality::Detail;
+        render_cfg.realtime_preview = request.quality != PreviewQuality::Detail;
         render_cfg.samples_per_axis = 1;
-        render_cfg.max_depth = if quality == PreviewQuality::Detail {
-            cfg.max_depth.min(2)
+        render_cfg.max_depth = if request.quality == PreviewQuality::Detail {
+            request.config.max_depth.min(2)
         } else {
             1
         };
@@ -439,26 +529,33 @@ mod windows {
         let started = Instant::now();
         let colors = render(scene, bvh, &render_cfg, 0);
         let elapsed = started.elapsed().as_secs_f32();
+        PreviewFrame {
+            generation: request.generation,
+            pixels: colors_to_bgra(&colors),
+            width: render_cfg.width,
+            height: render_cfg.height,
+            quality: request.quality,
+            camera: camera_state(&request.config),
+            elapsed,
+        }
+    }
+
+    unsafe fn update_window_title(hwnd: Hwnd, frame: &PreviewFrame) {
         let title = wide(&format!(
             "Diorama | angulo {:.0} | zoom {:.2} | altura {:+.1} | mirada {:+.1},{:+.1} | {} {:.2}s",
-            cfg.angle_deg.unwrap_or(90.0),
-            cfg.zoom,
-            cfg.elevation,
-            cfg.look_x,
-            cfg.look_y,
-            match quality {
+            frame.camera.angle,
+            frame.camera.zoom,
+            frame.camera.elevation,
+            frame.camera.look_x,
+            frame.camera.look_y,
+            match frame.quality {
                 PreviewQuality::Moving => "movimiento",
                 PreviewQuality::Settled => "enfoque",
                 PreviewQuality::Detail => "detalle",
             },
-            elapsed
+            frame.elapsed
         ));
         SetWindowTextW(hwnd, title.as_ptr());
-        PreviewFrame {
-            pixels: colors_to_bgra(&colors),
-            width: render_cfg.width,
-            height: render_cfg.height,
-        }
     }
 
     fn colors_to_bgra(colors: &[Color]) -> Vec<u8> {
