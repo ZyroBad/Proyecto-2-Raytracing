@@ -9,7 +9,7 @@ La escena muestra Konoha destruida, el crater de la aldea, Monte Hokage y las in
 - Diorama construido con cubos texturizados proceduralmente.
 - Elipsoides matematicos para superficies organicas continuas en sapos, humanos, ojos, cabello y humo.
 - Capsulas matematicas para extremidades, dedos, armas, cuerdas y lineas curvas sin escalones de voxeles.
-- Mallas organicas de 5,400 triangulos con normales interpoladas y BVH propio para las cabezas y torsos esculpidos de los sapos.
+- Mas de 25,000 triangulos con normales interpoladas y BVH propio para cabezas continuas, torsos, extremidades articuladas, manos, dedos y capas esculpidas.
 - Camara tipo dron elevada con orbita de 360 grados, amplio rango vertical, acercamiento y direccion de mirada mediante el mouse.
 - BVH para acelerar la interseccion de miles de cubos.
 - Renderizado paralelo usando los nucleos disponibles del procesador.
@@ -21,18 +21,21 @@ La escena muestra Konoha destruida, el crater de la aldea, Monte Hokage y las in
 - Konoha destruida en 360 grados dentro de un socavon de cinco terrazas que abarca toda la aldea, rodeado por bosque, cordillera y Monte Hokage.
 - Monte Hokage integrado en una montana distante con cinco rostros tallados y rasgos individuales.
 - Personajes modelados con formas suaves, cubos de detalle, volumen completo, rasgos faciales, ropa segmentada y accesorios visibles desde diferentes angulos.
-- Sapos redisenados con anatomia pesada y asimetrica: mandibulas anchas, ojos hundidos, parpados inclinados, papadas, verrugas, cicatrices, pliegues y extremidades apoyadas hacia el frente.
+- Sapos redisenados con anatomia pesada y asimetrica: ancho craneal variable, hocicos proyectados, mandibulas diferenciadas, ojos hundidos y perfiles laterales profundos.
+- Hombros, codos, antebrazos, munecas, patas de apoyo, palmas y dedos usan mallas de grosor variable para transmitir peso sin cilindros uniformes.
 - Humo de invocacion distribuido en varias profundidades para integrar las patas con el terreno y reforzar la escala desde camaras bajas.
+- Haoris construidos como paneles geometricos separados con grosor, solapas, bordes y sombras de contacto sobre el cuerpo.
+- Pain y sus Caminos usan capas volumetricas trianguladas y ocupan un arco exterior despejado, lejos del humo y orientados hacia los sapos.
 - Escala narrativa reforzada: las tres invocaciones principales son mas anchas y especialmente mas altas para dominar el crater, Gamakichi conserva una escala juvenil y los humanos permanecen pequenos.
 - Sello de invocacion refractivo alrededor de la escena principal.
 
 ## Personajes
 
-- **Gamabunta:** sapo gigante rojizo de mandibula pesada, rostro cicatrizado, escamas, haori, pipa y vientre segmentado.
-- **Gamaken:** sapo magenta robusto con protuberancias faciales, patron moteado, haori y sasumata metalico.
-- **Gamahiro:** sapo celeste alto de expresion severa, escamas acuaticas, mascara ocular y dos espadas.
-- **Gamakichi:** sapo naranja juvenil con escamas pequenas y chaleco azul.
-- **Naruto:** Modo Sabio con capa roja, ribete de llamas, traje naranja, pergamino, ojos dorados y protector metalico.
+- **Gamabunta:** sapo gigante rojizo de craneo ancho, mandibula pesada, rostro cicatrizado, haori, pipa y vientre segmentado.
+- **Gamaken:** sapo magenta robusto con craneo irregular, verrugas asimetricas, haori y sasumata metalico.
+- **Gamahiro:** sapo celeste alto de expresion severa, perfil vertical, mascara ocular y dos espadas.
+- **Gamakichi:** sapo naranja juvenil con piel moteada y chaleco azul.
+- **Naruto:** Modo Sabio apoyado sobre Gamakichi, con proporcion humana estilizada, capa roja, ribete de llamas, traje naranja, pergamino, ojos dorados y protector metalico.
 - **Seis Caminos de Pain:** seis siluetas independientes orientadas hacia los sapos, con capas Akatsuki detalladas por ambos lados, Rinnegan, piercings y peinados diferenciados.
 
 ## Materiales principales
@@ -41,10 +44,10 @@ Cada material posee textura procedural y parametros independientes de albedo, br
 
 | Material | Textura | Efecto destacado |
 | --- | --- | --- |
-| Piel de Gamabunta | Escamas grandes, manchas y poros | Reflexion suave |
-| Piel de Gamaken | Escamas magenta y moteado | Brillo humedo |
-| Piel de Gamahiro | Escamas, bandas y ruido acuatico | Reflexion suave |
-| Piel de Gamakichi | Escamas naranjas pequenas y pecas | Brillo humedo |
+| Piel de Gamabunta | Variacion amplia, cicatrices y poros | Reflexion suave |
+| Piel de Gamaken | Moteado organico irregular | Brillo humedo |
+| Piel de Gamahiro | Bandas suaves y variacion acuatica | Reflexion suave |
+| Piel de Gamakichi | Moteado naranja y pecas | Brillo humedo |
 | Vientre | Poros y pliegues horizontales | Difusion mate |
 | Tela y capa | Tejido, dobleces y variaciones de color | Reflexion minima |
 | Metal | Rayones direccionales | Reflexion alta |

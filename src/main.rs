@@ -695,7 +695,7 @@ fn build_sage_arrival(scene: &mut Scene) {
     add_gamaken(scene, Vec3::new(-12.4, 0.0, -1.3));
     add_gamahiro(scene, Vec3::new(12.4, 0.0, -1.3));
     add_gamakichi(scene, Vec3::new(0.0, 14.00, 0.12));
-    add_naruto_sage(scene, Vec3::new(0.0, 18.60, 0.30));
+    add_naruto_sage(scene, Vec3::new(0.0, 18.22, 0.30));
     add_summoning_clouds(scene);
     for cube in &mut scene.cubes[first_character_cube..] {
         cube.min.y -= CRATER_DEPTH;

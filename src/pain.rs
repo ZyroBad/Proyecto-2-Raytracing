@@ -1,5 +1,5 @@
 use crate::math::Vec3;
-use crate::scene::{Capsule, Cube, Ellipsoid, Scene};
+use crate::scene::{Capsule, Cube, Ellipsoid, Scene, Triangle};
 
 const ROBE: usize = 5;
 const CLOUD_RED: usize = 7;
@@ -13,12 +13,12 @@ const CRATER_EARTH: usize = 17;
 
 pub fn add_six_paths(scene: &mut Scene) {
     let paths = [
-        (Vec3::new(-12.0, -7.72, 6.6), 0usize),
-        (Vec3::new(-7.4, -7.72, 10.6), 1usize),
-        (Vec3::new(-2.5, -7.72, 12.6), 2usize),
-        (Vec3::new(2.5, -7.72, 12.6), 3usize),
-        (Vec3::new(7.4, -7.72, 10.6), 4usize),
-        (Vec3::new(12.0, -7.72, 6.6), 5usize),
+        (Vec3::new(-20.0, -7.72, 11.0), 0usize),
+        (Vec3::new(-17.0, -7.72, 13.5), 1usize),
+        (Vec3::new(-13.5, -7.72, 16.0), 2usize),
+        (Vec3::new(13.5, -7.72, 16.0), 3usize),
+        (Vec3::new(17.0, -7.72, 13.5), 4usize),
+        (Vec3::new(20.0, -7.72, 11.0), 5usize),
     ];
 
     clear_staging_areas(scene, &paths);
@@ -52,6 +52,7 @@ fn add_path(scene: &mut Scene, base: Vec3, style: usize) {
     let first_cube = scene.cubes.len();
     let first_ellipsoid = scene.ellipsoids.len();
     let first_capsule = scene.capsules.len();
+    let first_triangle = scene.triangles.len();
     let height_scale = match style {
         1 => 0.91,
         4 => 1.05,
@@ -68,18 +69,7 @@ fn add_path(scene: &mut Scene, base: Vec3, style: usize) {
         );
     }
 
-    for row in 0..8 {
-        let y = 0.30 + row as f32 * 0.25 * height_scale;
-        let width = 1.26 - row as f32 * 0.045;
-        for column in -2i32..=2 {
-            add_block(
-                scene,
-                base + Vec3::new(column as f32 * width / 5.0, y, 0.0),
-                Vec3::new(width / 5.0 + 0.035, 0.27 * height_scale, 0.56),
-                ROBE,
-            );
-        }
-    }
+    add_cloak_mesh(scene, base, height_scale, ROBE);
 
     for z in [-0.30, 0.30] {
         add_block(
@@ -156,6 +146,7 @@ fn add_path(scene: &mut Scene, base: Vec3, style: usize) {
         first_cube,
         first_ellipsoid,
         first_capsule,
+        first_triangle,
         base,
         toward_toads.x.atan2(toward_toads.z),
     );
@@ -356,6 +347,7 @@ fn rotate_added_geometry(
     first_cube: usize,
     first_ellipsoid: usize,
     first_capsule: usize,
+    first_triangle: usize,
     origin: Vec3,
     yaw: f32,
 ) {
@@ -398,6 +390,68 @@ fn rotate_added_geometry(
                     local.y,
                     -local.x * sine + local.z * cosine,
                 );
+        }
+    }
+    for triangle in &mut scene.triangles[first_triangle..] {
+        for vertex in &mut triangle.vertices {
+            let local = *vertex - origin;
+            *vertex = origin
+                + Vec3::new(
+                    local.x * cosine + local.z * sine,
+                    local.y,
+                    -local.x * sine + local.z * cosine,
+                );
+        }
+        for normal in &mut triangle.normals {
+            let old_x = normal.x;
+            let old_z = normal.z;
+            normal.x = old_x * cosine + old_z * sine;
+            normal.z = -old_x * sine + old_z * cosine;
+        }
+    }
+}
+
+fn add_cloak_mesh(scene: &mut Scene, base: Vec3, height_scale: f32, material: usize) {
+    const SIDES: usize = 18;
+    let rings = [
+        (0.26, 0.72, 0.37),
+        (0.78, 0.68, 0.36),
+        (1.34, 0.60, 0.34),
+        (1.84, 0.49, 0.32),
+    ];
+    let mut vertices = Vec::with_capacity(rings.len() * SIDES);
+    let mut normals = Vec::with_capacity(rings.len() * SIDES);
+    for (y, radius_x, radius_z) in rings {
+        for side in 0..SIDES {
+            let angle = std::f32::consts::PI * 2.0 * side as f32 / SIDES as f32;
+            vertices.push(
+                base + Vec3::new(
+                    angle.cos() * radius_x,
+                    y * height_scale,
+                    angle.sin() * radius_z,
+                ),
+            );
+            normals
+                .push(Vec3::new(angle.cos() / radius_x, 0.08, angle.sin() / radius_z).normalized());
+        }
+    }
+    for ring in 0..rings.len() - 1 {
+        for side in 0..SIDES {
+            let next = (side + 1) % SIDES;
+            let a = ring * SIDES + side;
+            let b = ring * SIDES + next;
+            let c = (ring + 1) * SIDES + side;
+            let d = (ring + 1) * SIDES + next;
+            scene.triangles.push(Triangle {
+                vertices: [vertices[a], vertices[c], vertices[b]],
+                normals: [normals[a], normals[c], normals[b]],
+                material,
+            });
+            scene.triangles.push(Triangle {
+                vertices: [vertices[b], vertices[c], vertices[d]],
+                normals: [normals[b], normals[c], normals[d]],
+                material,
+            });
         }
     }
 }

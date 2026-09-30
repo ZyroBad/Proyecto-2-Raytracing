@@ -56,19 +56,19 @@ impl Material {
                 self.albedo * (0.88 + soft)
             }
             MaterialKind::GamabuntaSkin => {
-                let pattern = scale_pattern(p, 2.2) * 0.18;
-                let spots = stripe(p.x * 0.8 + p.y * 0.35, 1.6) * noise(p * 3.0) * 0.12;
-                self.albedo * (0.84 + noise(p * 4.0) * 0.12 - spots - pattern)
+                let broad = noise(p * 0.72) * 0.12;
+                let scars = stripe(p.x * 0.31 + p.y * 0.17 + p.z * 0.11, 0.72) * 0.045;
+                self.albedo * (0.82 + broad + noise(p * 2.4) * 0.045 - scars)
             }
             MaterialKind::GamakenSkin => {
-                let scales = scale_pattern(p + Vec3::new(0.3, 0.0, 0.0), 2.8) * 0.15;
-                let mottled = noise(p * 4.8) * 0.15 + checker * 0.035;
-                self.albedo * (0.81 + mottled - scales)
+                let mottled = noise((p + Vec3::new(0.3, 0.0, 0.0)) * 0.86) * 0.15;
+                let secondary = noise(p * 2.1) * 0.055;
+                self.albedo * (0.79 + mottled + secondary)
             }
             MaterialKind::GamahiroSkin => {
                 let bands = stripe(p.y + p.x * 0.12, 1.8) * 0.08;
-                let scales = scale_pattern(p + Vec3::new(0.6, 0.0, 0.0), 2.5) * 0.13;
-                self.albedo * (0.88 + noise(p * 3.2) * 0.10 - bands - scales)
+                let broad = noise((p + Vec3::new(0.6, 0.0, 0.0)) * 0.78) * 0.12;
+                self.albedo * (0.86 + broad + noise(p * 2.0) * 0.04 - bands)
             }
             MaterialKind::Robe => {
                 let weave = checker * 0.05 + stripe(p.y, 4.0) * 0.04;
@@ -145,9 +145,8 @@ impl Material {
                 self.albedo * (0.82 + mottled)
             }
             MaterialKind::GamakichiSkin => {
-                let scales = scale_pattern(p + Vec3::new(0.15, 0.0, 0.0), 3.8) * 0.16;
-                let freckles = noise(p * 7.0) * 0.10;
-                self.albedo * (0.90 + freckles - scales)
+                let freckles = noise(p * 2.7) * 0.08;
+                self.albedo * (0.88 + freckles + noise(p * 0.9) * 0.06)
             }
             MaterialKind::ForestCanopy => {
                 let clusters = noise(p * 3.4) * 0.22;
@@ -492,20 +491,6 @@ pub fn noise(p: Vec3) -> f32 {
 
 fn stripe(v: f32, frequency: f32) -> f32 {
     if (v * frequency).sin() > 0.72 {
-        1.0
-    } else {
-        0.0
-    }
-}
-
-fn scale_pattern(p: Vec3, frequency: f32) -> f32 {
-    let row = (p.y * frequency).floor() as i32;
-    let stagger = if row & 1 == 0 { 0.0 } else { 0.5 };
-    let x = (p.x * frequency + stagger).fract().abs();
-    let y = (p.y * frequency).fract().abs();
-    let centered_x = (x - 0.5).abs() * 2.0;
-    let arc = centered_x * centered_x + (y - 0.22).powi(2) * 2.8;
-    if (0.58..0.86).contains(&arc) {
         1.0
     } else {
         0.0
