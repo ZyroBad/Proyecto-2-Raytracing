@@ -186,6 +186,10 @@ Los cuadros se guardan en `frames/` con numeracion consecutiva. Primero conviene
 --output PATH   archivo BMP o PPM de salida
 ```
 
+![Escena De referencia](renders/Sapos.png)
+
+![Escena Lograda con Raytracing](renders/final.png)
+
 ## Video
 
 El video final del diorama se agregara aqui antes de la entrega.
