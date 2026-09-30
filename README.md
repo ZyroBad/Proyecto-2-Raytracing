@@ -122,7 +122,7 @@ Controles:
 
 La ventana usa una resolucion interactiva y ajustes moderados para responder bien en graficos integrados. El render final puede generarse despues con mayor resolucion, muestras y profundidad.
 
-La ventana usa una vista de navegacion de 224 pixeles de ancho sin rebotes ni sombras secundarias y la refina automaticamente a 360 pixeles al detener la camara. El render se ejecuta en un hilo independiente con una cola de ultimo encuadre, por lo que mouse y teclado siguen respondiendo mientras se calcula la imagen. La vista detenida activa sombras, oclusion ambiental y relieve procedural; al presionar `r` genera una vista detallada con antialiasing 2x2. El encuadre inicial incluye el arco exterior de Pain y el BVH de cubos, triangulos, elipsoides y capsulas se construye una sola vez.
+La ventana usa una vista de navegacion de 224 pixeles de ancho con texturas, relieve procedural, iluminacion directa, brillo especular, una muestra de sombra y reflejo ambiental. El render se ejecuta en un hilo independiente con una cola de ultimo encuadre, por lo que mouse y teclado siguen respondiendo mientras se calcula la imagen. Al detener la camara, la vista se refina automaticamente a 360 pixeles y activa oclusion ambiental, sombras suaves y rayos secundarios; al presionar `r` genera una vista detallada con antialiasing 2x2. El encuadre inicial incluye el arco exterior de Pain y el BVH de cubos, triangulos, elipsoides y capsulas se construye una sola vez.
 
 ## Camara por consola
 

@@ -279,20 +279,20 @@ fn shade(
     };
     let base = hit.material.texture(hit.point, normal);
 
-    let visibility = if realtime_preview {
-        1.0
+    let shadow_samples = if realtime_preview || max_depth <= 1 {
+        1
     } else {
-        let shadow_samples = if max_depth <= 1 { 1 } else { 3 };
-        soft_shadow(
-            scene,
-            bvh,
-            hit.point,
-            geometric_normal,
-            light_dir,
-            shadow_samples,
-        )
+        3
     };
-    let contact = if hd && depth == 0 {
+    let visibility = soft_shadow(
+        scene,
+        bvh,
+        hit.point,
+        geometric_normal,
+        light_dir,
+        shadow_samples,
+    );
+    let contact = if hd && !realtime_preview && depth == 0 {
         ambient_visibility(scene, bvh, hit.point, geometric_normal)
     } else {
         1.0
@@ -322,7 +322,12 @@ fn shade(
     let mut color =
         ambient * contact + diffuse + fill_light + specular + rim_light * (0.72 + contact * 0.28);
 
-    if !realtime_preview && hit.material.reflectivity >= SECONDARY_RAY_THRESHOLD {
+    if realtime_preview && hit.material.reflectivity >= SECONDARY_RAY_THRESHOLD {
+        let reflected = ray.direction.reflect(normal).normalized();
+        let facing = (-ray.direction.dot(hit.normal)).abs().clamp(0.0, 1.0);
+        let fresnel = hit.material.reflectivity * (0.52 + 0.48 * (1.0 - facing).powf(5.0));
+        color = color * (1.0 - fresnel) + skybox(reflected) * fresnel;
+    } else if hit.material.reflectivity >= SECONDARY_RAY_THRESHOLD {
         let reflected = ray.direction.reflect(normal).normalized();
         let reflected_color = trace(
             scene,
