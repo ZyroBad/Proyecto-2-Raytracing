@@ -71,8 +71,9 @@ impl Material {
                 self.albedo * (0.86 + broad + noise(p * 2.0) * 0.04 - bands)
             }
             MaterialKind::Robe => {
-                let weave = checker * 0.05 + stripe(p.y, 4.0) * 0.04;
-                self.albedo * (0.78 + weave)
+                let weave = noise(p * 14.0) * 0.055;
+                let folds = (p.x * 2.1 + (p.y * 0.32).sin()).sin().abs() * 0.055;
+                self.albedo * (0.78 + weave + folds)
             }
             MaterialKind::OrangeCloth => {
                 let weave = noise(p * 10.0) * 0.10;
@@ -160,8 +161,9 @@ impl Material {
                 self.albedo * (0.72 + erosion - strata)
             }
             MaterialKind::PainSkin => {
-                let pores = noise(p * 9.0) * 0.08;
-                self.albedo * (0.86 + pores)
+                let pores = noise(p * 11.0) * 0.055;
+                let warm_variation = noise((p + Vec3::new(0.7, 0.2, 0.4)) * 3.0) * 0.05;
+                self.albedo * (0.86 + pores + warm_variation)
             }
             MaterialKind::Rinnegan => {
                 let rings = ((p.x * p.x + p.y * p.y).sqrt() * 22.0).sin().abs() * 0.13;

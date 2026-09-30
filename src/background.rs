@@ -551,13 +551,14 @@ fn add_hokage_face(scene: &mut Scene, center: Vec3, style: usize) {
     let stone = 21;
     let shadow = 0;
 
-    let (head_width, jaw_width, eye_y, brow_slant) = match style {
-        0 => (1.02, 0.76, 0.24, 0.08),
-        1 => (0.94, 0.70, 0.29, 0.15),
-        2 => (1.08, 0.84, 0.20, 0.02),
-        3 => (0.92, 0.68, 0.31, 0.18),
-        _ => (0.90, 0.64, 0.30, 0.11),
-    };
+    let (head_width, jaw_width, eye_y, brow_slant, nose_drop, mouth_width, mouth_curve) =
+        match style {
+            0 => (1.02, 0.76, 0.24, 0.08, -0.35, 0.44, -0.05),
+            1 => (0.94, 0.70, 0.29, 0.15, -0.31, 0.38, 0.02),
+            2 => (1.08, 0.84, 0.20, 0.02, -0.40, 0.46, -0.08),
+            3 => (0.92, 0.68, 0.31, 0.18, -0.34, 0.40, 0.01),
+            _ => (0.90, 0.64, 0.30, 0.11, -0.30, 0.36, 0.04),
+        };
 
     // Volumen craneal, sienes, mejillas y mandibula forman un relieve continuo.
     add_relief_ellipsoid(
@@ -608,6 +609,13 @@ fn add_hokage_face(scene: &mut Scene, center: Vec3, style: usize) {
         );
         add_relief_segment(
             scene,
+            center + Vec3::new(eye_x - side * 0.18, eye_y - 0.075, 0.445),
+            center + Vec3::new(eye_x + side * 0.18, eye_y - 0.055, 0.445),
+            0.028,
+            shadow,
+        );
+        add_relief_segment(
+            scene,
             center + Vec3::new(side * 0.10, eye_y + 0.22, 0.37),
             center
                 + Vec3::new(
@@ -631,35 +639,35 @@ fn add_hokage_face(scene: &mut Scene, center: Vec3, style: usize) {
     add_relief_segment(
         scene,
         center + Vec3::new(0.0, 0.42, 0.37),
-        center + Vec3::new(0.0, -0.28, 0.47),
+        center + Vec3::new(0.0, nose_drop, 0.47),
         0.14,
         stone,
     );
     add_relief_ellipsoid(
         scene,
-        center + Vec3::new(0.0, -0.34, 0.49),
-        Vec3::new(0.30, 0.17, 0.18),
+        center + Vec3::new(0.0, nose_drop - 0.06, 0.49),
+        Vec3::new(0.25 + style as f32 * 0.012, 0.15, 0.18),
         stone,
     );
     for side in [-1.0, 1.0] {
         add_relief_ellipsoid(
             scene,
-            center + Vec3::new(side * 0.13, -0.36, 0.60),
+            center + Vec3::new(side * 0.13, nose_drop - 0.08, 0.60),
             Vec3::new(0.055, 0.035, 0.025),
             shadow,
         );
     }
     add_relief_segment(
         scene,
-        center + Vec3::new(-0.42, -0.69, 0.43),
-        center + Vec3::new(0.0, -0.76, 0.48),
+        center + Vec3::new(-mouth_width, -0.69 + mouth_curve, 0.43),
+        center + Vec3::new(0.0, -0.73 - mouth_curve, 0.48),
         0.052,
         shadow,
     );
     add_relief_segment(
         scene,
-        center + Vec3::new(0.0, -0.76, 0.48),
-        center + Vec3::new(0.42, -0.69, 0.43),
+        center + Vec3::new(0.0, -0.73 - mouth_curve, 0.48),
+        center + Vec3::new(mouth_width, -0.69 + mouth_curve, 0.43),
         0.052,
         shadow,
     );
@@ -670,6 +678,17 @@ fn add_hokage_face(scene: &mut Scene, center: Vec3, style: usize) {
         0.035,
         shadow,
     );
+
+    // Surcos nasolabiales y planos de las sienes evitan una mascara plana.
+    for side in [-1.0, 1.0] {
+        add_relief_segment(
+            scene,
+            center + Vec3::new(side * 0.25, nose_drop - 0.02, 0.45),
+            center + Vec3::new(side * (mouth_width + 0.08), -0.66, 0.35),
+            if style == 2 { 0.052 } else { 0.035 },
+            shadow,
+        );
+    }
 
     match style {
         // Hashirama: protector amplio y mechones largos.

@@ -518,8 +518,13 @@ mod windows {
             render_cfg.width = 224;
             render_cfg.height = (render_cfg.width as f32 / aspect).round().max(1.0) as usize;
         }
-        render_cfg.realtime_preview = request.quality != PreviewQuality::Detail;
-        render_cfg.samples_per_axis = 1;
+        render_cfg.realtime_preview = request.quality == PreviewQuality::Moving;
+        render_cfg.hd = request.quality != PreviewQuality::Moving;
+        render_cfg.samples_per_axis = if request.quality == PreviewQuality::Detail {
+            2
+        } else {
+            1
+        };
         render_cfg.max_depth = if request.quality == PreviewQuality::Detail {
             request.config.max_depth.min(2)
         } else {

@@ -33,6 +33,7 @@ use std::path::Path;
 use std::thread;
 
 const EPSILON: f32 = 0.001;
+const SECONDARY_RAY_THRESHOLD: f32 = 0.075;
 
 struct Hit {
     point: Vec3,
@@ -297,27 +298,31 @@ fn shade(
         1.0
     };
     let ndotl = normal.dot(light_dir).max(0.0);
-    let diffuse_strength = ndotl * (0.16 + visibility * 0.84);
-    let diffuse = base.hadamard(scene.light_color) * diffuse_strength * (0.78 + contact * 0.22);
+    let diffuse_strength = ndotl * (0.10 + visibility * 0.90);
+    let diffuse = base.hadamard(scene.light_color) * diffuse_strength * (0.72 + contact * 0.28);
+    let fill_dir = Vec3::new(-0.62, 0.34, 0.48).normalized();
+    let fill = normal.dot(fill_dir).max(0.0) * 0.12;
+    let fill_light = base.hadamard(Color::new(0.28, 0.39, 0.55)) * fill;
 
     let half_vec = (light_dir + view_dir).normalized();
     let spec = normal.dot(half_vec).max(0.0).powf(hit.material.shininess())
         * hit.material.specular
         * visibility;
     let specular = scene.light_color * spec;
-    let sky_ambient = Color::new(0.18, 0.27, 0.46);
-    let ground_bounce = Color::new(0.34, 0.14, 0.055);
+    let sky_ambient = Color::new(0.12, 0.20, 0.32);
+    let ground_bounce = Color::new(0.28, 0.12, 0.04);
     let upward = normal.y.max(0.0);
     let downward = (-normal.y).max(0.0);
-    let ambient = base * 0.105
-        + base.hadamard(sky_ambient) * (0.12 + upward * 0.12)
-        + base.hadamard(ground_bounce) * downward * 0.10;
-    let rim = (1.0 - normal.dot(view_dir).max(0.0)).powf(3.5) * 0.16;
+    let ambient = base * 0.072
+        + base.hadamard(sky_ambient) * (0.10 + upward * 0.08)
+        + base.hadamard(ground_bounce) * downward * 0.07;
+    let rim = (1.0 - normal.dot(view_dir).max(0.0)).powf(3.5) * 0.12;
     let rim_light = Color::new(0.28, 0.44, 0.78) * rim;
 
-    let mut color = ambient * contact + diffuse + specular + rim_light * (0.72 + contact * 0.28);
+    let mut color =
+        ambient * contact + diffuse + fill_light + specular + rim_light * (0.72 + contact * 0.28);
 
-    if !realtime_preview && hit.material.reflectivity > 0.0 {
+    if !realtime_preview && hit.material.reflectivity >= SECONDARY_RAY_THRESHOLD {
         let reflected = ray.direction.reflect(normal).normalized();
         let reflected_color = trace(
             scene,
@@ -336,7 +341,7 @@ fn shade(
         color = color * (1.0 - fresnel) + reflected_color * fresnel;
     }
 
-    if !realtime_preview && hit.material.transparency > 0.0 {
+    if !realtime_preview && hit.material.transparency >= SECONDARY_RAY_THRESHOLD {
         let entering = ray.direction.dot(hit.normal) < 0.0;
         let normal = if entering { hit.normal } else { -hit.normal };
         let eta = if entering {
@@ -366,7 +371,7 @@ fn shade(
 
     let distance_fog = ((hit.distance - 16.0) / 38.0).clamp(0.0, 1.0);
     let low_dust = (1.0 - (hit.point.y / 11.0).clamp(0.0, 1.0)) * distance_fog;
-    let fog = (distance_fog * 0.24 + low_dust * 0.13).min(0.38);
+    let fog = (distance_fog * 0.18 + low_dust * 0.09).min(0.29);
     let fog_color = skybox(ray.direction) * 0.80 + Color::new(0.46, 0.34, 0.20) * 0.20;
     color = color * (1.0 - fog) + fog_color * fog;
     Color::new(color.x.max(0.0), color.y.max(0.0), color.z.max(0.0))

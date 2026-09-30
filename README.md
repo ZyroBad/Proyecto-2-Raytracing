@@ -19,13 +19,13 @@ La escena muestra Konoha destruida, el crater de la aldea, Monte Hokage y las in
 - Refraccion y transparencia en chakra, humo y nubes de invocacion.
 - Skybox procedural con horizonte, sol y nubes.
 - Konoha destruida en 360 grados dentro de un socavon de cinco terrazas que abarca toda la aldea, rodeado por bosque, cordillera y Monte Hokage.
-- Monte Hokage integrado en una montana distante con cinco rostros de relieve suave, ojos, parpados, nariz, boca, mandibula, cabello y accesorios individuales.
+- Monte Hokage integrado en una montana distante con cinco rostros de relieve suave, perfiles profundos y rasgos individuales de mandibula, nariz, parpados, boca, cabello y edad.
 - Personajes modelados con formas suaves, cubos de detalle, volumen completo, rasgos faciales, ropa segmentada y accesorios visibles desde diferentes angulos.
 - Sapos redisenados con anatomia pesada y asimetrica: ancho craneal variable, hocicos proyectados, mandibulas diferenciadas, ojos hundidos y perfiles laterales profundos.
 - Hombros, codos, antebrazos, munecas, patas de apoyo, palmas y dedos usan mallas de grosor variable para transmitir peso sin cilindros uniformes.
 - Humo de invocacion distribuido en varias profundidades para integrar las patas con el terreno y reforzar la escala desde camaras bajas.
 - Haoris construidos como paneles geometricos separados con grosor, solapas, bordes y sombras de contacto sobre el cuerpo.
-- Pain y sus Caminos usan capas volumetricas trianguladas y forman un arco frontal despejado sobre la altura real de la terraza, orientados hacia los sapos.
+- Pain y sus Caminos usan capas volumetricas trianguladas, rostros organicos diferenciados, Rinnegan en relieve y accesorios apoyados sobre la anatomia. Forman un arco frontal despejado sobre la altura real de la terraza, orientados hacia los sapos.
 - Escala narrativa reforzada: las tres invocaciones principales son mas anchas y especialmente mas altas para dominar el crater, Gamakichi conserva una escala juvenil y los humanos permanecen pequenos.
 - Sello de invocacion refractivo alrededor de la escena principal.
 
@@ -122,7 +122,7 @@ Controles:
 
 La ventana usa una resolucion interactiva y ajustes moderados para responder bien en graficos integrados. El render final puede generarse despues con mayor resolucion, muestras y profundidad.
 
-La ventana usa una vista de navegacion de 224 pixeles de ancho sin rebotes ni sombras secundarias y la refina automaticamente a 360 pixeles al detener la camara. Al presionar `r` genera bajo demanda una vista detallada con sombras suaves. El encuadre inicial incluye el arco exterior de Pain, el movimiento por teclado usa tiempo real y el BVH de cubos, triangulos, elipsoides y capsulas se construye una sola vez.
+La ventana usa una vista de navegacion de 224 pixeles de ancho sin rebotes ni sombras secundarias y la refina automaticamente a 360 pixeles al detener la camara. El render se ejecuta en un hilo independiente con una cola de ultimo encuadre, por lo que mouse y teclado siguen respondiendo mientras se calcula la imagen. La vista detenida activa sombras, oclusion ambiental y relieve procedural; al presionar `r` genera una vista detallada con antialiasing 2x2. El encuadre inicial incluye el arco exterior de Pain y el BVH de cubos, triangulos, elipsoides y capsulas se construye una sola vez.
 
 ## Camara por consola
 

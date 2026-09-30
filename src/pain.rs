@@ -143,18 +143,32 @@ fn add_path(scene: &mut Scene, base: Vec3, style: usize) {
             CLOUD_RED,
         );
     }
-    add_block(
+    add_ellipsoid(
         scene,
-        base + Vec3::new(0.0, 2.14 * height_scale, 0.17),
-        Vec3::new(0.35, 0.34, 0.30),
+        base + Vec3::new(0.0, 2.14 * height_scale, 0.11),
+        Vec3::new(0.18, 0.18, 0.16),
+        0.06,
         PAIN_SKIN,
     );
     let head_center = base + Vec3::new(0.0, 2.48 * height_scale, 0.04);
+    let head_radii = match style {
+        0 => Vec3::new(0.40, 0.51 * height_scale, 0.39),
+        1 => Vec3::new(0.38, 0.49 * height_scale, 0.36),
+        2 => Vec3::new(0.44, 0.52 * height_scale, 0.38),
+        3 => Vec3::new(0.42, 0.50 * height_scale, 0.37),
+        4 => Vec3::new(0.36, 0.54 * height_scale, 0.35),
+        _ => Vec3::new(0.45, 0.48 * height_scale, 0.39),
+    };
+    add_ellipsoid(scene, head_center, head_radii, 0.08, PAIN_SKIN);
     add_ellipsoid(
         scene,
-        head_center,
-        Vec3::new(0.43, 0.50 * height_scale, 0.37),
-        0.08,
+        head_center + Vec3::new(0.0, -0.27 * height_scale, 0.10),
+        Vec3::new(
+            head_radii.x * 0.72,
+            0.24 * height_scale,
+            head_radii.z * 0.82,
+        ),
+        0.06,
         PAIN_SKIN,
     );
 
@@ -223,7 +237,15 @@ fn scale_added_geometry(
 }
 
 fn add_face(scene: &mut Scene, head: Vec3, style: usize, scale: f32) {
-    let front = head.z + 0.36;
+    let (eye_spacing, eye_height, mouth_width, brow_slant) = match style {
+        0 => (0.165, 0.055, 0.24, 0.035),
+        1 => (0.155, 0.045, 0.21, -0.020),
+        2 => (0.175, 0.065, 0.25, 0.015),
+        3 => (0.168, 0.040, 0.22, 0.050),
+        4 => (0.145, 0.070, 0.19, -0.015),
+        _ => (0.180, 0.035, 0.26, 0.025),
+    };
+    let front = head.z + 0.34;
     for side in [-1.0, 1.0] {
         add_ellipsoid(
             scene,
@@ -233,43 +255,100 @@ fn add_face(scene: &mut Scene, head: Vec3, style: usize, scale: f32) {
             PAIN_SKIN,
         );
     }
-    add_block(
+
+    // Protector curvo, placa metalica y remaches apoyados sobre la frente.
+    add_ellipsoid(
         scene,
-        Vec3::new(head.x, head.y + 0.25 * scale, front + 0.02),
-        Vec3::new(0.70, 0.17, 0.075),
+        Vec3::new(head.x, head.y + 0.27 * scale, front - 0.015),
+        Vec3::new(0.37, 0.115, 0.075),
+        0.045,
         INK,
     );
-    add_block(
+    add_ellipsoid(
         scene,
-        Vec3::new(head.x, head.y + 0.26 * scale, front + 0.075),
-        Vec3::new(0.48, 0.18, 0.055),
+        Vec3::new(head.x, head.y + 0.27 * scale, front + 0.045),
+        Vec3::new(0.25, 0.085, 0.035),
+        0.035,
         METAL,
     );
     for side in [-1.0, 1.0] {
-        let eye_x = head.x + side * 0.17;
-        add_block(
+        add_ellipsoid(
             scene,
-            Vec3::new(eye_x, head.y + 0.05 * scale, front + 0.07),
-            Vec3::new(0.18, 0.09, 0.045),
-            RINNEGAN,
-        );
-        add_block(
-            scene,
-            Vec3::new(eye_x, head.y + 0.05 * scale, front + 0.10),
-            Vec3::new(0.035, 0.055, 0.025),
+            Vec3::new(head.x + side * 0.19, head.y + 0.27 * scale, front + 0.08),
+            Vec3::new(0.018, 0.018, 0.012),
+            0.02,
             INK,
         );
     }
-    add_block(
+
+    // Parpados, Rinnegan y cejas tienen profundidad independiente.
+    for side in [-1.0, 1.0] {
+        let eye_x = head.x + side * eye_spacing;
+        add_ellipsoid(
+            scene,
+            Vec3::new(eye_x, head.y + eye_height * scale, front + 0.055),
+            Vec3::new(0.105, 0.060, 0.035),
+            0.025,
+            RINNEGAN,
+        );
+        add_ellipsoid(
+            scene,
+            Vec3::new(eye_x, head.y + eye_height * scale, front + 0.087),
+            Vec3::new(0.021, 0.029, 0.014),
+            0.018,
+            INK,
+        );
+        add_segment(
+            scene,
+            Vec3::new(
+                eye_x - side * 0.10,
+                head.y + (eye_height + 0.105 - brow_slant * side) * scale,
+                front + 0.045,
+            ),
+            Vec3::new(
+                eye_x + side * 0.11,
+                head.y + (eye_height + 0.12 + brow_slant * side) * scale,
+                front + 0.035,
+            ),
+            0.030,
+            PAIN_HAIR,
+        );
+    }
+
+    add_segment(
         scene,
-        Vec3::new(head.x, head.y - 0.23 * scale, front + 0.06),
-        Vec3::new(0.23, 0.045, 0.04),
+        Vec3::new(head.x, head.y + 0.04 * scale, front + 0.035),
+        Vec3::new(head.x, head.y - 0.11 * scale, front + 0.105),
+        0.055,
+        PAIN_SKIN,
+    );
+    add_ellipsoid(
+        scene,
+        Vec3::new(head.x, head.y - 0.125 * scale, front + 0.10),
+        Vec3::new(0.070, 0.045, 0.040),
+        0.025,
+        PAIN_SKIN,
+    );
+    add_segment(
+        scene,
+        Vec3::new(
+            head.x - mouth_width * 0.5,
+            head.y - 0.255 * scale,
+            front + 0.055,
+        ),
+        Vec3::new(
+            head.x + mouth_width * 0.5,
+            head.y - 0.255 * scale,
+            front + 0.055,
+        ),
+        0.026,
         INK,
     );
-    add_block(
+    add_ellipsoid(
         scene,
-        Vec3::new(head.x, head.y - 0.03 * scale, front + 0.085),
-        Vec3::new(0.075, 0.22, 0.055),
+        Vec3::new(head.x, head.y - 0.34 * scale, front - 0.005),
+        Vec3::new(0.16, 0.11, 0.10),
+        0.035,
         PAIN_SKIN,
     );
 
@@ -277,29 +356,32 @@ fn add_face(scene: &mut Scene, head: Vec3, style: usize, scale: f32) {
     match style {
         0 | 2 => {
             for offset in [-0.13, 0.0, 0.13] {
-                add_block(
+                add_ellipsoid(
                     scene,
                     Vec3::new(head.x, head.y - 0.08 * scale + offset, front + 0.085),
-                    Vec3::new(0.04, 0.04, 0.035),
+                    Vec3::new(0.022, 0.022, 0.018),
+                    0.018,
                     METAL,
                 );
             }
         }
         1 | 5 => {
             for side in [-1.0, 1.0] {
-                add_block(
+                add_segment(
                     scene,
-                    Vec3::new(head.x + side * 0.29, head.y - 0.06 * scale, front + 0.04),
-                    Vec3::new(0.045, 0.13, 0.04),
+                    Vec3::new(head.x + side * 0.285, head.y - 0.12 * scale, front + 0.025),
+                    Vec3::new(head.x + side * 0.285, head.y + 0.02 * scale, front + 0.035),
+                    0.035,
                     METAL,
                 );
             }
         }
         _ => {
-            add_block(
+            add_segment(
                 scene,
-                Vec3::new(head.x, head.y + 0.02 * scale, front + 0.09),
-                Vec3::new(0.045, 0.20, 0.04),
+                Vec3::new(head.x, head.y - 0.08 * scale, front + 0.105),
+                Vec3::new(head.x, head.y + 0.10 * scale, front + 0.085),
+                0.034,
                 METAL,
             );
         }
@@ -325,17 +407,20 @@ fn add_hair(scene: &mut Scene, head: Vec3, style: usize, scale: f32) {
             );
         }
         4 => {
-            add_block(
+            add_ellipsoid(
                 scene,
-                head + Vec3::new(0.0, -0.18 * scale, -0.20),
-                Vec3::new(0.82, 1.42 * scale, 0.30),
+                head + Vec3::new(0.0, 0.29 * scale, -0.12),
+                Vec3::new(0.39, 0.31 * scale, 0.31),
+                0.07,
                 PAIN_HAIR,
             );
-            for side in [-1.0, 1.0] {
-                add_block(
+            for strand in -3i32..=3 {
+                let x = strand as f32 * 0.11;
+                add_segment(
                     scene,
-                    head + Vec3::new(side * 0.36, -0.33 * scale, 0.08),
-                    Vec3::new(0.16, 1.18 * scale, 0.20),
+                    head + Vec3::new(x, 0.30 * scale, -0.16),
+                    head + Vec3::new(x * 1.20, -0.86 * scale, -0.10 + strand.abs() as f32 * 0.008),
+                    0.105,
                     PAIN_HAIR,
                 );
             }
