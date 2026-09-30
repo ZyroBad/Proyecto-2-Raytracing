@@ -12,6 +12,8 @@ mod window;
 
 use background::add_destroyed_konoha;
 use bvh::Bvh;
+#[cfg(test)]
+use bvh::{intersect_capsule, intersect_ellipsoid};
 use camera::{Camera, Ray};
 use characters::{
     add_gamabunta, add_gamahiro, add_gamaken, add_gamakichi, add_naruto_sage, add_summoning_clouds,
@@ -21,7 +23,9 @@ use image::{save_bmp, save_ppm};
 use material::{scene_materials, Material};
 use math::{Color, Vec3};
 use pain::add_six_paths;
-use scene::{Capsule, Cube, Ellipsoid, Scene};
+#[cfg(test)]
+use scene::{Capsule, Ellipsoid};
+use scene::{Cube, Scene};
 use std::f32::consts::PI;
 use std::fs::create_dir_all;
 use std::io::{self, Write};
@@ -142,7 +146,12 @@ fn render_to_file(scene: &Scene, cfg: &Config, frame: usize, path: &str) -> std:
 }
 
 fn render_pixels(scene: &Scene, cfg: &Config, frame: usize) -> Vec<Color> {
-    let bvh = Bvh::build(&scene.cubes, &scene.triangles);
+    let bvh = Bvh::build_scene(
+        &scene.cubes,
+        &scene.triangles,
+        &scene.ellipsoids,
+        &scene.capsules,
+    );
     render_pixels_with_bvh(scene, &bvh, cfg, frame)
 }
 
@@ -208,7 +217,15 @@ fn render_rows(
                     let u = (x as f32 + (sx as f32 + 0.5) * inv_samples) / (cfg.width - 1) as f32;
                     let v = 1.0
                         - (y as f32 + (sy as f32 + 0.5) * inv_samples) / (cfg.height - 1) as f32;
-                    color += trace(scene, &bvh, camera.ray(u, v), 0, cfg.max_depth, cfg.hd);
+                    color += trace(
+                        scene,
+                        &bvh,
+                        camera.ray(u, v),
+                        0,
+                        cfg.max_depth,
+                        cfg.hd,
+                        cfg.realtime_preview,
+                    );
                 }
             }
             color = color / (samples * samples) as f32;
@@ -221,13 +238,21 @@ fn render_rows(
     }
 }
 
-fn trace(scene: &Scene, bvh: &Bvh, ray: Ray, depth: u32, max_depth: u32, hd: bool) -> Color {
+fn trace(
+    scene: &Scene,
+    bvh: &Bvh,
+    ray: Ray,
+    depth: u32,
+    max_depth: u32,
+    hd: bool,
+    realtime_preview: bool,
+) -> Color {
     if depth >= max_depth {
         return skybox(ray.direction);
     }
 
     if let Some(hit) = intersect_scene(scene, bvh, ray) {
-        shade(scene, bvh, ray, hit, depth, max_depth, hd)
+        shade(scene, bvh, ray, hit, depth, max_depth, hd, realtime_preview)
     } else {
         skybox(ray.direction)
     }
@@ -241,6 +266,7 @@ fn shade(
     depth: u32,
     max_depth: u32,
     hd: bool,
+    realtime_preview: bool,
 ) -> Color {
     let view_dir = -ray.direction;
     let light_dir = -scene.light_dir.normalized();
@@ -252,15 +278,19 @@ fn shade(
     };
     let base = hit.material.texture(hit.point, normal);
 
-    let shadow_samples = if max_depth <= 1 { 1 } else { 3 };
-    let visibility = soft_shadow(
-        scene,
-        bvh,
-        hit.point,
-        geometric_normal,
-        light_dir,
-        shadow_samples,
-    );
+    let visibility = if realtime_preview {
+        1.0
+    } else {
+        let shadow_samples = if max_depth <= 1 { 1 } else { 3 };
+        soft_shadow(
+            scene,
+            bvh,
+            hit.point,
+            geometric_normal,
+            light_dir,
+            shadow_samples,
+        )
+    };
     let contact = if hd && depth == 0 {
         ambient_visibility(scene, bvh, hit.point, geometric_normal)
     } else {
@@ -287,7 +317,7 @@ fn shade(
 
     let mut color = ambient * contact + diffuse + specular + rim_light * (0.72 + contact * 0.28);
 
-    if hit.material.reflectivity > 0.0 {
+    if !realtime_preview && hit.material.reflectivity > 0.0 {
         let reflected = ray.direction.reflect(normal).normalized();
         let reflected_color = trace(
             scene,
@@ -299,13 +329,14 @@ fn shade(
             depth + 1,
             max_depth,
             hd,
+            realtime_preview,
         );
         let facing = (-ray.direction.dot(hit.normal)).abs().clamp(0.0, 1.0);
         let fresnel = hit.material.reflectivity * (0.52 + 0.48 * (1.0 - facing).powf(5.0));
         color = color * (1.0 - fresnel) + reflected_color * fresnel;
     }
 
-    if hit.material.transparency > 0.0 {
+    if !realtime_preview && hit.material.transparency > 0.0 {
         let entering = ray.direction.dot(hit.normal) < 0.0;
         let normal = if entering { hit.normal } else { -hit.normal };
         let eta = if entering {
@@ -327,6 +358,7 @@ fn shade(
             depth + 1,
             max_depth,
             hd,
+            realtime_preview,
         );
         color =
             color * (1.0 - hit.material.transparency) + refracted_color * hit.material.transparency;
@@ -368,15 +400,11 @@ fn ambient_visibility(scene: &Scene, bvh: &Bvh, point: Vec3, normal: Vec3) -> f3
         if let Some((_, distance, _)) = bvh.nearest_triangle(&scene.triangles, ray) {
             nearest = nearest.min(distance);
         }
-        for &ellipsoid in &scene.ellipsoids {
-            if let Some((distance, _)) = intersect_ellipsoid(ray, ellipsoid) {
-                nearest = nearest.min(distance);
-            }
+        if let Some((_, distance, _)) = bvh.nearest_ellipsoid(&scene.ellipsoids, ray) {
+            nearest = nearest.min(distance);
         }
-        for &capsule in &scene.capsules {
-            if let Some((distance, _)) = intersect_capsule(ray, capsule) {
-                nearest = nearest.min(distance);
-            }
+        if let Some((_, distance, _)) = bvh.nearest_capsule(&scene.capsules, ray) {
+            nearest = nearest.min(distance);
         }
         if nearest < max_distance {
             occlusion += 1.0 - nearest / max_distance;
@@ -407,14 +435,8 @@ fn soft_shadow(
         };
         if !bvh.any_hit(&scene.cubes, shadow_ray)
             && !bvh.any_triangle_hit(&scene.triangles, shadow_ray)
-            && !scene
-                .ellipsoids
-                .iter()
-                .any(|&ellipsoid| intersect_ellipsoid(shadow_ray, ellipsoid).is_some())
-            && !scene
-                .capsules
-                .iter()
-                .any(|&capsule| intersect_capsule(shadow_ray, capsule).is_some())
+            && !bvh.any_ellipsoid_hit(&scene.ellipsoids, shadow_ray)
+            && !bvh.any_capsule_hit(&scene.capsules, shadow_ray)
         {
             visible += 1.0;
         }
@@ -453,42 +475,38 @@ fn intersect_scene(scene: &Scene, bvh: &Bvh, ray: Ray) -> Option<Hit> {
             }
         });
     let mut closest = cube_hit;
-    for &ellipsoid in &scene.ellipsoids {
-        if let Some((distance, mut normal)) = intersect_ellipsoid(ray, ellipsoid) {
-            if normal.dot(ray.direction) > 0.0 {
-                normal = -normal;
-            }
-            if closest
-                .as_ref()
-                .map(|hit| distance < hit.distance)
-                .unwrap_or(true)
-            {
-                closest = Some(Hit {
-                    point: ray.at(distance),
-                    normal,
-                    material: scene.materials[ellipsoid.material],
-                    distance,
-                });
-            }
+    if let Some((index, distance, mut normal)) = bvh.nearest_ellipsoid(&scene.ellipsoids, ray) {
+        if normal.dot(ray.direction) > 0.0 {
+            normal = -normal;
+        }
+        if closest
+            .as_ref()
+            .map(|hit| distance < hit.distance)
+            .unwrap_or(true)
+        {
+            closest = Some(Hit {
+                point: ray.at(distance),
+                normal,
+                material: scene.materials[scene.ellipsoids[index].material],
+                distance,
+            });
         }
     }
-    for &capsule in &scene.capsules {
-        if let Some((distance, mut normal)) = intersect_capsule(ray, capsule) {
-            if normal.dot(ray.direction) > 0.0 {
-                normal = -normal;
-            }
-            if closest
-                .as_ref()
-                .map(|hit| distance < hit.distance)
-                .unwrap_or(true)
-            {
-                closest = Some(Hit {
-                    point: ray.at(distance),
-                    normal,
-                    material: scene.materials[capsule.material],
-                    distance,
-                });
-            }
+    if let Some((index, distance, mut normal)) = bvh.nearest_capsule(&scene.capsules, ray) {
+        if normal.dot(ray.direction) > 0.0 {
+            normal = -normal;
+        }
+        if closest
+            .as_ref()
+            .map(|hit| distance < hit.distance)
+            .unwrap_or(true)
+        {
+            closest = Some(Hit {
+                point: ray.at(distance),
+                normal,
+                material: scene.materials[scene.capsules[index].material],
+                distance,
+            });
         }
     }
     if let Some((index, distance, mut normal)) = bvh.nearest_triangle(&scene.triangles, ray) {
@@ -509,118 +527,6 @@ fn intersect_scene(scene: &Scene, bvh: &Bvh, ray: Ray) -> Option<Hit> {
         }
     }
     closest
-}
-
-fn intersect_ellipsoid(ray: Ray, ellipsoid: Ellipsoid) -> Option<(f32, Vec3)> {
-    let offset = ray.origin - ellipsoid.center;
-    let origin = Vec3::new(
-        offset.x / ellipsoid.radii.x,
-        offset.y / ellipsoid.radii.y,
-        offset.z / ellipsoid.radii.z,
-    );
-    let direction = Vec3::new(
-        ray.direction.x / ellipsoid.radii.x,
-        ray.direction.y / ellipsoid.radii.y,
-        ray.direction.z / ellipsoid.radii.z,
-    );
-    let a = direction.dot(direction);
-    let half_b = origin.dot(direction);
-    let c = origin.dot(origin) - 1.0;
-    let discriminant = half_b * half_b - a * c;
-    if discriminant < 0.0 {
-        return None;
-    }
-    let root = discriminant.sqrt();
-    let near = (-half_b - root) / a;
-    let far = (-half_b + root) / a;
-    let distance = if near > EPSILON {
-        near
-    } else if far > EPSILON {
-        far
-    } else {
-        return None;
-    };
-    let point = ray.at(distance) - ellipsoid.center;
-    let normal = Vec3::new(
-        point.x / (ellipsoid.radii.x * ellipsoid.radii.x),
-        point.y / (ellipsoid.radii.y * ellipsoid.radii.y),
-        point.z / (ellipsoid.radii.z * ellipsoid.radii.z),
-    )
-    .normalized();
-    Some((distance, normal))
-}
-
-fn intersect_capsule(ray: Ray, capsule: Capsule) -> Option<(f32, Vec3)> {
-    let axis = capsule.end - capsule.start;
-    let axis_length_squared = axis.dot(axis);
-    if axis_length_squared <= EPSILON * EPSILON {
-        return intersect_sphere(ray, capsule.start, capsule.radius);
-    }
-
-    let offset = ray.origin - capsule.start;
-    let axis_ray = axis.dot(ray.direction);
-    let axis_offset = axis.dot(offset);
-    let ray_offset = ray.direction.dot(offset);
-    let offset_squared = offset.dot(offset);
-    let a = axis_length_squared - axis_ray * axis_ray;
-    let b = axis_length_squared * ray_offset - axis_offset * axis_ray;
-    let c = axis_length_squared * offset_squared
-        - axis_offset * axis_offset
-        - capsule.radius * capsule.radius * axis_length_squared;
-    let mut closest: Option<(f32, Vec3)> = None;
-
-    if a.abs() > EPSILON {
-        let discriminant = b * b - a * c;
-        if discriminant >= 0.0 {
-            let root = discriminant.sqrt();
-            for distance in [(-b - root) / a, (-b + root) / a] {
-                let height = axis_offset + distance * axis_ray;
-                if distance > EPSILON && height >= 0.0 && height <= axis_length_squared {
-                    let point = ray.at(distance);
-                    let center = capsule.start + axis * (height / axis_length_squared);
-                    if closest.as_ref().map(|hit| distance < hit.0).unwrap_or(true) {
-                        closest = Some((distance, (point - center).normalized()));
-                    }
-                }
-            }
-        }
-    }
-
-    for (center, is_start) in [(capsule.start, true), (capsule.end, false)] {
-        if let Some((distance, normal)) = intersect_sphere(ray, center, capsule.radius) {
-            let point = ray.at(distance);
-            let on_outer_hemisphere = if is_start {
-                (point - capsule.start).dot(axis) <= 0.0
-            } else {
-                (point - capsule.end).dot(axis) >= 0.0
-            };
-            if on_outer_hemisphere && closest.as_ref().map(|hit| distance < hit.0).unwrap_or(true) {
-                closest = Some((distance, normal));
-            }
-        }
-    }
-    closest
-}
-
-fn intersect_sphere(ray: Ray, center: Vec3, radius: f32) -> Option<(f32, Vec3)> {
-    let offset = ray.origin - center;
-    let half_b = offset.dot(ray.direction);
-    let c = offset.dot(offset) - radius * radius;
-    let discriminant = half_b * half_b - c;
-    if discriminant < 0.0 {
-        return None;
-    }
-    let root = discriminant.sqrt();
-    let near = -half_b - root;
-    let far = -half_b + root;
-    let distance = if near > EPSILON {
-        near
-    } else if far > EPSILON {
-        far
-    } else {
-        return None;
-    };
-    Some((distance, (ray.at(distance) - center).normalized()))
 }
 
 fn skybox(dir: Vec3) -> Color {
@@ -937,6 +843,60 @@ mod tests {
                 if let (Some(accelerated), Some(brute_force)) = (accelerated, brute_force) {
                     assert_close(accelerated.1, brute_force.1);
                 }
+            }
+        }
+    }
+
+    #[test]
+    fn smooth_shape_bvh_matches_brute_force_for_camera_rays() {
+        let scene = build_scene();
+        let bvh = Bvh::build_scene(
+            &scene.cubes,
+            &scene.triangles,
+            &scene.ellipsoids,
+            &scene.capsules,
+        );
+        let camera = Camera::look_at(
+            Vec3::new(0.0, 10.0, 27.0),
+            Vec3::new(0.0, 4.0, -1.0),
+            46.0,
+            16.0 / 9.0,
+        );
+
+        for y in 0..12 {
+            for x in 0..20 {
+                let ray = camera.ray((x as f32 + 0.5) / 20.0, (y as f32 + 0.5) / 12.0);
+                let accelerated_ellipsoid = bvh.nearest_ellipsoid(&scene.ellipsoids, ray);
+                let brute_ellipsoid = scene
+                    .ellipsoids
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(index, &shape)| {
+                        intersect_ellipsoid(ray, shape)
+                            .map(|(distance, normal)| (index, distance, normal))
+                    })
+                    .min_by(|left, right| left.1.total_cmp(&right.1));
+                assert_eq!(
+                    accelerated_ellipsoid.map(|hit| hit.0),
+                    brute_ellipsoid.map(|hit| hit.0),
+                    "different ellipsoid for sample ({x}, {y})"
+                );
+
+                let accelerated_capsule = bvh.nearest_capsule(&scene.capsules, ray);
+                let brute_capsule = scene
+                    .capsules
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(index, &shape)| {
+                        intersect_capsule(ray, shape)
+                            .map(|(distance, normal)| (index, distance, normal))
+                    })
+                    .min_by(|left, right| left.1.total_cmp(&right.1));
+                assert_eq!(
+                    accelerated_capsule.map(|hit| hit.0),
+                    brute_capsule.map(|hit| hit.0),
+                    "different capsule for sample ({x}, {y})"
+                );
             }
         }
     }

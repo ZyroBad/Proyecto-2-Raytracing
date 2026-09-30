@@ -34,6 +34,13 @@ mod windows {
         height: usize,
     }
 
+    #[derive(Clone, Copy, PartialEq, Eq)]
+    enum PreviewQuality {
+        Moving,
+        Settled,
+        Detail,
+    }
+
     type Handle = *mut c_void;
     type Hwnd = Handle;
     type Hdc = Handle;
@@ -225,7 +232,18 @@ mod windows {
     pub fn run(scene: &Scene, cfg: &mut Config, render: RenderFunction) -> io::Result<()> {
         configure_preview(cfg);
         cfg.angle_deg = cfg.angle_deg.or(Some(90.0));
-        let bvh = Bvh::build(&scene.cubes, &scene.triangles);
+        if (cfg.zoom - 1.0).abs() < f32::EPSILON {
+            cfg.zoom = 0.88;
+        }
+        if cfg.look_y.abs() < f32::EPSILON {
+            cfg.look_y = -2.0;
+        }
+        let bvh = Bvh::build_scene(
+            &scene.cubes,
+            &scene.triangles,
+            &scene.ellipsoids,
+            &scene.capsules,
+        );
 
         unsafe {
             let instance = GetModuleHandleW(null());
@@ -272,7 +290,7 @@ mod windows {
                 "Mouse: dirigir mirada | A/D: orbitar | W/S: elevar | +/-: zoom | R: render | Esc: salir"
             );
 
-            let mut frame = render_preview(scene, &bvh, cfg, render, hwnd, false);
+            let mut frame = render_preview(scene, &bvh, cfg, render, hwnd, PreviewQuality::Settled);
             let mut previous_keys = [false; 11];
             let keys = [
                 VK_A,
@@ -291,6 +309,9 @@ mod windows {
             let mut running = true;
             let mut previous_mouse = client_cursor(hwnd);
             let mut mouse_was_moving = false;
+            let mut last_tick = Instant::now();
+            let mut last_draw = Instant::now();
+            let mut frame_changed = true;
 
             while running {
                 while PeekMessageW(&mut message, null_mut(), 0, 0, PM_REMOVE) != 0 {
@@ -311,10 +332,13 @@ mod windows {
 
                 let current_keys = keys.map(|key| key_down(key));
                 let pressed = |index: usize| current_keys[index] && !previous_keys[index];
+                let now = Instant::now();
+                let delta_seconds = now.duration_since(last_tick).as_secs_f32().min(0.10);
+                last_tick = now;
                 let current_mouse = client_cursor(hwnd);
                 let mouse_moving = match (current_mouse, previous_mouse) {
                     (Some(current), Some(previous)) => {
-                        (current.x - previous.x).abs() > 2 || (current.y - previous.y).abs() > 2
+                        (current.x - previous.x).abs() > 1 || (current.y - previous.y).abs() > 1
                     }
                     _ => false,
                 };
@@ -327,40 +351,52 @@ mod windows {
                             let ny =
                                 (cursor.y as f32 / rect.bottom as f32 * 2.0 - 1.0).clamp(-1.0, 1.0);
                             cfg.look_x = nx * 8.0;
-                            cfg.look_y = -ny * 4.8;
+                            cfg.look_y = -2.0 - ny * 3.8;
                         }
                     }
                 }
                 let moving = current_keys[..10].iter().any(|&down| down) || mouse_moving;
+                let angle_step = 28.0 * delta_seconds;
+                let elevation_step = 3.2 * delta_seconds;
+                let zoom_step = 0.48 * delta_seconds;
                 if current_keys[0] || current_keys[4] {
-                    cfg.angle_deg = Some(cfg.angle_deg.unwrap_or(90.0) - 3.0);
+                    cfg.angle_deg = Some(cfg.angle_deg.unwrap_or(90.0) - angle_step);
                 }
                 if current_keys[1] || current_keys[5] {
-                    cfg.angle_deg = Some(cfg.angle_deg.unwrap_or(90.0) + 3.0);
+                    cfg.angle_deg = Some(cfg.angle_deg.unwrap_or(90.0) + angle_step);
                 }
                 if current_keys[2] || current_keys[6] {
-                    cfg.elevation = (cfg.elevation + 0.24).min(16.0);
+                    cfg.elevation = (cfg.elevation + elevation_step).min(16.0);
                 }
                 if current_keys[3] || current_keys[7] {
-                    cfg.elevation = (cfg.elevation - 0.24).max(-10.0);
+                    cfg.elevation = (cfg.elevation - elevation_step).max(-10.0);
                 }
                 if current_keys[8] {
-                    cfg.zoom = (cfg.zoom + 0.035).min(2.5);
+                    cfg.zoom = (cfg.zoom + zoom_step).min(2.5);
                 }
                 if current_keys[9] {
-                    cfg.zoom = (cfg.zoom - 0.035).max(0.45);
+                    cfg.zoom = (cfg.zoom - zoom_step).max(0.45);
                 }
 
                 let was_moving = previous_keys[..10].iter().any(|&down| down) || mouse_was_moving;
                 if moving {
-                    frame = render_preview(scene, &bvh, cfg, render, hwnd, true);
-                } else if was_moving || pressed(10) {
-                    frame = render_preview(scene, &bvh, cfg, render, hwnd, false);
+                    frame = render_preview(scene, &bvh, cfg, render, hwnd, PreviewQuality::Moving);
+                    frame_changed = true;
+                } else if pressed(10) {
+                    frame = render_preview(scene, &bvh, cfg, render, hwnd, PreviewQuality::Detail);
+                    frame_changed = true;
+                } else if was_moving {
+                    frame = render_preview(scene, &bvh, cfg, render, hwnd, PreviewQuality::Settled);
+                    frame_changed = true;
                 }
                 previous_keys = current_keys;
                 previous_mouse = current_mouse;
                 mouse_was_moving = mouse_moving;
-                draw_frame(hwnd, frame.width, frame.height, &frame.pixels);
+                if frame_changed || last_draw.elapsed() >= Duration::from_millis(250) {
+                    draw_frame(hwnd, frame.width, frame.height, &frame.pixels);
+                    last_draw = Instant::now();
+                    frame_changed = false;
+                }
                 thread::sleep(Duration::from_millis(16));
             }
         }
@@ -370,8 +406,8 @@ mod windows {
     fn configure_preview(cfg: &mut Config) {
         cfg.hd = false;
         let aspect = cfg.width as f32 / cfg.height.max(1) as f32;
-        if cfg.width > 480 {
-            cfg.width = 480;
+        if cfg.width > 360 {
+            cfg.width = 360;
             cfg.height = (cfg.width as f32 / aspect).round().max(1.0) as usize;
         }
         cfg.samples_per_axis = 1;
@@ -384,16 +420,21 @@ mod windows {
         cfg: &Config,
         render: RenderFunction,
         hwnd: Hwnd,
-        fast: bool,
+        quality: PreviewQuality,
     ) -> PreviewFrame {
         let mut render_cfg = cfg.clone();
-        if fast && render_cfg.width > 180 {
+        if quality == PreviewQuality::Moving && render_cfg.width > 224 {
             let aspect = render_cfg.width as f32 / render_cfg.height.max(1) as f32;
-            render_cfg.width = 180;
+            render_cfg.width = 224;
             render_cfg.height = (render_cfg.width as f32 / aspect).round().max(1.0) as usize;
         }
+        render_cfg.realtime_preview = quality != PreviewQuality::Detail;
         render_cfg.samples_per_axis = 1;
-        render_cfg.max_depth = if fast { 1 } else { cfg.max_depth.min(2) };
+        render_cfg.max_depth = if quality == PreviewQuality::Detail {
+            cfg.max_depth.min(2)
+        } else {
+            1
+        };
 
         let started = Instant::now();
         let colors = render(scene, bvh, &render_cfg, 0);
@@ -405,7 +446,11 @@ mod windows {
             cfg.elevation,
             cfg.look_x,
             cfg.look_y,
-            if fast { "movimiento" } else { "detalle" },
+            match quality {
+                PreviewQuality::Moving => "movimiento",
+                PreviewQuality::Settled => "enfoque",
+                PreviewQuality::Detail => "detalle",
+            },
             elapsed
         ));
         SetWindowTextW(hwnd, title.as_ptr());

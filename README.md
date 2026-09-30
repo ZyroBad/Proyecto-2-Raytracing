@@ -122,7 +122,7 @@ Controles:
 
 La ventana usa una resolucion interactiva y ajustes moderados para responder bien en graficos integrados. El render final puede generarse despues con mayor resolucion, muestras y profundidad.
 
-Mientras se mueve el mouse o una tecla permanece presionada, la ventana reduce temporalmente la resolucion, la profundidad de rayos y las muestras de sombra para mantener el movimiento continuo. Al detenerse, restaura automaticamente una vista detallada con sombras suaves. El BVH se construye una sola vez al abrir la ventana y se reutiliza durante toda la navegacion.
+La ventana usa una vista de navegacion de 224 pixeles de ancho sin rebotes ni sombras secundarias y la refina automaticamente a 360 pixeles al detener la camara. Al presionar `r` genera bajo demanda una vista detallada con sombras suaves. El encuadre inicial incluye el arco exterior de Pain, el movimiento por teclado usa tiempo real y el BVH de cubos, triangulos, elipsoides y capsulas se construye una sola vez.
 
 ## Camara por consola
 
