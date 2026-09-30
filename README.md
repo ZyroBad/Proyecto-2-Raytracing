@@ -19,13 +19,13 @@ La escena muestra Konoha destruida, el crater de la aldea, Monte Hokage y las in
 - Refraccion y transparencia en chakra, humo y nubes de invocacion.
 - Skybox procedural con horizonte, sol y nubes.
 - Konoha destruida en 360 grados dentro de un socavon de cinco terrazas que abarca toda la aldea, rodeado por bosque, cordillera y Monte Hokage.
-- Monte Hokage integrado en una montana distante con cinco rostros tallados y rasgos individuales.
+- Monte Hokage integrado en una montana distante con cinco rostros de relieve suave, ojos, parpados, nariz, boca, mandibula, cabello y accesorios individuales.
 - Personajes modelados con formas suaves, cubos de detalle, volumen completo, rasgos faciales, ropa segmentada y accesorios visibles desde diferentes angulos.
 - Sapos redisenados con anatomia pesada y asimetrica: ancho craneal variable, hocicos proyectados, mandibulas diferenciadas, ojos hundidos y perfiles laterales profundos.
 - Hombros, codos, antebrazos, munecas, patas de apoyo, palmas y dedos usan mallas de grosor variable para transmitir peso sin cilindros uniformes.
 - Humo de invocacion distribuido en varias profundidades para integrar las patas con el terreno y reforzar la escala desde camaras bajas.
 - Haoris construidos como paneles geometricos separados con grosor, solapas, bordes y sombras de contacto sobre el cuerpo.
-- Pain y sus Caminos usan capas volumetricas trianguladas y ocupan un arco exterior despejado, lejos del humo y orientados hacia los sapos.
+- Pain y sus Caminos usan capas volumetricas trianguladas y forman un arco frontal despejado sobre la altura real de la terraza, orientados hacia los sapos.
 - Escala narrativa reforzada: las tres invocaciones principales son mas anchas y especialmente mas altas para dominar el crater, Gamakichi conserva una escala juvenil y los humanos permanecen pequenos.
 - Sello de invocacion refractivo alrededor de la escena principal.
 

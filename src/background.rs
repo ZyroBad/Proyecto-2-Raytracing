@@ -1,6 +1,6 @@
 use crate::material::noise;
 use crate::math::Vec3;
-use crate::scene::{Cube, Scene};
+use crate::scene::{Capsule, Cube, Ellipsoid, Scene};
 use std::f32::consts::PI;
 
 pub fn add_destroyed_konoha(scene: &mut Scene) {
@@ -546,192 +546,250 @@ fn add_hokage_mountain(scene: &mut Scene) {
 
 fn add_hokage_face(scene: &mut Scene, center: Vec3, style: usize) {
     let first_cube = scene.cubes.len();
+    let first_ellipsoid = scene.ellipsoids.len();
+    let first_capsule = scene.capsules.len();
     let stone = 21;
     let shadow = 0;
 
-    // El relieve se construye por planos: craneo, mejillas, mandibula y rasgos salientes.
-    add_ellipsoid_surface(
-        scene,
-        center + Vec3::new(0.0, 0.30, 0.0),
-        Vec3::new(1.05, 0.94, 0.25),
-        0.11,
-        stone,
-    );
-    add_ellipsoid_surface(
-        scene,
-        center + Vec3::new(0.0, -0.72, 0.04),
-        Vec3::new(0.78, 0.42, 0.23),
-        0.10,
-        stone,
-    );
-    add_ellipsoid_surface(
-        scene,
-        center + Vec3::new(0.0, -1.08, 0.02),
-        Vec3::new(0.42, 0.20, 0.21),
-        0.09,
-        stone,
-    );
+    let (head_width, jaw_width, eye_y, brow_slant) = match style {
+        0 => (1.02, 0.76, 0.24, 0.08),
+        1 => (0.94, 0.70, 0.29, 0.15),
+        2 => (1.08, 0.84, 0.20, 0.02),
+        3 => (0.92, 0.68, 0.31, 0.18),
+        _ => (0.90, 0.64, 0.30, 0.11),
+    };
 
+    // Volumen craneal, sienes, mejillas y mandibula forman un relieve continuo.
+    add_relief_ellipsoid(
+        scene,
+        center + Vec3::new(0.0, 0.28, 0.0),
+        Vec3::new(head_width, 1.02, 0.34),
+        stone,
+    );
+    add_relief_ellipsoid(
+        scene,
+        center + Vec3::new(0.0, -0.68, 0.08),
+        Vec3::new(jaw_width, 0.48, 0.31),
+        stone,
+    );
+    add_relief_ellipsoid(
+        scene,
+        center + Vec3::new(0.0, -1.02, 0.05),
+        Vec3::new(jaw_width * 0.56, 0.24, 0.25),
+        stone,
+    );
     for side in [-1.0, 1.0] {
-        add_ellipsoid_surface(
+        add_relief_ellipsoid(
             scene,
-            center + Vec3::new(side * 0.68, -0.28, 0.22),
-            Vec3::new(0.34, 0.36, 0.18),
-            0.085,
+            center + Vec3::new(side * head_width * 0.67, -0.24, 0.24),
+            Vec3::new(0.38, 0.43, 0.25),
             stone,
         );
-        add_block(
+        add_relief_ellipsoid(
             scene,
-            center + Vec3::new(side * 0.55, 0.33, 0.25),
-            Vec3::new(0.62, 0.16, 0.22),
-            shadow,
-        );
-        add_block(
-            scene,
-            center + Vec3::new(side * 0.55, 0.12, 0.30),
-            Vec3::new(0.20, 0.13, 0.16),
-            shadow,
-        );
-        add_ellipsoid_surface(
-            scene,
-            center + Vec3::new(side * 1.10, 0.12, -0.02),
-            Vec3::new(0.16, 0.38, 0.20),
-            0.075,
+            center + Vec3::new(side * (head_width + 0.08), 0.02, -0.02),
+            Vec3::new(0.17, 0.40, 0.22),
             stone,
+        );
+
+        // Cuenca hundida, parpados y ceja tallada con inclinacion individual.
+        let eye_x = side * head_width * 0.48;
+        add_relief_ellipsoid(
+            scene,
+            center + Vec3::new(eye_x, eye_y, 0.37),
+            Vec3::new(0.31, 0.12, 0.075),
+            shadow,
+        );
+        add_relief_ellipsoid(
+            scene,
+            center + Vec3::new(eye_x, eye_y, 0.43),
+            Vec3::new(0.19, 0.075, 0.045),
+            stone,
+        );
+        add_relief_segment(
+            scene,
+            center + Vec3::new(side * 0.10, eye_y + 0.22, 0.37),
+            center
+                + Vec3::new(
+                    side * (head_width * 0.88),
+                    eye_y + 0.22 + brow_slant * side,
+                    0.31,
+                ),
+            0.095,
+            stone,
+        );
+        add_relief_segment(
+            scene,
+            center + Vec3::new(side * 0.28, -0.22, 0.39),
+            center + Vec3::new(side * 0.58, -0.48, 0.34),
+            0.055,
+            shadow,
         );
     }
 
-    // Nariz en dos niveles y boca tallada.
-    add_block(
+    // Nariz proyectada, aletas nasales, labios y pliegues de expresion.
+    add_relief_segment(
         scene,
-        center + Vec3::new(0.0, -0.02, 0.30),
-        Vec3::new(0.26, 0.62, 0.28),
+        center + Vec3::new(0.0, 0.42, 0.37),
+        center + Vec3::new(0.0, -0.28, 0.47),
+        0.14,
         stone,
     );
-    add_block(
+    add_relief_ellipsoid(
         scene,
-        center + Vec3::new(0.0, -0.36, 0.37),
-        Vec3::new(0.46, 0.18, 0.25),
+        center + Vec3::new(0.0, -0.34, 0.49),
+        Vec3::new(0.30, 0.17, 0.18),
         stone,
     );
-    add_block(
-        scene,
-        center + Vec3::new(0.0, -0.70, 0.27),
-        Vec3::new(0.68, 0.13, 0.20),
-        shadow,
-    );
-
-    let hair_width = if style == 1 { 2.50 } else { 2.16 };
-    add_block(
-        scene,
-        center + Vec3::new(0.0, 1.17, -0.03),
-        Vec3::new(hair_width, 0.36, 0.40),
-        shadow,
-    );
-
-    if style == 0 || style == 3 {
-        for spike in -2i32..=2 {
-            let spike_height = 0.28 + (2 - spike.abs()) as f32 * 0.10;
-            add_block(
-                scene,
-                center + Vec3::new(spike as f32 * 0.38, 1.42 + spike_height * 0.5, -0.04),
-                Vec3::new(0.30, spike_height, 0.34),
-                shadow,
-            );
-        }
-    } else if style == 1 {
-        add_block(
+    for side in [-1.0, 1.0] {
+        add_relief_ellipsoid(
             scene,
-            center + Vec3::new(0.0, 1.48, -0.04),
-            Vec3::new(1.42, 0.34, 0.36),
-            shadow,
-        );
-    } else if style == 2 {
-        add_block(
-            scene,
-            center + Vec3::new(0.0, 1.42, -0.04),
-            Vec3::new(1.70, 0.25, 0.34),
-            shadow,
-        );
-    } else {
-        add_block(
-            scene,
-            center + Vec3::new(0.0, 1.48, -0.04),
-            Vec3::new(1.02, 0.42, 0.34),
+            center + Vec3::new(side * 0.13, -0.36, 0.60),
+            Vec3::new(0.055, 0.035, 0.025),
             shadow,
         );
     }
+    add_relief_segment(
+        scene,
+        center + Vec3::new(-0.42, -0.69, 0.43),
+        center + Vec3::new(0.0, -0.76, 0.48),
+        0.052,
+        shadow,
+    );
+    add_relief_segment(
+        scene,
+        center + Vec3::new(0.0, -0.76, 0.48),
+        center + Vec3::new(0.42, -0.69, 0.43),
+        0.052,
+        shadow,
+    );
+    add_relief_segment(
+        scene,
+        center + Vec3::new(-0.29, -0.88, 0.34),
+        center + Vec3::new(0.29, -0.88, 0.34),
+        0.035,
+        shadow,
+    );
 
     match style {
+        // Hashirama: protector amplio y mechones largos.
         0 => {
-            add_block(
+            add_relief_block(
                 scene,
-                center + Vec3::new(0.0, 0.82, 0.28),
-                Vec3::new(1.82, 0.22, 0.18),
+                center + Vec3::new(0.0, 0.91, 0.30),
+                Vec3::new(1.78, 0.20, 0.18),
                 shadow,
             );
-            add_block(
+            add_relief_block(
                 scene,
-                center + Vec3::new(0.0, 0.83, 0.39),
-                Vec3::new(0.62, 0.25, 0.12),
+                center + Vec3::new(0.0, 0.91, 0.42),
+                Vec3::new(0.62, 0.22, 0.10),
                 stone,
             );
+            for side in [-1.0, 1.0] {
+                add_relief_segment(
+                    scene,
+                    center + Vec3::new(side * 0.86, 0.82, 0.02),
+                    center + Vec3::new(side * 1.02, -0.92, 0.05),
+                    0.18,
+                    shadow,
+                );
+            }
         }
+        // Tobirama: casco, placa frontal y guardas laterales.
         1 => {
-            add_block(
+            add_relief_ellipsoid(
                 scene,
-                center + Vec3::new(0.0, 1.02, 0.02),
-                Vec3::new(2.28, 0.28, 0.42),
+                center + Vec3::new(0.0, 1.06, -0.04),
+                Vec3::new(0.82, 0.42, 0.30),
                 stone,
             );
-            for side in [-1.0, 1.0] {
-                add_block(
-                    scene,
-                    center + Vec3::new(side * 0.96, -0.22, 0.08),
-                    Vec3::new(0.22, 1.42, 0.28),
-                    shadow,
-                );
-            }
-        }
-        2 => {
-            add_block(
+            add_relief_block(
                 scene,
-                center + Vec3::new(0.0, -1.12, 0.20),
-                Vec3::new(1.12, 0.50, 0.24),
+                center + Vec3::new(0.0, 0.88, 0.39),
+                Vec3::new(0.82, 0.26, 0.12),
                 shadow,
             );
             for side in [-1.0, 1.0] {
-                add_block(
+                add_relief_segment(
                     scene,
-                    center + Vec3::new(side * 0.78, -0.68, 0.22),
-                    Vec3::new(0.34, 0.76, 0.22),
+                    center + Vec3::new(side * 0.90, 0.62, 0.02),
+                    center + Vec3::new(side * 1.02, -0.54, 0.03),
+                    0.15,
                     shadow,
                 );
             }
         }
+        // Hiruzen: cejas pobladas, bigote y barba escalonada.
+        2 => {
+            for side in [-1.0, 1.0] {
+                add_relief_segment(
+                    scene,
+                    center + Vec3::new(side * 0.08, -0.55, 0.46),
+                    center + Vec3::new(side * 0.48, -0.63, 0.39),
+                    0.075,
+                    shadow,
+                );
+            }
+            for strand in -2i32..=2 {
+                add_relief_segment(
+                    scene,
+                    center + Vec3::new(strand as f32 * 0.18, -0.84, 0.20),
+                    center
+                        + Vec3::new(
+                            strand as f32 * 0.24,
+                            -1.42 - (2 - strand.abs()) as f32 * 0.10,
+                            0.04,
+                        ),
+                    0.11,
+                    shadow,
+                );
+            }
+        }
+        // Minato: corona de puntas y rostro anguloso.
         3 => {
-            for lock in 0..4 {
-                add_block(
+            for spike in -3i32..=3 {
+                let x = spike as f32 * 0.24;
+                add_relief_segment(
                     scene,
-                    center + Vec3::new(-1.02 + lock as f32 * 0.22, 0.62 - lock as f32 * 0.28, 0.05),
-                    Vec3::new(0.24, 1.10, 0.26),
+                    center + Vec3::new(x * 0.72, 1.00, -0.02),
+                    center + Vec3::new(x, 1.52 + (3 - spike.abs()) as f32 * 0.10, -0.08),
+                    0.13,
+                    shadow,
+                );
+            }
+            for side in [-1.0, 1.0] {
+                add_relief_segment(
+                    scene,
+                    center + Vec3::new(side * 0.48, -0.46, 0.38),
+                    center + Vec3::new(side * 0.69, -0.74, 0.28),
+                    0.045,
                     shadow,
                 );
             }
         }
+        // Tsunade: cabello largo, raya central y sello frontal.
         _ => {
             for side in [-1.0, 1.0] {
-                add_block(
+                add_relief_segment(
                     scene,
-                    center + Vec3::new(side * 0.94, -0.10, 0.04),
-                    Vec3::new(0.34, 2.42, 0.28),
+                    center + Vec3::new(side * 0.56, 1.02, 0.00),
+                    center + Vec3::new(side * 0.98, -1.10, 0.02),
+                    0.21,
                     shadow,
                 );
             }
-            add_block(
+            add_relief_segment(
                 scene,
-                center + Vec3::new(0.0, 0.68, 0.42),
-                Vec3::new(0.18, 0.30, 0.10),
+                center + Vec3::new(0.0, 1.08, 0.22),
+                center + Vec3::new(0.0, 0.60, 0.34),
+                0.045,
+                shadow,
+            );
+            add_relief_ellipsoid(
+                scene,
+                center + Vec3::new(0.0, 0.63, 0.48),
+                Vec3::new(0.075, 0.13, 0.045),
                 shadow,
             );
         }
@@ -742,6 +800,36 @@ fn add_hokage_face(scene: &mut Scene, center: Vec3, style: usize) {
         cube.min = center + (cube.min - center) * FACE_SCALE;
         cube.max = center + (cube.max - center) * FACE_SCALE;
     }
+    for ellipsoid in &mut scene.ellipsoids[first_ellipsoid..] {
+        ellipsoid.center = center + (ellipsoid.center - center) * FACE_SCALE;
+        ellipsoid.radii = ellipsoid.radii * FACE_SCALE;
+    }
+    for capsule in &mut scene.capsules[first_capsule..] {
+        capsule.start = center + (capsule.start - center) * FACE_SCALE;
+        capsule.end = center + (capsule.end - center) * FACE_SCALE;
+        capsule.radius *= FACE_SCALE;
+    }
+}
+
+fn add_relief_block(scene: &mut Scene, center: Vec3, size: Vec3, material: usize) {
+    add_block(scene, center, size, material);
+}
+
+fn add_relief_ellipsoid(scene: &mut Scene, center: Vec3, radii: Vec3, material: usize) {
+    scene.ellipsoids.push(Ellipsoid {
+        center,
+        radii,
+        material,
+    });
+}
+
+fn add_relief_segment(scene: &mut Scene, start: Vec3, end: Vec3, radius: f32, material: usize) {
+    scene.capsules.push(Capsule {
+        start,
+        end,
+        radius,
+        material,
+    });
 }
 
 fn add_ruined_building(scene: &mut Scene, base: Vec3, width: f32, height: f32) {
@@ -859,50 +947,4 @@ fn add_block(scene: &mut Scene, center: Vec3, size: Vec3, material: usize) {
         material,
         smooth_normal: None,
     });
-}
-
-fn add_ellipsoid_surface(scene: &mut Scene, center: Vec3, radii: Vec3, cell: f32, material: usize) {
-    let cells_x = (radii.x / cell).ceil() as i32;
-    let cells_y = (radii.y / cell).ceil() as i32;
-    let cells_z = (radii.z / cell).ceil() as i32;
-    let inner = Vec3::new(
-        (radii.x - cell * 1.35).max(0.0),
-        (radii.y - cell * 1.35).max(0.0),
-        (radii.z - cell * 1.35).max(0.0),
-    );
-
-    for y in -cells_y..=cells_y {
-        for z in -cells_z..=cells_z {
-            for x in -cells_x..=cells_x {
-                let offset = Vec3::new(x as f32 * cell, y as f32 * cell, z as f32 * cell);
-                let normalized = (offset.x / radii.x).powi(2)
-                    + (offset.y / radii.y).powi(2)
-                    + (offset.z / radii.z).powi(2);
-                let inside_inner = inner.x > 0.0
-                    && inner.y > 0.0
-                    && inner.z > 0.0
-                    && (offset.x / inner.x).powi(2)
-                        + (offset.y / inner.y).powi(2)
-                        + (offset.z / inner.z).powi(2)
-                        < 1.0;
-                if normalized > 1.0 || inside_inner {
-                    continue;
-                }
-
-                let normal = Vec3::new(
-                    offset.x / (radii.x * radii.x),
-                    offset.y / (radii.y * radii.y),
-                    offset.z / (radii.z * radii.z),
-                );
-                let voxel_center = center + offset;
-                let size = Vec3::new(cell, cell, cell);
-                scene.cubes.push(Cube {
-                    min: voxel_center - size * 0.5,
-                    max: voxel_center + size * 0.5,
-                    material,
-                    smooth_normal: (normal.length() > 0.0001).then(|| normal.normalized()),
-                });
-            }
-        }
-    }
 }

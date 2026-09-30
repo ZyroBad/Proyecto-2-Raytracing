@@ -98,6 +98,14 @@ impl Config {
                     i += 1;
                     cfg.elevation = parse_or(&args, i, cfg.elevation);
                 }
+                "--look-x" => {
+                    i += 1;
+                    cfg.look_x = parse_or(&args, i, cfg.look_x);
+                }
+                "--look-y" => {
+                    i += 1;
+                    cfg.look_y = parse_or(&args, i, cfg.look_y);
+                }
                 "--samples" => {
                     i += 1;
                     cfg.samples_per_axis = parse_or(&args, i, cfg.samples_per_axis).clamp(1, 4);
@@ -146,6 +154,8 @@ fn print_help() {
     println!("  --angle N       angulo manual de camara en grados");
     println!("  --zoom N        zoom manual, mayor acerca la camara");
     println!("  --elevation N   desplazamiento vertical de la camara");
+    println!("  --look-x N      desplazamiento horizontal del punto de mirada");
+    println!("  --look-y N      desplazamiento vertical del punto de mirada");
     println!("  --samples N     muestras por eje, 1 rapido, 2 default, 4 fino");
     println!("  --depth N       rebotes maximos de raytracing, default 3");
     println!("  --output PATH   salida BMP o PPM");

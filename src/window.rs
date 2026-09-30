@@ -233,10 +233,10 @@ mod windows {
         configure_preview(cfg);
         cfg.angle_deg = cfg.angle_deg.or(Some(90.0));
         if (cfg.zoom - 1.0).abs() < f32::EPSILON {
-            cfg.zoom = 0.88;
+            cfg.zoom = 0.78;
         }
         if cfg.look_y.abs() < f32::EPSILON {
-            cfg.look_y = -2.0;
+            cfg.look_y = -3.0;
         }
         let bvh = Bvh::build_scene(
             &scene.cubes,
@@ -351,7 +351,7 @@ mod windows {
                             let ny =
                                 (cursor.y as f32 / rect.bottom as f32 * 2.0 - 1.0).clamp(-1.0, 1.0);
                             cfg.look_x = nx * 8.0;
-                            cfg.look_y = -2.0 - ny * 3.8;
+                            cfg.look_y = -3.0 - ny * 3.4;
                         }
                     }
                 }

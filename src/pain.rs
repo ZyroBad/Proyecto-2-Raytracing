@@ -13,12 +13,12 @@ const CRATER_EARTH: usize = 17;
 
 pub fn add_six_paths(scene: &mut Scene) {
     let paths = [
-        (Vec3::new(-20.0, -7.72, 11.0), 0usize),
-        (Vec3::new(-17.0, -7.72, 13.5), 1usize),
-        (Vec3::new(-13.5, -7.72, 16.0), 2usize),
-        (Vec3::new(13.5, -7.72, 16.0), 3usize),
-        (Vec3::new(17.0, -7.72, 13.5), 4usize),
-        (Vec3::new(20.0, -7.72, 11.0), 5usize),
+        pain_position(-8.0, 18.5, 1usize),
+        pain_position(-4.8, 17.2, 2usize),
+        pain_position(-1.6, 16.4, 0usize),
+        pain_position(1.6, 16.4, 3usize),
+        pain_position(4.8, 17.2, 4usize),
+        pain_position(8.0, 18.5, 5usize),
     ];
 
     clear_staging_areas(scene, &paths);
@@ -33,6 +33,27 @@ pub fn add_six_paths(scene: &mut Scene) {
     }
 }
 
+fn pain_position(x: f32, z: f32, style: usize) -> (Vec3, usize) {
+    (Vec3::new(x, crater_surface_y(x, z) + 0.02, z), style)
+}
+
+fn crater_surface_y(x: f32, z: f32) -> f32 {
+    let radius = (x * x + (z + 2.2) * (z + 2.2)).sqrt();
+    if radius <= 16.0 {
+        -7.92
+    } else if radius <= 21.0 {
+        -7.92 + (radius - 16.0) / 5.0 * 1.87
+    } else if radius <= 26.0 {
+        -6.05 + (radius - 21.0) / 5.0 * 2.05
+    } else if radius <= 31.0 {
+        -4.00 + (radius - 26.0) / 5.0 * 2.00
+    } else if radius <= 35.0 {
+        -2.00 + (radius - 31.0) / 4.0 * 1.45
+    } else {
+        -0.55
+    }
+}
+
 fn clear_staging_areas(scene: &mut Scene, paths: &[(Vec3, usize); 6]) {
     scene.cubes.retain(|cube| {
         let size = cube.max - cube.min;
@@ -43,7 +64,7 @@ fn clear_staging_areas(scene: &mut Scene, paths: &[(Vec3, usize); 6]) {
         !paths.iter().any(|(base, _)| {
             let dx = center.x - base.x;
             let dz = center.z - base.z;
-            dx * dx + dz * dz < 1.35 * 1.35 && cube.max.y > base.y - 0.12
+            dx * dx + dz * dz < 1.85 * 1.85 && cube.max.y > base.y - 0.12
         })
     });
 }
@@ -140,6 +161,21 @@ fn add_path(scene: &mut Scene, base: Vec3, style: usize) {
     add_face(scene, head_center, style, height_scale);
     add_hair(scene, head_center, style, height_scale);
 
+    let presentation_scale = if style == 0 { 1.28 } else { 1.18 };
+    scale_added_geometry(
+        scene,
+        first_cube,
+        first_ellipsoid,
+        first_capsule,
+        first_triangle,
+        base,
+        Vec3::new(
+            presentation_scale,
+            presentation_scale * 1.04,
+            presentation_scale,
+        ),
+    );
+
     let toward_toads = Vec3::new(0.0, base.y, -1.4) - base;
     rotate_added_geometry(
         scene,
@@ -150,6 +186,40 @@ fn add_path(scene: &mut Scene, base: Vec3, style: usize) {
         base,
         toward_toads.x.atan2(toward_toads.z),
     );
+}
+
+fn scale_added_geometry(
+    scene: &mut Scene,
+    first_cube: usize,
+    first_ellipsoid: usize,
+    first_capsule: usize,
+    first_triangle: usize,
+    origin: Vec3,
+    scale: Vec3,
+) {
+    for cube in &mut scene.cubes[first_cube..] {
+        cube.min = origin + (cube.min - origin).hadamard(scale);
+        cube.max = origin + (cube.max - origin).hadamard(scale);
+    }
+    for ellipsoid in &mut scene.ellipsoids[first_ellipsoid..] {
+        ellipsoid.center = origin + (ellipsoid.center - origin).hadamard(scale);
+        ellipsoid.radii = ellipsoid.radii.hadamard(scale);
+    }
+    let radius_scale = (scale.x + scale.y + scale.z) / 3.0;
+    for capsule in &mut scene.capsules[first_capsule..] {
+        capsule.start = origin + (capsule.start - origin).hadamard(scale);
+        capsule.end = origin + (capsule.end - origin).hadamard(scale);
+        capsule.radius *= radius_scale;
+    }
+    for triangle in &mut scene.triangles[first_triangle..] {
+        for vertex in &mut triangle.vertices {
+            *vertex = origin + (*vertex - origin).hadamard(scale);
+        }
+        for normal in &mut triangle.normals {
+            *normal =
+                Vec3::new(normal.x / scale.x, normal.y / scale.y, normal.z / scale.z).normalized();
+        }
+    }
 }
 
 fn add_face(scene: &mut Scene, head: Vec3, style: usize, scale: f32) {
