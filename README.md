@@ -117,12 +117,19 @@ Controles:
 - `a` / `d` o flechas izquierda/derecha: orbitar alrededor de la escena.
 - `w` / `s` o flechas arriba/abajo: subir y bajar la camara.
 - `+` / `-`: acercar y alejar la camara.
-- `r`: volver a renderizar la vista.
+- `1`: plano general de la llegada.
+- `2`: primer plano de Naruto y los sapos.
+- `3`: plano lateral de Pain y los Seis Caminos.
+- `4`: encuadre del Monte Hokage.
+- `5`: vista aerea del crater y Konoha destruida.
+- `r`: generar el nivel maximo de detalle y antialiasing.
 - `Esc`: cerrar la ventana.
 
 La ventana usa una resolucion interactiva y ajustes moderados para responder bien en graficos integrados. El render final puede generarse despues con mayor resolucion, muestras y profundidad.
 
-La ventana usa una vista de navegacion de 224 pixeles de ancho con texturas, relieve procedural, iluminacion directa, brillo especular, una muestra de sombra y reflejo ambiental. El render se ejecuta en un hilo independiente con una cola de ultimo encuadre, por lo que mouse y teclado siguen respondiendo mientras se calcula la imagen. Al detener la camara, la vista se refina automaticamente a 360 pixeles y activa oclusion ambiental, sombras suaves y rayos secundarios; al presionar `r` genera una vista detallada con antialiasing 2x2. El encuadre inicial incluye el arco exterior de Pain y el BVH de cubos, triangulos, elipsoides y capsulas se construye una sola vez.
+La ventana usa resolucion dinamica entre 176 y 256 pixeles de ancho durante la navegacion, conservando texturas, relieve procedural, iluminacion directa, brillo especular, una muestra de sombra y reflejo ambiental. El render se ejecuta en un hilo independiente con una cola de ultimo encuadre, por lo que mouse y teclado siguen respondiendo mientras se calcula la imagen. Las cinco camaras recorren la ruta angular mas corta mediante transiciones suaves que pueden cancelarse inmediatamente con el mouse o el teclado.
+
+Al detener la camara aparece primero un enfoque de 360 pixeles y luego un refinado automatico con oclusion ambiental, sombras suaves y rayos secundarios. Al presionar `r` se agrega antialiasing 2x2. El encuadre inicial incluye el arco exterior de Pain y el BVH de cubos, triangulos, elipsoides y capsulas se construye una sola vez.
 
 ## Camara por consola
 

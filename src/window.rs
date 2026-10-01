@@ -43,6 +43,7 @@ mod windows {
         generation: u64,
         config: Config,
         quality: PreviewQuality,
+        moving_width: usize,
     }
 
     #[derive(Clone, Copy)]
@@ -54,10 +55,18 @@ mod windows {
         look_y: f32,
     }
 
+    struct CameraTransition {
+        from: CameraState,
+        to: CameraState,
+        started: Instant,
+        duration: Duration,
+    }
+
     #[derive(Clone, Copy, PartialEq, Eq)]
     enum PreviewQuality {
         Moving,
         Settled,
+        Refined,
         Detail,
     }
 
@@ -96,6 +105,11 @@ mod windows {
     const VK_R: i32 = 0x52;
     const VK_S: i32 = 0x53;
     const VK_W: i32 = 0x57;
+    const VK_1: i32 = 0x31;
+    const VK_2: i32 = 0x32;
+    const VK_3: i32 = 0x33;
+    const VK_4: i32 = 0x34;
+    const VK_5: i32 = 0x35;
     const VK_OEM_PLUS: i32 = 0xBB;
     const VK_OEM_MINUS: i32 = 0xBD;
 
@@ -319,7 +333,7 @@ mod windows {
                 UpdateWindow(hwnd);
                 println!("Ventana interactiva abierta");
                 println!(
-                "Mouse: dirigir mirada | A/D: orbitar | W/S: elevar | +/-: zoom | R: render | Esc: salir"
+                "Mouse: dirigir mirada | A/D: orbitar | W/S: elevar | +/-: zoom | 1-5: camaras | R: detalle | Esc: salir"
             );
 
                 let mut frame = PreviewFrame {
@@ -337,8 +351,9 @@ mod windows {
                     next_generation,
                     cfg,
                     PreviewQuality::Settled,
+                    224,
                 ));
-                let mut previous_keys = [false; 11];
+                let mut previous_keys = [false; 16];
                 let keys = [
                     VK_A,
                     VK_D,
@@ -351,14 +366,21 @@ mod windows {
                     VK_OEM_PLUS,
                     VK_OEM_MINUS,
                     VK_R,
+                    VK_1,
+                    VK_2,
+                    VK_3,
+                    VK_4,
+                    VK_5,
                 ];
                 let mut message: Message = zeroed();
                 let mut running = true;
                 let mut previous_mouse = client_cursor(hwnd);
-                let mut mouse_was_moving = false;
                 let mut last_tick = Instant::now();
                 let mut last_draw = Instant::now();
                 let mut frame_changed = true;
+                let mut camera_was_moving = false;
+                let mut transition: Option<CameraTransition> = None;
+                let mut moving_width = 224_usize;
 
                 while running {
                     while PeekMessageW(&mut message, null_mut(), 0, 0, PM_REMOVE) != 0 {
@@ -379,10 +401,26 @@ mod windows {
 
                     while let Ok(completed) = frame_rx.try_recv() {
                         render_busy = false;
+                        if completed.quality == PreviewQuality::Moving {
+                            moving_width = adaptive_preview_width(moving_width, completed.elapsed);
+                        }
+                        let should_refine = completed.quality == PreviewQuality::Settled
+                            && pending_request.is_none()
+                            && transition.is_none()
+                            && !camera_was_moving;
                         if completed.generation > frame.generation {
                             frame = completed;
                             update_window_title(hwnd, &frame);
                             frame_changed = true;
+                        }
+                        if should_refine {
+                            next_generation += 1;
+                            pending_request = Some(render_request(
+                                next_generation,
+                                cfg,
+                                PreviewQuality::Refined,
+                                moving_width,
+                            ));
                         }
                     }
 
@@ -412,7 +450,7 @@ mod windows {
                             }
                         }
                     }
-                    let moving = current_keys[..10].iter().any(|&down| down) || mouse_moving;
+                    let manual_moving = current_keys[..10].iter().any(|&down| down) || mouse_moving;
                     let angle_step = 28.0 * delta_seconds;
                     let elevation_step = 3.2 * delta_seconds;
                     let zoom_step = 0.48 * delta_seconds;
@@ -435,22 +473,54 @@ mod windows {
                         cfg.zoom = (cfg.zoom - zoom_step).max(0.45);
                     }
 
-                    let was_moving =
-                        previous_keys[..10].iter().any(|&down| down) || mouse_was_moving;
+                    if manual_moving {
+                        transition = None;
+                    } else if let Some(preset_index) = (0..5).find(|index| pressed(11 + index)) {
+                        transition = Some(CameraTransition {
+                            from: camera_state(cfg),
+                            to: camera_preset(preset_index),
+                            started: now,
+                            duration: Duration::from_millis(1_350),
+                        });
+                    }
+
+                    let mut transition_moving = false;
+                    if let Some(active) = &transition {
+                        let progress = now.duration_since(active.started).as_secs_f32()
+                            / active.duration.as_secs_f32();
+                        apply_camera_state(
+                            cfg,
+                            interpolate_camera(active.from, active.to, progress),
+                        );
+                        transition_moving = progress < 1.0;
+                        if !transition_moving {
+                            transition = None;
+                        }
+                    }
+                    let moving = manual_moving || transition_moving;
                     if moving {
                         next_generation += 1;
-                        pending_request =
-                            Some(render_request(next_generation, cfg, PreviewQuality::Moving));
+                        pending_request = Some(render_request(
+                            next_generation,
+                            cfg,
+                            PreviewQuality::Moving,
+                            moving_width,
+                        ));
                     } else if pressed(10) {
                         next_generation += 1;
-                        pending_request =
-                            Some(render_request(next_generation, cfg, PreviewQuality::Detail));
-                    } else if was_moving {
+                        pending_request = Some(render_request(
+                            next_generation,
+                            cfg,
+                            PreviewQuality::Detail,
+                            moving_width,
+                        ));
+                    } else if camera_was_moving {
                         next_generation += 1;
                         pending_request = Some(render_request(
                             next_generation,
                             cfg,
                             PreviewQuality::Settled,
+                            moving_width,
                         ));
                     }
                     if !render_busy {
@@ -462,7 +532,7 @@ mod windows {
                     }
                     previous_keys = current_keys;
                     previous_mouse = current_mouse;
-                    mouse_was_moving = mouse_moving;
+                    camera_was_moving = moving;
                     if frame_changed || last_draw.elapsed() >= Duration::from_millis(250) {
                         draw_frame(hwnd, frame.width, frame.height, &frame.pixels);
                         last_draw = Instant::now();
@@ -488,11 +558,92 @@ mod windows {
         cfg.max_depth = cfg.max_depth.min(2);
     }
 
-    fn render_request(generation: u64, cfg: &Config, quality: PreviewQuality) -> RenderRequest {
+    fn render_request(
+        generation: u64,
+        cfg: &Config,
+        quality: PreviewQuality,
+        moving_width: usize,
+    ) -> RenderRequest {
         RenderRequest {
             generation,
             config: cfg.clone(),
             quality,
+            moving_width,
+        }
+    }
+
+    fn camera_preset(index: usize) -> CameraState {
+        match index {
+            0 => CameraState {
+                angle: 90.0,
+                zoom: 0.78,
+                elevation: -1.2,
+                look_x: 0.0,
+                look_y: -3.0,
+            },
+            1 => CameraState {
+                angle: 90.0,
+                zoom: 1.12,
+                elevation: -2.4,
+                look_x: 0.0,
+                look_y: -2.5,
+            },
+            2 => CameraState {
+                angle: 32.0,
+                zoom: 0.90,
+                elevation: 1.8,
+                look_x: 4.5,
+                look_y: -4.2,
+            },
+            3 => CameraState {
+                angle: 90.0,
+                zoom: 0.66,
+                elevation: 4.8,
+                look_x: 0.0,
+                look_y: 5.8,
+            },
+            _ => CameraState {
+                angle: 102.0,
+                zoom: 0.58,
+                elevation: 13.0,
+                look_x: 0.0,
+                look_y: -2.2,
+            },
+        }
+    }
+
+    fn interpolate_camera(from: CameraState, to: CameraState, progress: f32) -> CameraState {
+        let t = progress.clamp(0.0, 1.0);
+        let smooth = t * t * (3.0 - 2.0 * t);
+        let angle_delta = (to.angle - from.angle + 180.0).rem_euclid(360.0) - 180.0;
+        CameraState {
+            angle: from.angle + angle_delta * smooth,
+            zoom: lerp(from.zoom, to.zoom, smooth),
+            elevation: lerp(from.elevation, to.elevation, smooth),
+            look_x: lerp(from.look_x, to.look_x, smooth),
+            look_y: lerp(from.look_y, to.look_y, smooth),
+        }
+    }
+
+    fn apply_camera_state(cfg: &mut Config, state: CameraState) {
+        cfg.angle_deg = Some(state.angle.rem_euclid(360.0));
+        cfg.zoom = state.zoom;
+        cfg.elevation = state.elevation;
+        cfg.look_x = state.look_x;
+        cfg.look_y = state.look_y;
+    }
+
+    fn lerp(from: f32, to: f32, amount: f32) -> f32 {
+        from + (to - from) * amount
+    }
+
+    fn adaptive_preview_width(current: usize, elapsed: f32) -> usize {
+        if elapsed > 0.24 {
+            current.saturating_sub(16).max(176)
+        } else if elapsed < 0.11 {
+            (current + 16).min(256)
+        } else {
+            current
         }
     }
 
@@ -513,9 +664,9 @@ mod windows {
         render: RenderFunction,
     ) -> PreviewFrame {
         let mut render_cfg = request.config.clone();
-        if request.quality == PreviewQuality::Moving && render_cfg.width > 224 {
+        if request.quality == PreviewQuality::Moving && render_cfg.width > request.moving_width {
             let aspect = render_cfg.width as f32 / render_cfg.height.max(1) as f32;
-            render_cfg.width = 224;
+            render_cfg.width = request.moving_width;
             render_cfg.height = (render_cfg.width as f32 / aspect).round().max(1.0) as usize;
         }
         render_cfg.realtime_preview = request.quality == PreviewQuality::Moving;
@@ -527,6 +678,8 @@ mod windows {
         };
         render_cfg.max_depth = if request.quality == PreviewQuality::Detail {
             request.config.max_depth.min(2)
+        } else if request.quality == PreviewQuality::Refined {
+            2
         } else {
             1
         };
@@ -547,7 +700,9 @@ mod windows {
 
     unsafe fn update_window_title(hwnd: Hwnd, frame: &PreviewFrame) {
         let title = wide(&format!(
-            "Diorama | angulo {:.0} | zoom {:.2} | altura {:+.1} | mirada {:+.1},{:+.1} | {} {:.2}s",
+            "Diorama | {}x{} | angulo {:.0} | zoom {:.2} | altura {:+.1} | mirada {:+.1},{:+.1} | {} {:.2}s",
+            frame.width,
+            frame.height,
             frame.camera.angle,
             frame.camera.zoom,
             frame.camera.elevation,
@@ -556,6 +711,7 @@ mod windows {
             match frame.quality {
                 PreviewQuality::Moving => "movimiento",
                 PreviewQuality::Settled => "enfoque",
+                PreviewQuality::Refined => "refinado",
                 PreviewQuality::Detail => "detalle",
             },
             frame.elapsed
@@ -656,5 +812,35 @@ mod windows {
 
     fn wide(value: &str) -> Vec<u16> {
         value.encode_utf16().chain(std::iter::once(0)).collect()
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn cinematic_camera_uses_the_shortest_orbit() {
+            let from = CameraState {
+                angle: 350.0,
+                zoom: 1.0,
+                elevation: 0.0,
+                look_x: 0.0,
+                look_y: 0.0,
+            };
+            let to = CameraState {
+                angle: 10.0,
+                ..from
+            };
+            let halfway = interpolate_camera(from, to, 0.5);
+            assert!((halfway.angle - 360.0).abs() < 0.001);
+        }
+
+        #[test]
+        fn adaptive_resolution_stays_inside_its_limits() {
+            assert_eq!(adaptive_preview_width(176, 0.5), 176);
+            assert_eq!(adaptive_preview_width(256, 0.05), 256);
+            assert_eq!(adaptive_preview_width(224, 0.5), 208);
+            assert_eq!(adaptive_preview_width(224, 0.05), 240);
+        }
     }
 }
