@@ -127,9 +127,9 @@ Controles:
 
 La ventana usa una resolucion interactiva y ajustes moderados para responder bien en graficos integrados. El render final puede generarse despues con mayor resolucion, muestras y profundidad.
 
-La ventana usa resolucion dinamica entre 176 y 256 pixeles de ancho durante la navegacion, conservando texturas, relieve procedural, iluminacion directa, brillo especular, una muestra de sombra y reflejo ambiental. El render se ejecuta en un hilo independiente con una cola de ultimo encuadre, por lo que mouse y teclado siguen respondiendo mientras se calcula la imagen. Las cinco camaras recorren la ruta angular mas corta mediante transiciones suaves que pueden cancelarse inmediatamente con el mouse o el teclado.
+La ventana usa resolucion dinamica entre 256 y 320 pixeles de ancho durante la navegacion, conservando texturas, relieve procedural, iluminacion directa, brillo especular, una muestra de sombra y reflejo ambiental. No se desplazan ni deforman fotogramas anteriores: cada imagen mostrada corresponde a una camara renderizada realmente. El render se ejecuta en un hilo independiente con una cola de ultimo encuadre, por lo que mouse y teclado siguen respondiendo mientras se calcula la imagen. Las cinco camaras recorren la ruta angular mas corta mediante transiciones suaves que pueden cancelarse inmediatamente con el mouse o el teclado.
 
-Al detener la camara aparece primero un enfoque de 360 pixeles y luego un refinado automatico con oclusion ambiental, sombras suaves y rayos secundarios. Al presionar `r` se agrega antialiasing 2x2. El encuadre inicial incluye el arco exterior de Pain y el BVH de cubos, triangulos, elipsoides y capsulas se construye una sola vez.
+Al detener la camara se genera un enfoque de hasta 480 pixeles con oclusion ambiental, sombras suaves y rayos secundarios. Al presionar `r` se agrega antialiasing 2x2. El titulo de la ventana muestra la resolucion y el nivel activo (`movimiento`, `enfoque` o `detalle`). El encuadre inicial incluye el arco exterior de Pain y el BVH de cubos, triangulos, elipsoides y capsulas se construye una sola vez.
 
 ## Camara por consola
 

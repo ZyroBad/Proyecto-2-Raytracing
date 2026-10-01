@@ -66,7 +66,6 @@ mod windows {
     enum PreviewQuality {
         Moving,
         Settled,
-        Refined,
         Detail,
     }
 
@@ -351,7 +350,7 @@ mod windows {
                     next_generation,
                     cfg,
                     PreviewQuality::Settled,
-                    224,
+                    288,
                 ));
                 let mut previous_keys = [false; 16];
                 let keys = [
@@ -380,7 +379,7 @@ mod windows {
                 let mut frame_changed = true;
                 let mut camera_was_moving = false;
                 let mut transition: Option<CameraTransition> = None;
-                let mut moving_width = 224_usize;
+                let mut moving_width = 288_usize;
 
                 while running {
                     while PeekMessageW(&mut message, null_mut(), 0, 0, PM_REMOVE) != 0 {
@@ -404,23 +403,10 @@ mod windows {
                         if completed.quality == PreviewQuality::Moving {
                             moving_width = adaptive_preview_width(moving_width, completed.elapsed);
                         }
-                        let should_refine = completed.quality == PreviewQuality::Settled
-                            && pending_request.is_none()
-                            && transition.is_none()
-                            && !camera_was_moving;
                         if completed.generation > frame.generation {
                             frame = completed;
                             update_window_title(hwnd, &frame);
                             frame_changed = true;
-                        }
-                        if should_refine {
-                            next_generation += 1;
-                            pending_request = Some(render_request(
-                                next_generation,
-                                cfg,
-                                PreviewQuality::Refined,
-                                moving_width,
-                            ));
                         }
                     }
 
@@ -550,8 +536,8 @@ mod windows {
     fn configure_preview(cfg: &mut Config) {
         cfg.hd = false;
         let aspect = cfg.width as f32 / cfg.height.max(1) as f32;
-        if cfg.width > 360 {
-            cfg.width = 360;
+        if cfg.width > 480 {
+            cfg.width = 480;
             cfg.height = (cfg.width as f32 / aspect).round().max(1.0) as usize;
         }
         cfg.samples_per_axis = 1;
@@ -638,10 +624,10 @@ mod windows {
     }
 
     fn adaptive_preview_width(current: usize, elapsed: f32) -> usize {
-        if elapsed > 0.24 {
-            current.saturating_sub(16).max(176)
-        } else if elapsed < 0.11 {
-            (current + 16).min(256)
+        if elapsed > 0.34 {
+            current.saturating_sub(16).max(256)
+        } else if elapsed < 0.16 {
+            (current + 16).min(320)
         } else {
             current
         }
@@ -678,7 +664,7 @@ mod windows {
         };
         render_cfg.max_depth = if request.quality == PreviewQuality::Detail {
             request.config.max_depth.min(2)
-        } else if request.quality == PreviewQuality::Refined {
+        } else if request.quality == PreviewQuality::Settled {
             2
         } else {
             1
@@ -711,7 +697,6 @@ mod windows {
             match frame.quality {
                 PreviewQuality::Moving => "movimiento",
                 PreviewQuality::Settled => "enfoque",
-                PreviewQuality::Refined => "refinado",
                 PreviewQuality::Detail => "detalle",
             },
             frame.elapsed
@@ -836,11 +821,11 @@ mod windows {
         }
 
         #[test]
-        fn adaptive_resolution_stays_inside_its_limits() {
-            assert_eq!(adaptive_preview_width(176, 0.5), 176);
-            assert_eq!(adaptive_preview_width(256, 0.05), 256);
-            assert_eq!(adaptive_preview_width(224, 0.5), 208);
-            assert_eq!(adaptive_preview_width(224, 0.05), 240);
+        fn adaptive_resolution_preserves_the_quality_floor() {
+            assert_eq!(adaptive_preview_width(256, 0.5), 256);
+            assert_eq!(adaptive_preview_width(320, 0.05), 320);
+            assert_eq!(adaptive_preview_width(288, 0.5), 272);
+            assert_eq!(adaptive_preview_width(288, 0.05), 304);
         }
     }
 }
