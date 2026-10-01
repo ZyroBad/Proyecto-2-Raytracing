@@ -447,11 +447,12 @@ mod windows {
                         cfg.angle_deg = Some(cfg.angle_deg.unwrap_or(90.0) + angle_step);
                     }
                     if current_keys[2] || current_keys[6] {
-                        cfg.elevation = (cfg.elevation + elevation_step).min(16.0);
-                    }
+                        cfg.elevation += elevation_step;
+}
+
                     if current_keys[3] || current_keys[7] {
-                        cfg.elevation = (cfg.elevation - elevation_step).max(-10.0);
-                    }
+                        cfg.elevation -= elevation_step;
+}
                     if current_keys[8] {
                         cfg.zoom = (cfg.zoom + zoom_step).min(2.5);
                     }
