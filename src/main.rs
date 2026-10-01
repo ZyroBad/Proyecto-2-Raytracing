@@ -31,6 +31,8 @@ use std::fs::create_dir_all;
 use std::io::{self, Write};
 use std::path::Path;
 use std::thread;
+use std::sync::atomic::{AtomicUsize, Ordering};
+
 
 const EPSILON: f32 = 0.001;
 const SECONDARY_RAY_THRESHOLD: f32 = 0.075;
@@ -156,49 +158,146 @@ fn render_pixels(scene: &Scene, cfg: &Config, frame: usize) -> Vec<Color> {
     render_pixels_with_bvh(scene, &bvh, cfg, frame)
 }
 
-fn render_pixels_with_bvh(scene: &Scene, bvh: &Bvh, cfg: &Config, frame: usize) -> Vec<Color> {
+fn render_pixels_with_bvh(
+    scene: &Scene,
+    bvh: &Bvh,
+    cfg: &Config,
+    frame: usize,
+) -> Vec<Color> {
     let aspect = cfg.width as f32 / cfg.height as f32;
     let t = frame as f32 / cfg.frames.max(1) as f32;
+
     let angle = cfg
         .angle_deg
         .map(|a| a.to_radians())
         .unwrap_or(t * 2.0 * PI + PI * 0.5);
+
     let zoom_wave = (t * 2.0 * PI).sin() * 0.18;
+
     let base_radius = if cfg.cinematic { 25.5 } else { 33.0 };
     let base_height = if cfg.cinematic { 5.2 } else { 20.0 };
+
     let radius = (base_radius - zoom_wave * 5.5) / cfg.zoom.max(0.35);
+
     let camera_pos = Vec3::new(
         angle.cos() * radius,
         base_height + cfg.elevation + zoom_wave * 2.8,
         angle.sin() * radius,
     );
-    let camera_right = Vec3::new(angle.sin(), 0.0, -angle.cos());
+
+    let camera_right = Vec3::new(
+        angle.sin(),
+        0.0,
+        -angle.cos(),
+    );
+
     let target_height = if cfg.cinematic { 2.0 } else { 1.2 };
+
     let camera_target =
-        Vec3::new(0.0, target_height + cfg.look_y, -1.0) + camera_right * cfg.look_x;
+        Vec3::new(
+            0.0,
+            target_height + cfg.look_y,
+            -1.0,
+        ) + camera_right * cfg.look_x;
+
     let field_of_view = if cfg.cinematic { 50.0 } else { 44.0 };
-    let camera = Camera::look_at(camera_pos, camera_target, field_of_view, aspect);
-    let mut pixels = vec![Color::default(); cfg.width * cfg.height];
+
+    let camera = Camera::look_at(
+        camera_pos,
+        camera_target,
+        field_of_view,
+        aspect,
+    );
+
     let worker_count = thread::available_parallelism()
         .map(|count| count.get())
         .unwrap_or(1)
         .min(cfg.height.max(1));
-    let rows_per_worker = (cfg.height + worker_count - 1) / worker_count;
-    let pixels_per_worker = rows_per_worker * cfg.width;
+
+    const ROWS_PER_JOB: usize = 3;
+
+    let job_count =
+        (cfg.height + ROWS_PER_JOB - 1) / ROWS_PER_JOB;
+
+    let next_job = AtomicUsize::new(0);
+
+    let completed_bands =
+        std::sync::Mutex::new(
+            Vec::<(usize, Vec<Color>)>::with_capacity(job_count),
+        );
 
     thread::scope(|scope| {
-        for (worker, pixel_chunk) in pixels.chunks_mut(pixels_per_worker).enumerate() {
-            let start_y = worker * rows_per_worker;
+        for _ in 0..worker_count {
             let camera = &camera;
+            let next_job = &next_job;
+            let completed_bands = &completed_bands;
+
             scope.spawn(move || {
-                render_rows(scene, bvh, camera, cfg, start_y, pixel_chunk);
+                loop {
+                    let job_index =
+                        next_job.fetch_add(1, Ordering::Relaxed);
+
+                    if job_index >= job_count {
+                        break;
+                    }
+
+                    let start_y = job_index * ROWS_PER_JOB;
+
+                    let end_y =
+                        (start_y + ROWS_PER_JOB).min(cfg.height);
+
+                    let row_count = end_y - start_y;
+
+                    let mut local_pixels =
+                        vec![
+                            Color::default();
+                            row_count * cfg.width
+                        ];
+
+                    render_rows(
+                        scene,
+                        bvh,
+                        camera,
+                        cfg,
+                        start_y,
+                        &mut local_pixels,
+                    );
+
+                    completed_bands
+                        .lock()
+                        .unwrap()
+                        .push((start_y, local_pixels));
+                }
             });
         }
     });
 
+    let mut pixels =
+        vec![
+            Color::default();
+            cfg.width * cfg.height
+        ];
+
+    let mut bands =
+        completed_bands.into_inner().unwrap();
+
+    bands.sort_unstable_by_key(
+        |(start_y, _)| *start_y
+    );
+
+    for (start_y, band_pixels) in bands {
+        let start =
+            start_y * cfg.width;
+
+        let end =
+            start + band_pixels.len();
+
+        pixels[start..end]
+            .copy_from_slice(&band_pixels);
+    }
+
     pixels
 }
-
 fn render_rows(
     scene: &Scene,
     bvh: &Bvh,
