@@ -198,5 +198,4 @@ Los cuadros se guardan en `frames/` con numeracion consecutiva. Primero conviene
 ![Escena Lograda con Raytracing](renders/final.png)
 
 ## Video
-
-El video final del diorama se agregara aqui antes de la entrega.
+https://youtu.be/PUuCfZ-VXG4
