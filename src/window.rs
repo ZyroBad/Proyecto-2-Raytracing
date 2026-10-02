@@ -24,6 +24,7 @@ mod windows {
     use super::*;
     use std::ffi::c_void;
     use std::mem::zeroed;
+    use std::path::{Path, PathBuf};
     use std::ptr::{null, null_mut};
     use std::sync::mpsc;
     use std::thread;
@@ -69,6 +70,74 @@ mod windows {
         Detail,
     }
 
+    struct BackgroundMusic {
+        opened: bool,
+        playing: bool,
+    }
+
+    impl BackgroundMusic {
+        fn start() -> Self {
+            let mut music = Self {
+                opened: false,
+                playing: false,
+            };
+            let Some(path) = music_asset_path() else {
+                eprintln!("No se encontro assets/musica_epica_naruto.mp3");
+                return music;
+            };
+
+            let open = format!(
+                "open \"{}\" type mpegvideo alias diorama_bgm",
+                path.to_string_lossy()
+            );
+            if let Err(error) = mci_command(&open) {
+                eprintln!("No se pudo abrir la musica: {error}");
+                return music;
+            }
+            music.opened = true;
+
+            if let Err(error) = mci_command("setaudio diorama_bgm volume to 120") {
+                eprintln!("No se pudo ajustar el volumen de la musica: {error}");
+            }
+            match mci_command("play diorama_bgm repeat") {
+                Ok(()) => music.playing = true,
+                Err(error) => eprintln!("No se pudo reproducir la musica: {error}"),
+            }
+            music
+        }
+
+        fn toggle(&mut self) {
+            if !self.opened {
+                return;
+            }
+            let (command, next_state) = if self.playing {
+                ("pause diorama_bgm", false)
+            } else {
+                ("resume diorama_bgm", true)
+            };
+            match mci_command(command) {
+                Ok(()) => self.playing = next_state,
+                Err(error) => eprintln!("No se pudo cambiar la musica: {error}"),
+            }
+        }
+
+        fn status(&self) -> &'static str {
+            if self.playing {
+                "ON"
+            } else {
+                "OFF"
+            }
+        }
+    }
+
+    impl Drop for BackgroundMusic {
+        fn drop(&mut self) {
+            if self.opened {
+                let _ = mci_command("close diorama_bgm");
+            }
+        }
+    }
+
     type Handle = *mut c_void;
     type Hwnd = Handle;
     type Hdc = Handle;
@@ -101,6 +170,7 @@ mod windows {
     const VK_DOWN: i32 = 0x28;
     const VK_A: i32 = 0x41;
     const VK_D: i32 = 0x44;
+    const VK_M: i32 = 0x4D;
     const VK_R: i32 = 0x52;
     const VK_S: i32 = 0x53;
     const VK_W: i32 = 0x57;
@@ -249,6 +319,17 @@ mod windows {
         fn GetModuleHandleW(module_name: *const u16) -> Hinstance;
     }
 
+    #[link(name = "winmm")]
+    extern "system" {
+        fn mciSendStringW(
+            command: *const u16,
+            return_value: *mut u16,
+            return_length: u32,
+            callback: Hwnd,
+        ) -> u32;
+        fn mciGetErrorStringW(error: u32, text: *mut u16, length: u32) -> i32;
+    }
+
     unsafe extern "system" fn window_procedure(
         hwnd: Hwnd,
         message: u32,
@@ -330,9 +411,10 @@ mod windows {
 
                 ShowWindow(hwnd, SW_SHOW);
                 UpdateWindow(hwnd);
+                let mut music = BackgroundMusic::start();
                 println!("Ventana interactiva abierta");
                 println!(
-                "Mouse: dirigir mirada | A/D: orbitar | W/S: elevar | +/-: zoom | 1-5: camaras | R: detalle | Esc: salir"
+                "Mouse: dirigir mirada | A/D: orbitar | W/S: elevar | +/-: zoom | 1-5: camaras | R: detalle | M: musica | Esc: salir"
             );
 
                 let mut frame = PreviewFrame {
@@ -352,7 +434,7 @@ mod windows {
                     PreviewQuality::Settled,
                     288,
                 ));
-                let mut previous_keys = [false; 16];
+                let mut previous_keys = [false; 17];
                 let keys = [
                     VK_A,
                     VK_D,
@@ -370,6 +452,7 @@ mod windows {
                     VK_3,
                     VK_4,
                     VK_5,
+                    VK_M,
                 ];
                 let mut message: Message = zeroed();
                 let mut running = true;
@@ -405,7 +488,7 @@ mod windows {
                         }
                         if completed.generation > frame.generation {
                             frame = completed;
-                            update_window_title(hwnd, &frame);
+                            update_window_title(hwnd, &frame, music.status());
                             frame_changed = true;
                         }
                     }
@@ -448,16 +531,20 @@ mod windows {
                     }
                     if current_keys[2] || current_keys[6] {
                         cfg.elevation += elevation_step;
-}
+                    }
 
                     if current_keys[3] || current_keys[7] {
                         cfg.elevation -= elevation_step;
-}
+                    }
                     if current_keys[8] {
                         cfg.zoom = (cfg.zoom + zoom_step).min(2.5);
                     }
                     if current_keys[9] {
                         cfg.zoom = (cfg.zoom - zoom_step).max(0.45);
+                    }
+                    if pressed(16) {
+                        music.toggle();
+                        update_window_title(hwnd, &frame, music.status());
                     }
 
                     if manual_moving {
@@ -685,9 +772,9 @@ mod windows {
         }
     }
 
-    unsafe fn update_window_title(hwnd: Hwnd, frame: &PreviewFrame) {
+    unsafe fn update_window_title(hwnd: Hwnd, frame: &PreviewFrame, music_status: &str) {
         let title = wide(&format!(
-            "Diorama | {}x{} | angulo {:.0} | zoom {:.2} | altura {:+.1} | mirada {:+.1},{:+.1} | {} {:.2}s",
+            "Diorama | {}x{} | angulo {:.0} | zoom {:.2} | altura {:+.1} | mirada {:+.1},{:+.1} | {} {:.2}s | musica {}",
             frame.width,
             frame.height,
             frame.camera.angle,
@@ -700,9 +787,47 @@ mod windows {
                 PreviewQuality::Settled => "enfoque",
                 PreviewQuality::Detail => "detalle",
             },
-            frame.elapsed
+            frame.elapsed,
+            music_status
         ));
         SetWindowTextW(hwnd, title.as_ptr());
+    }
+
+    fn music_asset_path() -> Option<PathBuf> {
+        let relative = Path::new("assets").join("musica_epica_naruto.mp3");
+        let mut candidates = vec![relative.clone()];
+        if let Ok(executable) = std::env::current_exe() {
+            if let Some(directory) = executable.parent() {
+                candidates.push(directory.join(&relative));
+                if let Some(project) = directory.parent().and_then(Path::parent) {
+                    candidates.push(project.join(&relative));
+                }
+            }
+        }
+        candidates
+            .into_iter()
+            .find(|path| path.is_file())
+            .and_then(|path| std::fs::canonicalize(path).ok())
+    }
+
+    fn mci_command(command: &str) -> Result<(), String> {
+        let error = unsafe { mciSendStringW(wide(command).as_ptr(), null_mut(), 0, null_mut()) };
+        if error == 0 {
+            return Ok(());
+        }
+
+        let mut message = [0_u16; 256];
+        let found =
+            unsafe { mciGetErrorStringW(error, message.as_mut_ptr(), message.len() as u32) != 0 };
+        if found {
+            let length = message
+                .iter()
+                .position(|&character| character == 0)
+                .unwrap_or(message.len());
+            Err(String::from_utf16_lossy(&message[..length]))
+        } else {
+            Err(format!("codigo MCI {error}"))
+        }
     }
 
     fn colors_to_bgra(colors: &[Color]) -> Vec<u8> {
