@@ -138,6 +138,54 @@ mod windows {
         }
     }
 
+    struct MenuBackground {
+        bitmap: Hbitmap,
+        width: i32,
+        height: i32,
+    }
+
+    impl MenuBackground {
+        unsafe fn load() -> Option<Self> {
+            let path = asset_path("fondo_menu_konoha.bmp")?;
+            let bitmap = LoadImageW(
+                null_mut(),
+                wide(&path.to_string_lossy()).as_ptr(),
+                IMAGE_BITMAP,
+                0,
+                0,
+                LR_LOADFROMFILE,
+            );
+            if bitmap.is_null() {
+                eprintln!("No se pudo cargar el fondo del menu");
+                return None;
+            }
+
+            let mut info: Bitmap = zeroed();
+            if GetObjectW(
+                bitmap,
+                std::mem::size_of::<Bitmap>() as i32,
+                &mut info as *mut Bitmap as *mut c_void,
+            ) == 0
+            {
+                DeleteObject(bitmap);
+                return None;
+            }
+            Some(Self {
+                bitmap,
+                width: info.width,
+                height: info.height,
+            })
+        }
+    }
+
+    impl Drop for MenuBackground {
+        fn drop(&mut self) {
+            unsafe {
+                DeleteObject(self.bitmap);
+            }
+        }
+    }
+
     type Handle = *mut c_void;
     type Hwnd = Handle;
     type Hdc = Handle;
@@ -145,6 +193,8 @@ mod windows {
     type Hicon = Handle;
     type Hcursor = Handle;
     type Hbrush = Handle;
+    type Hfont = Handle;
+    type Hbitmap = Handle;
     type Wparam = usize;
     type Lparam = isize;
     type Lresult = isize;
@@ -160,10 +210,18 @@ mod windows {
     const DIB_RGB_COLORS: u32 = 0;
     const SRCCOPY: u32 = 0x00CC_0020;
     const BI_RGB: u32 = 0;
+    const IMAGE_BITMAP: u32 = 0;
+    const LR_LOADFROMFILE: u32 = 0x0010;
     const HALFTONE: i32 = 4;
+    const TRANSPARENT: i32 = 1;
+    const DT_CENTER: u32 = 0x0001;
+    const DT_VCENTER: u32 = 0x0004;
+    const DT_SINGLELINE: u32 = 0x0020;
     const IDC_ARROW: usize = 32_512;
 
     const VK_ESCAPE: i32 = 0x1B;
+    const VK_RETURN: i32 = 0x0D;
+    const VK_LBUTTON: i32 = 0x01;
     const VK_LEFT: i32 = 0x25;
     const VK_UP: i32 = 0x26;
     const VK_RIGHT: i32 = 0x27;
@@ -190,6 +248,7 @@ mod windows {
     }
 
     #[repr(C)]
+    #[derive(Clone, Copy)]
     struct Rect {
         left: i32,
         top: i32,
@@ -253,6 +312,17 @@ mod windows {
         colors: [RgbQuad; 1],
     }
 
+    #[repr(C)]
+    struct Bitmap {
+        bitmap_type: i32,
+        width: i32,
+        height: i32,
+        width_bytes: i32,
+        planes: u16,
+        bits_per_pixel: u16,
+        bits: *mut c_void,
+    }
+
     #[link(name = "user32")]
     extern "system" {
         fn RegisterClassW(window_class: *const WindowClass) -> u16;
@@ -293,10 +363,78 @@ mod windows {
         fn GetAsyncKeyState(key: i32) -> i16;
         fn SetWindowTextW(hwnd: Hwnd, text: *const u16) -> i32;
         fn LoadCursorW(instance: Hinstance, cursor_name: *const u16) -> Hcursor;
+        fn LoadImageW(
+            instance: Hinstance,
+            name: *const u16,
+            image_type: u32,
+            width: i32,
+            height: i32,
+            flags: u32,
+        ) -> Handle;
+        fn FillRect(dc: Hdc, rect: *const Rect, brush: Hbrush) -> i32;
+        fn DrawTextW(dc: Hdc, text: *const u16, count: i32, rect: *mut Rect, format: u32) -> i32;
     }
 
     #[link(name = "gdi32")]
     extern "system" {
+        fn CreateCompatibleDC(dc: Hdc) -> Hdc;
+        fn CreateCompatibleBitmap(dc: Hdc, width: i32, height: i32) -> Hbitmap;
+        fn CreateSolidBrush(color: u32) -> Hbrush;
+        fn CreateFontW(
+            height: i32,
+            width: i32,
+            escapement: i32,
+            orientation: i32,
+            weight: i32,
+            italic: u32,
+            underline: u32,
+            strike_out: u32,
+            char_set: u32,
+            out_precision: u32,
+            clip_precision: u32,
+            quality: u32,
+            pitch_and_family: u32,
+            face_name: *const u16,
+        ) -> Hfont;
+        fn DeleteObject(object: Handle) -> i32;
+        fn DeleteDC(dc: Hdc) -> i32;
+        fn GetObjectW(object: Handle, size: i32, output: *mut c_void) -> i32;
+        fn SelectObject(dc: Hdc, object: Handle) -> Handle;
+        fn SetBkMode(dc: Hdc, mode: i32) -> i32;
+        fn SetTextColor(dc: Hdc, color: u32) -> u32;
+        fn RoundRect(
+            dc: Hdc,
+            left: i32,
+            top: i32,
+            right: i32,
+            bottom: i32,
+            width: i32,
+            height: i32,
+        ) -> i32;
+        fn BitBlt(
+            destination: Hdc,
+            x_destination: i32,
+            y_destination: i32,
+            width: i32,
+            height: i32,
+            source: Hdc,
+            x_source: i32,
+            y_source: i32,
+            operation: u32,
+        ) -> i32;
+        fn StretchBlt(
+            destination: Hdc,
+            x_destination: i32,
+            y_destination: i32,
+            destination_width: i32,
+            destination_height: i32,
+            source: Hdc,
+            x_source: i32,
+            y_source: i32,
+            source_width: i32,
+            source_height: i32,
+            operation: u32,
+        ) -> i32;
         fn StretchDIBits(
             dc: Hdc,
             x_destination: i32,
@@ -412,6 +550,10 @@ mod windows {
                 ShowWindow(hwnd, SW_SHOW);
                 UpdateWindow(hwnd);
                 let mut music = BackgroundMusic::start();
+                if !run_main_menu(hwnd, &mut music) {
+                    DestroyWindow(hwnd);
+                    return Ok(());
+                }
                 println!("Ventana interactiva abierta");
                 println!(
                 "Mouse: dirigir mirada | A/D: orbitar | W/S: elevar | +/-: zoom | 1-5: camaras | R: detalle | M: musica | Esc: salir"
@@ -621,6 +763,440 @@ mod windows {
         })
     }
 
+    unsafe fn run_main_menu(hwnd: Hwnd, music: &mut BackgroundMusic) -> bool {
+        let background = MenuBackground::load();
+        let mut selected = 0_usize;
+        let mut showing_controls = false;
+        let mut previous_keys = [false; 6];
+        let mut message: Message = zeroed();
+
+        SetWindowTextW(hwnd, wide("Naruto Shippuden | Konoha destruida").as_ptr());
+        loop {
+            while PeekMessageW(&mut message, null_mut(), 0, 0, PM_REMOVE) != 0 {
+                if message.message == WM_QUIT {
+                    return false;
+                }
+                TranslateMessage(&message);
+                DispatchMessageW(&message);
+            }
+
+            let current_keys = [
+                key_down(VK_UP),
+                key_down(VK_DOWN),
+                key_down(VK_RETURN),
+                key_down(VK_M),
+                key_down(VK_LBUTTON),
+                key_down(VK_ESCAPE),
+            ];
+            let pressed = |index: usize| current_keys[index] && !previous_keys[index];
+
+            if showing_controls {
+                if pressed(2) || pressed(5) || pressed(4) {
+                    showing_controls = false;
+                }
+            } else {
+                if pressed(5) {
+                    return false;
+                }
+                if pressed(0) {
+                    selected = (selected + 3) % 4;
+                }
+                if pressed(1) {
+                    selected = (selected + 1) % 4;
+                }
+                if pressed(3) {
+                    music.toggle();
+                }
+
+                let hovered = client_cursor(hwnd).and_then(|point| menu_hit_test(hwnd, point));
+                if let Some(index) = hovered {
+                    selected = index;
+                }
+                let activated = if pressed(2) {
+                    Some(selected)
+                } else if pressed(4) {
+                    hovered
+                } else {
+                    None
+                };
+                match activated {
+                    Some(0) => return true,
+                    Some(1) => showing_controls = true,
+                    Some(2) => music.toggle(),
+                    Some(3) => return false,
+                    _ => {}
+                }
+            }
+
+            draw_main_menu(
+                hwnd,
+                selected,
+                music.status(),
+                showing_controls,
+                background.as_ref(),
+            );
+            previous_keys = current_keys;
+            thread::sleep(Duration::from_millis(33));
+        }
+    }
+
+    unsafe fn draw_main_menu(
+        hwnd: Hwnd,
+        selected: usize,
+        music_status: &str,
+        showing_controls: bool,
+        background: Option<&MenuBackground>,
+    ) {
+        let mut client: Rect = zeroed();
+        if GetClientRect(hwnd, &mut client) == 0 || client.right <= 0 || client.bottom <= 0 {
+            return;
+        }
+        let window_dc = GetDC(hwnd);
+        let dc = CreateCompatibleDC(window_dc);
+        let bitmap = CreateCompatibleBitmap(window_dc, client.right, client.bottom);
+        let previous_bitmap = SelectObject(dc, bitmap);
+        SetBkMode(dc, TRANSPARENT);
+
+        if let Some(background) = background {
+            let source_dc = CreateCompatibleDC(window_dc);
+            let previous_source = SelectObject(source_dc, background.bitmap);
+            SetStretchBltMode(dc, HALFTONE);
+            StretchBlt(
+                dc,
+                0,
+                0,
+                client.right,
+                client.bottom,
+                source_dc,
+                0,
+                0,
+                background.width,
+                background.height,
+                SRCCOPY,
+            );
+            SelectObject(source_dc, previous_source);
+            DeleteDC(source_dc);
+        } else {
+            let band_count = 14;
+            for band in 0..band_count {
+                let progress = band as f32 / (band_count - 1) as f32;
+                let color = rgb(
+                    (48.0 + 74.0 * progress) as u8,
+                    (15.0 + 18.0 * progress) as u8,
+                    (19.0 + 5.0 * progress) as u8,
+                );
+                let band_rect = Rect {
+                    left: 0,
+                    top: client.bottom * band / band_count,
+                    right: client.right,
+                    bottom: client.bottom * (band + 1) / band_count + 1,
+                };
+                fill_rect(dc, band_rect, color);
+            }
+        }
+
+        fill_rect(
+            dc,
+            Rect {
+                left: 0,
+                top: 0,
+                right: client.right,
+                bottom: 10,
+            },
+            rgb(12, 10, 12),
+        );
+        fill_rect(
+            dc,
+            Rect {
+                left: 0,
+                top: client.bottom - 12,
+                right: client.right,
+                bottom: client.bottom,
+            },
+            rgb(12, 10, 12),
+        );
+
+        let title_font = create_menu_font(-80, 900, true, "Arial Black");
+        draw_stroked_text(
+            dc,
+            "NARUTO",
+            Rect {
+                left: 0,
+                top: 14,
+                right: client.right,
+                bottom: 124,
+            },
+            title_font,
+            rgb(248, 84, 22),
+            6,
+        );
+        DeleteObject(title_font);
+
+        let shippuden_font = create_menu_font(-40, 900, true, "Arial Black");
+        draw_stroked_text(
+            dc,
+            "SHIPPUDEN",
+            Rect {
+                left: 0,
+                top: 105,
+                right: client.right,
+                bottom: 166,
+            },
+            shippuden_font,
+            rgb(35, 148, 218),
+            4,
+        );
+        DeleteObject(shippuden_font);
+
+        let subtitle_font = create_menu_font(-17, 700, false, "Arial");
+        draw_stroked_text(
+            dc,
+            "KONOHA DESTRUIDA  |  LA INVASION DE PAIN",
+            Rect {
+                left: 0,
+                top: 164,
+                right: client.right,
+                bottom: 198,
+            },
+            subtitle_font,
+            rgb(244, 205, 126),
+            2,
+        );
+        DeleteObject(subtitle_font);
+
+        if showing_controls {
+            draw_controls_panel(dc, client);
+        } else {
+            let options = [
+                "INICIAR",
+                "CONTROLES",
+                if music_status == "ON" {
+                    "MUSICA: ON"
+                } else {
+                    "MUSICA: OFF"
+                },
+                "SALIR",
+            ];
+            let button_font = create_menu_font(-21, 800, false, "Arial");
+            for (index, button) in menu_button_rects(client).into_iter().enumerate() {
+                let active = index == selected;
+                fill_round_rect(
+                    dc,
+                    button,
+                    if active {
+                        rgb(220, 71, 24)
+                    } else {
+                        rgb(25, 24, 29)
+                    },
+                );
+                let accent = Rect {
+                    left: button.left + 9,
+                    top: button.top + 9,
+                    right: button.left + 14,
+                    bottom: button.bottom - 9,
+                };
+                fill_rect(
+                    dc,
+                    accent,
+                    if active {
+                        rgb(255, 194, 45)
+                    } else {
+                        rgb(124, 48, 35)
+                    },
+                );
+                draw_text(
+                    dc,
+                    options[index],
+                    button,
+                    button_font,
+                    if active {
+                        rgb(255, 245, 220)
+                    } else {
+                        rgb(212, 205, 194)
+                    },
+                );
+            }
+            DeleteObject(button_font);
+        }
+
+        BitBlt(
+            window_dc,
+            0,
+            0,
+            client.right,
+            client.bottom,
+            dc,
+            0,
+            0,
+            SRCCOPY,
+        );
+        SelectObject(dc, previous_bitmap);
+        DeleteObject(bitmap);
+        DeleteDC(dc);
+        ReleaseDC(hwnd, window_dc);
+    }
+
+    unsafe fn draw_controls_panel(dc: Hdc, client: Rect) {
+        let panel = Rect {
+            left: client.right / 2 - 270,
+            top: 207,
+            right: client.right / 2 + 270,
+            bottom: (client.bottom - 25).min(430),
+        };
+        fill_round_rect(dc, panel, rgb(22, 21, 26));
+        let heading = create_menu_font(-27, 800, false, "Arial");
+        draw_text(
+            dc,
+            "CONTROLES",
+            Rect {
+                bottom: panel.top + 43,
+                ..panel
+            },
+            heading,
+            rgb(245, 145, 38),
+        );
+        DeleteObject(heading);
+
+        let body = create_menu_font(-16, 600, false, "Arial");
+        let lines = [
+            "MOUSE  Dirigir la mirada",
+            "A / D  Orbitar     W / S  Elevar",
+            "+ / -  Zoom       1 - 5  Camaras",
+            "R  Maximo detalle     M  Musica",
+            "ENTER O CLIC PARA VOLVER",
+        ];
+        let line_count = lines.len();
+        for (index, line) in lines.into_iter().enumerate() {
+            draw_text(
+                dc,
+                line,
+                Rect {
+                    left: panel.left + 20,
+                    top: panel.top + 42 + index as i32 * 34,
+                    right: panel.right - 20,
+                    bottom: panel.top + 74 + index as i32 * 34,
+                },
+                body,
+                if index == line_count - 1 {
+                    rgb(245, 145, 38)
+                } else {
+                    rgb(236, 230, 218)
+                },
+            );
+        }
+        DeleteObject(body);
+    }
+
+    unsafe fn menu_hit_test(hwnd: Hwnd, point: Point) -> Option<usize> {
+        let mut client: Rect = zeroed();
+        if GetClientRect(hwnd, &mut client) == 0 {
+            return None;
+        }
+        menu_button_rects(client).iter().position(|rect| {
+            point.x >= rect.left
+                && point.x < rect.right
+                && point.y >= rect.top
+                && point.y < rect.bottom
+        })
+    }
+
+    fn menu_button_rects(client: Rect) -> [Rect; 4] {
+        let width = 360.min(client.right.saturating_sub(40));
+        let left = (client.right - width) / 2;
+        let top = 207;
+        std::array::from_fn(|index| Rect {
+            left,
+            top: top + index as i32 * 55,
+            right: left + width,
+            bottom: top + index as i32 * 55 + 44,
+        })
+    }
+
+    unsafe fn create_menu_font(height: i32, weight: i32, italic: bool, face: &str) -> Hfont {
+        CreateFontW(
+            height,
+            0,
+            0,
+            0,
+            weight,
+            italic as u32,
+            0,
+            0,
+            1,
+            0,
+            0,
+            5,
+            0,
+            wide(face).as_ptr(),
+        )
+    }
+
+    unsafe fn draw_stroked_text(
+        dc: Hdc,
+        text: &str,
+        rect: Rect,
+        font: Hfont,
+        fill: u32,
+        stroke: i32,
+    ) {
+        for (offset, color) in [(stroke, rgb(8, 8, 10)), (stroke / 2, rgb(248, 242, 226))] {
+            for (x, y) in [
+                (-offset, 0),
+                (offset, 0),
+                (0, -offset),
+                (0, offset),
+                (-offset, -offset),
+                (offset, -offset),
+                (-offset, offset),
+                (offset, offset),
+            ] {
+                draw_text(dc, text, offset_rect(rect, x, y), font, color);
+            }
+        }
+        draw_text(dc, text, rect, font, fill);
+    }
+
+    unsafe fn draw_text(dc: Hdc, text: &str, mut rect: Rect, font: Hfont, color: u32) {
+        let previous = SelectObject(dc, font);
+        SetTextColor(dc, color);
+        let text = wide(text);
+        DrawTextW(
+            dc,
+            text.as_ptr(),
+            text.len() as i32 - 1,
+            &mut rect,
+            DT_CENTER | DT_VCENTER | DT_SINGLELINE,
+        );
+        SelectObject(dc, previous);
+    }
+
+    unsafe fn fill_rect(dc: Hdc, rect: Rect, color: u32) {
+        let brush = CreateSolidBrush(color);
+        FillRect(dc, &rect, brush);
+        DeleteObject(brush);
+    }
+
+    unsafe fn fill_round_rect(dc: Hdc, rect: Rect, color: u32) {
+        let brush = CreateSolidBrush(color);
+        let previous = SelectObject(dc, brush);
+        RoundRect(dc, rect.left, rect.top, rect.right, rect.bottom, 12, 12);
+        SelectObject(dc, previous);
+        DeleteObject(brush);
+    }
+
+    fn offset_rect(rect: Rect, x: i32, y: i32) -> Rect {
+        Rect {
+            left: rect.left + x,
+            top: rect.top + y,
+            right: rect.right + x,
+            bottom: rect.bottom + y,
+        }
+    }
+
+    fn rgb(red: u8, green: u8, blue: u8) -> u32 {
+        red as u32 | ((green as u32) << 8) | ((blue as u32) << 16)
+    }
+
     fn configure_preview(cfg: &mut Config) {
         cfg.hd = false;
         let aspect = cfg.width as f32 / cfg.height.max(1) as f32;
@@ -794,7 +1370,11 @@ mod windows {
     }
 
     fn music_asset_path() -> Option<PathBuf> {
-        let relative = Path::new("assets").join("musica_epica_naruto.mp3");
+        asset_path("musica_epica_naruto.mp3")
+    }
+
+    fn asset_path(file_name: &str) -> Option<PathBuf> {
+        let relative = Path::new("assets").join(file_name);
         let mut candidates = vec![relative.clone()];
         if let Ok(executable) = std::env::current_exe() {
             if let Some(directory) = executable.parent() {

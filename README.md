@@ -111,6 +111,8 @@ Abrir el diorama en una ventana nativa de Windows:
 cargo run --release -- --window --width 400 --height 225
 ```
 
+Al abrirse, el menu principal presenta el titulo `NARUTO SHIPPUDEN` sobre una vista de Konoha y una identidad visual inspirada en la serie. `Iniciar`, `Controles`, `Musica` y `Salir` pueden seleccionarse con el mouse o con flechas y `Enter`.
+
 Controles:
 
 - Mover el mouse dentro de la ventana: dirigir la mirada de la camara.
